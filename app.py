@@ -33,28 +33,25 @@ with st.sidebar:
         orientation="vertical",
     )
 
-    # Initialize sub-selection state
+    # Initialize sub-selection state for Assignments and Quizzes
     sub_selected = None
-
-    # Render sub-options for Assignments and Quizzes dynamically
     if selected in ["Assignments", "Quizzes"]:
         sub_selected = st.radio(
             f"Select a {selected[:-1]}",
             list(menu_options[selected].keys()),
-            index=0,  # Default to first item for display
             key=f"{selected}_selection",
         )
         if sub_selected:
             selected = menu_options[selected][sub_selected]
         else:
-            selected = "home"
+            selected = "home"  # Stay on Home if no sub-option is selected
     else:
         selected = menu_options[selected]
 
 # Main content area
 try:
     if selected == "home":
-        home.show()
+        home.show()  # Display the Home page
     else:
         module = importlib.import_module(selected)
         if hasattr(module, 'show'):
