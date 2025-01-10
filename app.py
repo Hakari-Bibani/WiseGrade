@@ -23,7 +23,7 @@ with st.sidebar:
         "Help": "help"
     }
 
-    # Render menu
+    # Render main options
     selected = option_menu(
         menu_title=None,
         options=list(menu_options.keys()),
@@ -33,23 +33,34 @@ with st.sidebar:
         orientation="vertical",
     )
 
+    # Initialize sub-selection state
+    sub_selected = None
+
     # Render sub-options for Assignments and Quizzes dynamically
     if selected in ["Assignments", "Quizzes"]:
         sub_selected = st.radio(
             f"Select a {selected[:-1]}",
             list(menu_options[selected].keys()),
+            index=0,  # Default to first item for display
+            key=f"{selected}_selection",
         )
-        selected = menu_options[selected][sub_selected]
+        if sub_selected:
+            selected = menu_options[selected][sub_selected]
+        else:
+            selected = "home"
     else:
         selected = menu_options[selected]
 
 # Main content area
 try:
-    module = importlib.import_module(selected)
-    if hasattr(module, 'show'):
-        module.show()
+    if selected == "home":
+        home.show()
     else:
-        st.error(f"The module '{selected}' does not have a 'show' method.")
+        module = importlib.import_module(selected)
+        if hasattr(module, 'show'):
+            module.show()
+        else:
+            st.error(f"The module '{selected}' does not have a 'show' method.")
 except ImportError:
     st.error(f"Module '{selected}' not found.")
 
@@ -59,4 +70,3 @@ st.markdown("""
         GradeWise © 2024 - Your Partner in Academic Success
     </div>
 """, unsafe_allow_html=True)
-
