@@ -36,15 +36,17 @@ with st.sidebar:
     # Initialize sub-selection state for Assignments and Quizzes
     sub_selected = None
     if selected in ["Assignments", "Quizzes"]:
-        sub_selected = st.radio(
+        # Add a placeholder option to avoid default selection
+        options = ["Select"] + list(menu_options[selected].keys())
+        sub_selected = st.selectbox(
             f"Select a {selected[:-1]}",
-            list(menu_options[selected].keys()),
+            options,
             key=f"{selected}_selection",
         )
-        if sub_selected:
+        if sub_selected != "Select":
             selected = menu_options[selected][sub_selected]
         else:
-            selected = "home"  # Stay on Home if no sub-option is selected
+            selected = "home"  # Stay on Home if no valid sub-option is selected
     else:
         selected = menu_options[selected]
 
