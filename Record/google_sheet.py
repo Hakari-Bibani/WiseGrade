@@ -43,8 +43,8 @@ def update_google_sheet(full_name, email, student_id, grade, column_name):
             worksheet.append_row(new_row)
             st.success(f"Added new row for {email} with grade in column '{column_name}'.")
 
-    except gspread.exceptions.CellNotFound:
-        st.error(f"The email '{email}' was not found.")
+    except gspread.exceptions.APIError as e:
+        st.error(f"An API error occurred while interacting with Google Sheets: {e}")
     except KeyError as e:
         st.error(f"Missing key in Streamlit secrets: {e}")
     except Exception as e:
