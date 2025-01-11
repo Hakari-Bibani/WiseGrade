@@ -5,7 +5,10 @@ from Record.google_sheet import update_google_sheet
 import random
 import string
 
-# Function to generate a unique Student ID
+# Set the page style
+set_page_style()
+
+# Generate a unique Student ID
 def generate_student_id(name, email):
     if name and email:
         random_numbers = ''.join(random.choices(string.digits, k=4))
@@ -13,11 +16,7 @@ def generate_student_id(name, email):
         return random_numbers + random_letter
     return "N/A"
 
-def main():
-    # Set the page style
-    set_page_style()
-
-    # Streamlit UI
+def show():
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
     # Student Information Form
@@ -25,7 +24,7 @@ def main():
         # Fields for student information
         full_name = st.text_input("Full Name", key="full_name")
         email = st.text_input("Email", key="email")
-        
+
         # Generate Student ID dynamically
         student_id = generate_student_id(full_name, email)
         st.write(f"Student ID: {student_id}")
@@ -77,7 +76,3 @@ def main():
             st.success(f"Submission successful! Your grade: {grade}/100")
         else:
             st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
-
-# Entry point
-if __name__ == "__main__":
-    main()
