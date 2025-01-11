@@ -1,3 +1,5 @@
+import streamlit as st
+
 def apply_style():
     """
     Apply custom styles to the Streamlit app.
