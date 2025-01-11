@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from geopy.distance import geodesic
 import folium
 from streamlit_folium import folium_static
