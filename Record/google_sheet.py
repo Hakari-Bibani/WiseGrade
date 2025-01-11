@@ -2,7 +2,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
 
-def update_google_sheet(full_name, email, student_id, grade, column_name):
+def update_google_sheet(full_name, email, student_id, grade, current_assignment):
     try:
         # Load secrets
         google_sheets_secrets = st.secrets["google_sheets"]
@@ -20,29 +20,30 @@ def update_google_sheet(full_name, email, student_id, grade, column_name):
         spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
         worksheet = spreadsheet.sheet1
 
-        # Check if email already exists in the sheet
+        # Check if email exists in the sheet
         cell = worksheet.find(email)
         if cell:
-            # If email exists, update the grade
+            # If email exists, check if resubmission is allowed
             row = cell.row
-            col_cell = worksheet.find(column_name)
-            if col_cell:
-                col = col_cell.col
-                worksheet.update_cell(row, col, grade)
-            else:
-                st.error(f"Column '{column_name}' not found in the sheet.")
-        else:
-            # If email doesn't exist, append a new row
-            # Ensure the column exists first
-            col_cell = worksheet.find(column_name)
-            if not col_cell:
-                st.error(f"Column '{column_name}' not found in the sheet.")
-                return
+            all_columns = worksheet.row_values(1)
+            current_assignment_index = all_columns.index(current_assignment)
 
-            # Prepare new row
+            # Check for later submissions
+            for col in all_columns[current_assignment_index + 1:]:
+                col_value = worksheet.cell(row, all_columns.index(col) + 1).value
+                if col_value and col_value.strip():
+                    st.error(f"Resubmission not allowed for {current_assignment} as later assignments are already submitted.")
+                    return
+
+            # Update the grade for the current assignment
+            worksheet.update_cell(row, current_assignment_index + 1, grade)
+            st.success(f"Resubmission successful for {current_assignment}. Your grade: {grade}/100")
+        else:
+            # Add a new row for the student if email doesn't exist
             new_row = [full_name, email, student_id] + [""] * (worksheet.col_count - 3)
-            new_row[col_cell.col - 1] = grade
+            new_row[all_columns.index(current_assignment)] = grade
             worksheet.append_row(new_row)
+            st.success(f"Submission successful for {current_assignment}. Your grade: {grade}/100")
 
     except gspread.exceptions.CellNotFound as e:
         st.error(f"Error: {e}. Ensure the column or email exists in the sheet.")
