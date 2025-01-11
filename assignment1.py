@@ -1,9 +1,11 @@
 import streamlit as st
-import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import hashlib
 import re
+import folium
+from geopy.distance import geodesic
+from streamlit_folium import folium_static
 
 # Load Google Sheets API credentials securely
 def load_google_sheets_api():
@@ -36,6 +38,15 @@ def save_to_google_sheets(data):
     else:
         # Append new record
         sheet.append_row(list(data.values()))
+
+# Show the map using folium
+def show_map(code):
+    # Execute the code to generate the map
+    exec(code, globals(), locals())
+    if 'mymap' in locals():
+        folium_static(locals()['mymap'])  # Display the map using streamlit-folium
+    else:
+        st.error("The code did not generate a map. Ensure the map variable is named 'mymap'.")
 
 # Streamlit UI
 def main():
@@ -71,7 +82,7 @@ def main():
             if st.button("Run"):
                 if code:
                     try:
-                        exec(code)
+                        show_map(code)  # Display the map
                         st.success("Code executed successfully!")
                     except Exception as e:
                         st.error(f"Error: {e}")
