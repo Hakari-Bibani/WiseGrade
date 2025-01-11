@@ -9,8 +9,10 @@ set_page_style()
 
 # Generate a unique Student ID
 def generate_student_id(name, email):
-    unique_id = str(uuid.uuid4().int)[:4] + email[0].upper()
-    return unique_id
+    if name and email:
+        unique_id = str(uuid.uuid4().int)[:4] + email[0].upper()
+        return unique_id
+    return None
 
 # Streamlit UI
 st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
@@ -20,8 +22,13 @@ with st.form("student_form", clear_on_submit=False):
     # Fields for student information
     full_name = st.text_input("Full Name", key="full_name")
     email = st.text_input("Email", key="email")
-    student_id = generate_student_id(full_name, email) if full_name and email else "N/A"
-    st.write(f"Student ID: {student_id}")
+
+    # Generate Student ID only when Full Name and Email are filled
+    student_id = generate_student_id(full_name, email)
+    if student_id:
+        st.write(f"Student ID: {student_id}")
+    else:
+        st.write("Student ID: N/A (Fill in both Full Name and Email to generate)")
 
     # Tabs for assignment and grading details
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
@@ -64,6 +71,9 @@ if run_button and code_input:
 
 # Submit and grade
 if submit_button and code_input:
-    grade = grade_assignment(code_input)
-    update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-    st.success(f"Submission successful! Your grade: {grade}/100")
+    if not full_name or not email:
+        st.error("Please fill in both Full Name and Email before submitting.")
+    else:
+        grade = grade_assignment(code_input)
+        update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+        st.success(f"Submission successful! Your grade: {grade}/100")
