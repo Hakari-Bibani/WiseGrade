@@ -6,6 +6,7 @@ import re
 import folium
 from geopy.distance import geodesic
 from streamlit_folium import folium_static
+import pandas as pd
 
 # Load Google Sheets API credentials securely
 def load_google_sheets_api():
