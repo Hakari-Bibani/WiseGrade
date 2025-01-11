@@ -1,35 +1,19 @@
 import streamlit as st
 
-def apply_style():
-    # Custom CSS for styling
-    st.markdown(
-        """
+def apply_custom_styles():
+    st.markdown("""
         <style>
-        .stTextInput input, .stTextArea textarea {
-            border: 2px solid #4CAF50;
-            border-radius: 5px;
+        input {
+            font-size: 16px;
+            padding: 5px;
         }
-        .stButton button {
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 5px;
-            padding: 10px 20px;
+        textarea {
             font-size: 16px;
         }
-        .stButton button:hover {
-            background-color: #45a049;
-        }
-        .stTabs [role="tab"] {
-            background-color: #f0f2f6;
-            color: #4CAF50;
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .stTabs [aria-selected="true"] {
+        button {
+            font-size: 16px;
             background-color: #4CAF50;
             color: white;
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
