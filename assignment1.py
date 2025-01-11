@@ -4,6 +4,7 @@ from grades.grade1 import grade_assignment
 from Record.google_sheet import update_google_sheet
 import random
 import string
+import traceback
 
 # Set the page style
 set_page_style()
@@ -63,10 +64,29 @@ def show():
     # Execute the code
     if run_button and code_input:
         try:
-            exec(code_input)
-            st.success("Code executed successfully. Check the map and output summary.")
+            # Create a local dictionary to capture code execution results
+            local_context = {}
+            exec(code_input, {}, local_context)
+
+            # Check for expected outputs (map and summary text)
+            if "map_kurdistan" in local_context and "df_distances" in local_context:
+                st.success("Code executed successfully!")
+                
+                # Display the map
+                map_object = local_context["map_kurdistan"]
+                map_object.save("map_kurdistan.html")
+                st.markdown("### Generated Map")
+                st.components.v1.html(map_object._repr_html_(), height=500)
+
+                # Display the distance summary
+                st.markdown("### Distance Summary")
+                df_distances = local_context["df_distances"]
+                st.write(df_distances)
+            else:
+                st.warning("Your code executed without errors, but the expected outputs (map and distances) were not found.")
         except Exception as e:
-            st.error(f"Error executing code: {e}")
+            st.error("An error occurred while executing your code:")
+            st.error(traceback.format_exc())
 
     # Submit and grade
     if submit_button and code_input:
