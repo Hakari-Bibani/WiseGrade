@@ -21,7 +21,11 @@ def update_google_sheet(full_name, email, student_id, grade, current_assignment)
         worksheet = spreadsheet.sheet1
 
         # Check if email exists in the sheet
-        cell = worksheet.find(email)
+        try:
+            cell = worksheet.find(email)  # Locate email in the sheet
+        except gspread.exceptions.APIError:
+            cell = None
+
         if cell:
             # If email exists, check if resubmission is allowed
             row = cell.row
@@ -40,13 +44,14 @@ def update_google_sheet(full_name, email, student_id, grade, current_assignment)
             st.success(f"Resubmission successful for {current_assignment}. Your grade: {grade}/100")
         else:
             # Add a new row for the student if email doesn't exist
-            new_row = [full_name, email, student_id] + [""] * (worksheet.col_count - 3)
+            all_columns = worksheet.row_values(1)
+            new_row = [full_name, email, student_id] + [""] * (len(all_columns) - 3)
             new_row[all_columns.index(current_assignment)] = grade
             worksheet.append_row(new_row)
             st.success(f"Submission successful for {current_assignment}. Your grade: {grade}/100")
 
-    except gspread.exceptions.CellNotFound as e:
-        st.error(f"Error: {e}. Ensure the column or email exists in the sheet.")
+    except gspread.exceptions.APIError as e:
+        st.error(f"Google Sheets API Error: {e}")
     except KeyError as e:
         st.error(f"Missing key in Streamlit secrets: {e}")
     except Exception as e:
