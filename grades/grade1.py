@@ -1,30 +1,27 @@
-def calculate_grade(user_code):
-    """
-    Calculate the grade for Assignment 1 based on the submitted code.
-    """
+import re
+
+def calculate_grade(code_input):
     grade = 0
 
-    # Check for required libraries
-    required_libraries = ["folium", "geopy", "geodesic"]
-    for lib in required_libraries:
-        if lib in user_code:
-            grade += 1.67
+    # Check library imports
+    required_imports = ["import folium", "from geopy.distance import geodesic"]
+    grade += sum(1.67 for imp in required_imports if imp in code_input)
 
-    # Check for distance calculations
-    if "geodesic" in user_code and "kilometers" in user_code:
-        grade += 20
+    # Check for coordinates
+    coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
+    grade += sum(1.67 for coord in coordinates if coord in code_input)
 
-    # Check for map plotting
-    if "folium.Map" in user_code and "folium.Marker" in user_code:
+    # Check map generation and polyline
+    if "folium.Map" in code_input:
         grade += 15
-
-    # Check for polylines
-    if "folium.PolyLine" in user_code:
+    if "folium.Marker" in code_input:
+        grade += 15
+    if "folium.PolyLine" in code_input:
         grade += 5
 
-    # Check for popups
-    if "popup" in user_code:
-        grade += 5
+    # Check geodesic and distance calculations
+    if "geodesic" in code_input:
+        grade += 10
 
-    # Ensure grade does not exceed 100
+    # Calculate total grade
     return min(grade, 100)
