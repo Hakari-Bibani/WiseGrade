@@ -1,75 +1,117 @@
 import streamlit as st
-import random
-import string
-from style1 import apply_custom_styles
-from grade1 import calculate_grade
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import hashlib
+import re
+import folium
+from geopy.distance import geodesic
+from streamlit_folium import folium_static
+import pandas as pd
 
-# Google Sheets setup
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["GOOGLE_SHEET_KEY"], scope)
-gc = gspread.authorize(credentials)
-sheet = gc.open("WG").sheet1  # Open Google Sheet
+# Load Google Sheets API credentials securely
+def load_google_sheets_api():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["google_creds"], scope)
+    client = gspread.authorize(creds)
+    return client
 
+# Generate a unique Student ID
 def generate_student_id(full_name, email):
-    unique_part = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
-    return f"{unique_part}-{email[:1].upper()}"
+    # Combine name and email, hash it, and take the first 4 digits + a letter
+    combined = f"{full_name}{email}"
+    hashed = hashlib.sha256(combined.encode()).hexdigest()
+    numbers = re.sub(r"[^0-9]", "", hashed)[:4]  # Extract first 4 digits
+    letter = chr(ord('A') + int(numbers) % 26)  # Generate a letter
+    return f"{numbers}{letter}"
 
-def app():
-    st.title("Assignment 1 Submission")
-    apply_custom_styles()
+# Save data to Google Sheets
+def save_to_google_sheets(data):
+    client = load_google_sheets_api()
+    sheet = client.open("WG").sheet1
+    df = pd.DataFrame(sheet.get_all_records())
 
-    # Tabs for UI
+    # Check if the email already exists
+    if data["email"] in df["email"].values:
+        # Update existing record
+        index = df.index[df["email"] == data["email"]].tolist()[0]
+        for key, value in data.items():
+            sheet.update_cell(index + 2, df.columns.get_loc(key) + 1, value)
+    else:
+        # Append new record
+        sheet.append_row(list(data.values()))
+
+# Show the map using folium
+def show_map(code):
+    # Execute the code to generate the map
+    exec(code, globals(), locals())
+    if 'mymap' in locals():
+        folium_static(locals()['mymap'])  # Display the map using streamlit-folium
+    else:
+        st.error("The code did not generate a map. Ensure the map variable is named 'mymap'.")
+
+# Main function to display the assignment submission portal
+def show():
+    st.title("Assignment Submission Portal")
+
+    # Input fields
+    full_name = st.text_input("Full Name")
+    email = st.text_input("Email")
+    student_id = st.text_input("Student ID", value="", disabled=True)
+
+    # Generate Student ID
+    if full_name and email:
+        student_id = generate_student_id(full_name, email)
+        st.session_state.student_id = student_id
+
+    # Tabbed interface
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
-    # Tab 1: Assignment Details
     with tab1:
-        st.subheader("Assignment Details")
-        st.write("Objective: Write a Python script to plot three coordinates on a map and calculate distances.")
-        if st.button("Read More"):
-            st.write("""
-                - Use geopy and folium libraries.
-                - Expected outputs: Map visualization and CSV summary.
-            """)
+        st.header("Assignment 1 Details")
+        st.write("Plot three geographical coordinates on a map and calculate distances.")
+        st.write("**Requirements:**")
+        st.write("- Use `folium` for mapping.")
+        st.write("- Use `geopy` for distance calculations.")
+        st.write("- Submit your code below.")
 
-        # User Inputs
-        full_name = st.text_input("Full Name")
-        email = st.text_input("Email")
-        if full_name and email:
-            student_id = generate_student_id(full_name, email)
-            st.text_input("Student ID (Auto-generated)", student_id, disabled=True)
+        # Code input
+        code = st.text_area("Paste your Python code here:", height=300)
 
-    # Tab 2: Code Submission
-    with tab2:
-        st.subheader("Submit Your Code")
-        code_input = st.text_area("Paste your code here:")
+        # Buttons
         col1, col2 = st.columns(2)
-
         with col1:
             if st.button("Run"):
-                try:
-                    exec(code_input)  # Unsafe in production; consider alternatives
-                    st.success("Code executed successfully!")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                if code:
+                    try:
+                        show_map(code)  # Display the map
+                        st.success("Code executed successfully!")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                else:
+                    st.warning("Please paste your code before running.")
 
         with col2:
             if st.button("Submit"):
-                grade = calculate_grade(code_input)
-                st.success(f"Grade: {grade}/100")
+                if full_name and email and student_id and code:
+                    data = {
+                        "full_name": full_name,
+                        "email": email,
+                        "student_ID": student_id,
+                        "assignment_1": code,
+                        "assignment_2": "",
+                        "assignment_3": "",
+                        "assignment_4": "",
+                        "quiz_1": "",
+                        "quiz_2": "",
+                        "quiz_3": "",
+                        "quiz_4": "",
+                        "total": 0,
+                    }
+                    save_to_google_sheets(data)
+                    st.success("Assignment submitted successfully!")
+                else:
+                    st.warning("Please fill all fields before submitting.")
 
-                # Save or update submission in Google Sheet
-                existing_data = sheet.get_all_records()
-                found = False
-                for i, row in enumerate(existing_data, start=2):  # Skip header
-                    if row["email"] == email:
-                        found = True
-                        sheet.update(f"D{i}", grade)  # Update assignment_1
-                        st.info("Submission updated.")
-                        break
-                if not found:
-                    # Insert new row
-                    sheet.append_row([full_name, email, student_id, grade, "", "", "", "", "", "", ""])
-                    st.info("Submission saved.")
-
+    with tab2:
+        st.header("Grading Details")
+        st.write("Your grades will be displayed here after submission.")
