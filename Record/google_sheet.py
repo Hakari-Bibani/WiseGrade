@@ -48,4 +48,4 @@ def update_google_sheet(full_name, email, student_id, grade, column_name):
     except KeyError as e:
         st.error(f"Missing key in Streamlit secrets: {e}")
     except Exception as e:
-        st.error(f"An error occurred while updating the Google Sheet: {e}")
+        st.error(f"An unexpected error occurred while updating the Google Sheet: {e}")
