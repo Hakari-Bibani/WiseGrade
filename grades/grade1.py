@@ -1,27 +1,47 @@
-import re
+import streamlit as st
 
-def calculate_grade(code_input):
+def calculate_grade(code):
+    # Placeholder grading logic (replace with actual grading criteria)
     grade = 0
 
-    # Check library imports
-    required_imports = ["import folium", "from geopy.distance import geodesic"]
-    grade += sum(1.67 for imp in required_imports if imp in code_input)
+    # Check if required libraries are imported
+    if "import folium" in code and "from geopy.distance import geodesic" in code:
+        grade += 5  # Library Imports
 
-    # Check for coordinates
-    coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
-    grade += sum(1.67 for coord in coordinates if coord in code_input)
+    # Check if coordinates are defined
+    if "point1" in code and "point2" in code and "point3" in code:
+        grade += 5  # Coordinate Handling
 
-    # Check map generation and polyline
-    if "folium.Map" in code_input:
-        grade += 15
-    if "folium.Marker" in code_input:
-        grade += 15
-    if "folium.PolyLine" in code_input:
-        grade += 5
+    # Check if code runs without errors
+    try:
+        exec(code)
+        grade += 10  # Code Execution
+    except:
+        pass
 
-    # Check geodesic and distance calculations
-    if "geodesic" in code_input:
-        grade += 10
+    # Check code quality (basic checks)
+    if "=" in code and "#" in code and "\n\n" in code:
+        grade += 10  # Code Quality
 
-    # Calculate total grade
-    return min(grade, 100)
+    # Check map visualization components
+    if "folium.Map" in code and "folium.Marker" in code and "folium.PolyLine" in code:
+        grade += 40  # Map Visualization
+
+    # Check distance calculations
+    if "geodesic(point1, point2)" in code:
+        grade += 30  # Distance Calculations
+
+    return grade
+
+# Streamlit UI for grading
+st.title("Assignment 1 Grading")
+
+# Input field for code
+code = st.text_area("Paste your Python code here:", height=300)
+
+if st.button("Calculate Grade"):
+    if code:
+        grade = calculate_grade(code)
+        st.success(f"Your grade for Assignment 1 is: {grade}/100")
+    else:
+        st.warning("Please paste your code before calculating the grade.")
