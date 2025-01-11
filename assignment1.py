@@ -40,13 +40,23 @@ def save_to_google_sheets(data):
         sheet.append_row(list(data.values()))
 
 # Show the map using folium
-def show_map(code):
-    # Execute the code to generate the map
-    exec(code, globals(), locals())
-    if 'mymap' in locals():
-        folium_static(locals()['mymap'])  # Display the map using streamlit-folium
-    else:
-        st.error("The code did not generate a map. Ensure the map variable is named 'mymap'.")
+def show(code):
+    """
+    Execute the student's code and display the map.
+    """
+    try:
+        # Execute the code in a safe environment
+        exec_globals = {"folium": folium, "geodesic": geodesic}
+        exec_locals = {}
+        exec(code, exec_globals, exec_locals)
+
+        # Check if the map variable exists in the executed code
+        if "mymap" in exec_locals:
+            folium_static(exec_locals["mymap"])  # Display the map
+        else:
+            st.error("The code did not generate a map. Ensure the map variable is named 'mymap'.")
+    except Exception as e:
+        st.error(f"Error executing code: {e}")
 
 # Streamlit UI
 def main():
@@ -81,11 +91,7 @@ def main():
         with col1:
             if st.button("Run"):
                 if code:
-                    try:
-                        show_map(code)  # Display the map
-                        st.success("Code executed successfully!")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                    show(code)  # Display the map using the 'show' method
                 else:
                     st.warning("Please paste your code before running.")
 
