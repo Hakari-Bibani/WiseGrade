@@ -3,13 +3,19 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import hashlib
 
+# Debug: Print all secrets
+st.write("Secrets:", st.secrets)
+
 # Load Google Sheets API credentials from Streamlit secrets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["google_credentials"], scope)
-client = gspread.authorize(creds)
-
-# Open the Google Sheet
-sheet = client.open("WG").sheet1
+try:
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["google_credentials"], scope)
+    client = gspread.authorize(creds)
+    st.success("Google Sheets API credentials loaded successfully!")
+except KeyError:
+    st.error("KeyError: 'google_credentials' not found in Streamlit Secrets. Please check your secrets configuration.")
+except Exception as e:
+    st.error(f"An error occurred: {e}")
 
 # Function to generate a unique Student ID
 def generate_student_id(full_name, email):
