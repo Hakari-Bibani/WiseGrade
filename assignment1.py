@@ -15,14 +15,15 @@ def generate_student_id(name, email):
 # Streamlit UI
 st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-# Student Information
-with st.form("student_form"):
+# Student Information Form
+with st.form("student_form", clear_on_submit=False):
+    # Fields for student information
     full_name = st.text_input("Full Name", key="full_name")
     email = st.text_input("Email", key="email")
     student_id = generate_student_id(full_name, email) if full_name and email else "N/A"
     st.write(f"Student ID: {student_id}")
 
-    # Tabs for Assignment and Grading Details
+    # Tabs for assignment and grading details
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
     with tab1:
@@ -34,8 +35,7 @@ with st.form("student_form"):
         - Point 2: Latitude: 36.393432, Longitude: 44.586781
         - Point 3: Latitude: 36.660477, Longitude: 43.840174
         """)
-        if st.button("Read More", key="read_more"):
-            st.markdown("Expand for detailed instructions...")
+        st.markdown("Expand for detailed instructions...")
 
     with tab2:
         st.markdown("""
@@ -47,10 +47,10 @@ with st.form("student_form"):
         - Distance Calculations: 30 points
         """)
 
-    # Code Submission
+    # Code Submission Area
     code_input = st.text_area("Paste Your Code Here")
 
-    # Buttons
+    # Form Submit Buttons
     run_button = st.form_submit_button("Run")
     submit_button = st.form_submit_button("Submit")
 
