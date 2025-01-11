@@ -1,132 +1,75 @@
 import streamlit as st
-from geopy.distance import geodesic
-import folium
-from streamlit_folium import folium_static
-from utils.style1 import apply_style
-from grades.grade1 import calculate_grade
-from Record.google_sheet import save_to_sheet  # Correct import path
+import random
+import string
+from style1 import apply_custom_styles
+from grade1 import calculate_grade
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Apply custom styles
-apply_style()
+# Google Sheets setup
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["GOOGLE_SHEET_KEY"], scope)
+gc = gspread.authorize(credentials)
+sheet = gc.open("WG").sheet1  # Open Google Sheet
 
-# Function to generate Student ID
 def generate_student_id(full_name, email):
-    import hashlib
-    unique_string = f"{full_name}{email}"
-    hash_object = hashlib.md5(unique_string.encode())
-    hash_hex = hash_object.hexdigest()
-    student_id = hash_hex[:4].upper() + "A"  # Example: 4 numbers + 1 alphabet
-    return student_id
+    unique_part = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return f"{unique_part}-{email[:1].upper()}"
 
-# Function to calculate distances between coordinates
-def calculate_distances(point1, point2, point3):
-    distance_1_2 = geodesic(point1, point2).kilometers
-    distance_2_3 = geodesic(point2, point3).kilometers
-    distance_1_3 = geodesic(point1, point3).kilometers
-    return distance_1_2, distance_2_3, distance_1_3
+def app():
+    st.title("Assignment 1 Submission")
+    apply_custom_styles()
 
-# Function to plot coordinates on a map
-def plot_map(point1, point2, point3):
-    map_center = point1
-    mymap = folium.Map(location=map_center, zoom_start=8)
-    folium.Marker(location=point1, popup="Point 1").add_to(mymap)
-    folium.Marker(location=point2, popup="Point 2").add_to(mymap)
-    folium.Marker(location=point3, popup="Point 3").add_to(mymap)
-    folium.PolyLine(locations=[point1, point2, point3], color="blue").add_to(mymap)
-    return mymap
-
-# Main function for the assignment
-def assignment1():
-    st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
-
-    # Input fields for Full Name and Email
-    full_name = st.text_input("Full Name")
-    email = st.text_input("Email")
-
-    # Generate Student ID
-    if full_name and email:
-        student_id = generate_student_id(full_name, email)
-        st.write(f"Your Student ID: **{student_id}**")
-    else:
-        student_id = None
-
-    # Tabbed interface for Assignment and Grading Details
+    # Tabs for UI
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
+    # Tab 1: Assignment Details
     with tab1:
-        st.write("""
-        **Assignment: Week 1 – Mapping Coordinates and Calculating Distances in Python**
+        st.subheader("Assignment Details")
+        st.write("Objective: Write a Python script to plot three coordinates on a map and calculate distances.")
+        if st.button("Read More"):
+            st.write("""
+                - Use geopy and folium libraries.
+                - Expected outputs: Map visualization and CSV summary.
+            """)
 
-        **Objective:**
-        In this assignment, you will write a Python script to plot three geographical coordinates on a map and calculate the distance between each pair of points in kilometers. This will help you practice working with geospatial data and Python libraries for mapping and calculations.
-        """)
+        # User Inputs
+        full_name = st.text_input("Full Name")
+        email = st.text_input("Email")
+        if full_name and email:
+            student_id = generate_student_id(full_name, email)
+            st.text_input("Student ID (Auto-generated)", student_id, disabled=True)
 
+    # Tab 2: Code Submission
     with tab2:
-        st.write("""
-        **Grading Details:**
+        st.subheader("Submit Your Code")
+        code_input = st.text_area("Paste your code here:")
+        col1, col2 = st.columns(2)
 
-        **a. Library Imports (5 points)**
-        - Description: Checks if the required libraries (`folium`, `geopy`, `geodesic`) are imported.
-        - Points Allocation:
-          - 1.67 points per correct import (total of 3 libraries).
-        - How Points Are Awarded:
-          - If all three libraries are imported: 5 points.
-        """)
+        with col1:
+            if st.button("Run"):
+                try:
+                    exec(code_input)  # Unsafe in production; consider alternatives
+                    st.success("Code executed successfully!")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
-    # Code input cell
-    st.subheader("Code Submission")
-    user_code = st.text_area("Paste your Python code here:", height=300)
+        with col2:
+            if st.button("Submit"):
+                grade = calculate_grade(code_input)
+                st.success(f"Grade: {grade}/100")
 
-    # Buttons for Run and Submit
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Run"):
-            try:
-                # Execute user code
-                exec(user_code)
+                # Save or update submission in Google Sheet
+                existing_data = sheet.get_all_records()
+                found = False
+                for i, row in enumerate(existing_data, start=2):  # Skip header
+                    if row["email"] == email:
+                        found = True
+                        sheet.update(f"D{i}", grade)  # Update assignment_1
+                        st.info("Submission updated.")
+                        break
+                if not found:
+                    # Insert new row
+                    sheet.append_row([full_name, email, student_id, grade, "", "", "", "", "", "", ""])
+                    st.info("Submission saved.")
 
-                # Plot the map
-                point1 = (36.325735, 43.928414)  # Point 1
-                point2 = (36.393432, 44.586781)  # Point 2
-                point3 = (36.660477, 43.840174)  # Point 3
-                mymap = plot_map(point1, point2, point3)
-                folium_static(mymap)  # Display the map
-
-                # Calculate and display distances
-                distance_1_2 = geodesic(point1, point2).kilometers
-                distance_2_3 = geodesic(point2, point3).kilometers
-                distance_1_3 = geodesic(point1, point3).kilometers
-
-                st.subheader("Distance Summary (in kilometers):")
-                st.write(f"Distance between Point 1 and Point 2: **{distance_1_2:.2f} km**")
-                st.write(f"Distance between Point 2 and Point 3: **{distance_2_3:.2f} km**")
-                st.write(f"Distance between Point 1 and Point 3: **{distance_1_3:.2f} km**")
-
-                st.success("Code executed successfully!")
-            except Exception as e:
-                st.error(f"Error executing code: {e}")
-
-    with col2:
-        if st.button("Submit"):
-            if not student_id:
-                st.error("Please fill in Full Name and Email to generate Student ID.")
-            else:
-                # Calculate grade
-                grade = calculate_grade(user_code)
-                st.write(f"Your Grade: **{grade}/100**")
-
-                # Save data to Google Sheet
-                data = {
-                    "full_name": full_name,
-                    "email": email,
-                    "student_ID": student_id,
-                    "assignment_1": grade,
-                }
-                if save_to_sheet(data):  # Save to Google Sheet
-                    st.success("Submission saved successfully!")
-                else:
-                    st.error("Failed to save submission.")
-
-# Run the assignment
-if __name__ == "__main__":
-    assignment1()
