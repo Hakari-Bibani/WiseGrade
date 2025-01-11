@@ -1,47 +1,39 @@
-import streamlit as st
-
 def calculate_grade(code):
-    # Placeholder grading logic (replace with actual grading criteria)
-    grade = 0
+    """Calculate the grade for the submitted code."""
+    # Check for required libraries
+    required_libraries = ["folium", "geopy", "geodesic"]
+    library_score = 0
+    for lib in required_libraries:
+        if f"import {lib}" in code or f"from {lib}" in code:
+            library_score += 1.67
 
-    # Check if required libraries are imported
-    if "import folium" in code and "from geopy.distance import geodesic" in code:
-        grade += 5  # Library Imports
+    # Check for coordinate handling
+    coordinates = [
+        (36.325735, 43.928414),
+        (36.393432, 44.586781),
+        (36.660477, 43.840174),
+    ]
+    coordinate_score = 0
+    for lat, lon in coordinates:
+        if f"{lat}" in code and f"{lon}" in code:
+            coordinate_score += 1.67
 
-    # Check if coordinates are defined
-    if "point1" in code and "point2" in code and "point3" in code:
-        grade += 5  # Coordinate Handling
+    # Check for distance calculations
+    distance_score = 0
+    if "geodesic(" in code:
+        distance_score += 10
 
-    # Check if code runs without errors
-    try:
-        exec(code)
-        grade += 10  # Code Execution
-    except:
-        pass
+    # Check for map visualization
+    map_score = 0
+    if "folium.Map(" in code:
+        map_score += 15
+    if "folium.Marker(" in code:
+        map_score += 15
+    if "folium.PolyLine(" in code:
+        map_score += 5
+    if "popup=" in code:
+        map_score += 5
 
-    # Check code quality (basic checks)
-    if "=" in code and "#" in code and "\n\n" in code:
-        grade += 10  # Code Quality
-
-    # Check map visualization components
-    if "folium.Map" in code and "folium.Marker" in code and "folium.PolyLine" in code:
-        grade += 40  # Map Visualization
-
-    # Check distance calculations
-    if "geodesic(point1, point2)" in code:
-        grade += 30  # Distance Calculations
-
-    return grade
-
-# Streamlit UI for grading
-st.title("Assignment 1 Grading")
-
-# Input field for code
-code = st.text_area("Paste your Python code here:", height=300)
-
-if st.button("Calculate Grade"):
-    if code:
-        grade = calculate_grade(code)
-        st.success(f"Your grade for Assignment 1 is: {grade}/100")
-    else:
-        st.warning("Please paste your code before calculating the grade.")
+    # Total grade
+    total_grade = library_score + coordinate_score + distance_score + map_score
+    return round(total_grade, 2)
