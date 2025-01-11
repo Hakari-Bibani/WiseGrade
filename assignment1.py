@@ -1,10 +1,10 @@
 import streamlit as st
 from geopy.distance import geodesic
 import folium
-from streamlit_folium import folium_static  # Add this import
+from streamlit_folium import folium_static
 from utils.style1 import apply_style
 from grades.grade1 import calculate_grade
-import google_sheet  # Custom module to interact with Google Sheets API
+from Record.google_sheet import save_to_sheet  # Correct import path
 
 # Apply custom styles
 apply_style()
@@ -122,8 +122,10 @@ def assignment1():
                     "student_ID": student_id,
                     "assignment_1": grade,
                 }
-                google_sheet.save_to_sheet(data)  # Save to Google Sheet
-                st.success("Submission saved successfully!")
+                if save_to_sheet(data):  # Save to Google Sheet
+                    st.success("Submission saved successfully!")
+                else:
+                    st.error("Failed to save submission.")
 
 # Run the assignment
 if __name__ == "__main__":
