@@ -1,9 +1,7 @@
 import streamlit as st
-import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import hashlib
-import re
 
 # Load Google Sheets API credentials from Streamlit secrets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -15,17 +13,14 @@ sheet = client.open("WG").sheet1
 
 # Function to generate a unique Student ID
 def generate_student_id(full_name, email):
-    # Create a hash of the full name and email
     combined = f"{full_name}{email}"
     hash_object = hashlib.sha256(combined.encode())
     hex_dig = hash_object.hexdigest()
-    # Extract the first 4 digits and a letter
     student_id = hex_dig[:4] + chr(ord('A') + int(hex_dig[4], 16) % 26)
     return student_id
 
 # Function to save data to Google Sheets
 def save_to_google_sheets(data):
-    # Check if the email already exists in the sheet
     records = sheet.get_all_records()
     email_exists = any(record["email"] == data["email"] for record in records)
     
