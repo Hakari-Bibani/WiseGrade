@@ -4,76 +4,82 @@ from grades.grade1 import grade_assignment
 from Record.google_sheet import update_google_sheet
 import uuid
 
-# Set the page style
-set_page_style()
-
-# Generate a unique Student ID
+# Function to generate a unique Student ID
 def generate_student_id(name, email):
     if name and email:
         unique_id = str(uuid.uuid4().int)[:4] + email[0].upper()
         return unique_id
     return None
 
-# Streamlit UI
-st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
+# Main function for the assignment
+def main():
+    # Set the page style
+    set_page_style()
 
-# Student Information Form
-with st.form("student_form", clear_on_submit=False):
-    # Fields for student information
-    full_name = st.text_input("Full Name", key="full_name")
-    email = st.text_input("Email", key="email")
+    # Streamlit UI
+    st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-    # Generate Student ID only when Full Name and Email are filled
-    student_id = generate_student_id(full_name, email)
-    if student_id:
-        st.write(f"Student ID: {student_id}")
-    else:
-        st.write("Student ID: N/A (Fill in both Full Name and Email to generate)")
+    # Student Information Form
+    with st.form("student_form", clear_on_submit=False):
+        # Fields for student information
+        full_name = st.text_input("Full Name", key="full_name")
+        email = st.text_input("Email", key="email")
 
-    # Tabs for assignment and grading details
-    tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+        # Generate Student ID only when Full Name and Email are filled
+        student_id = generate_student_id(full_name, email)
+        if student_id:
+            st.write(f"Student ID: {student_id}")
+        else:
+            st.write("Student ID: N/A (Fill in both Full Name and Email to generate)")
 
-    with tab1:
-        st.markdown("""
-        ### Objective
-        Plot three geographical coordinates on a map and calculate the distances between them in kilometers.
-        #### Coordinates:
-        - Point 1: Latitude: 36.325735, Longitude: 43.928414
-        - Point 2: Latitude: 36.393432, Longitude: 44.586781
-        - Point 3: Latitude: 36.660477, Longitude: 43.840174
-        """)
-        st.markdown("Expand for detailed instructions...")
+        # Tabs for assignment and grading details
+        tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
-    with tab2:
-        st.markdown("""
-        #### Grading Breakdown
-        - Library Imports: 5 points
-        - Coordinate Handling: 5 points
-        - Code Execution: 10 points
-        - Map Visualization: 40 points
-        - Distance Calculations: 30 points
-        """)
+        with tab1:
+            st.markdown("""
+            ### Objective
+            Plot three geographical coordinates on a map and calculate the distances between them in kilometers.
+            #### Coordinates:
+            - Point 1: Latitude: 36.325735, Longitude: 43.928414
+            - Point 2: Latitude: 36.393432, Longitude: 44.586781
+            - Point 3: Latitude: 36.660477, Longitude: 43.840174
+            """)
+            st.markdown("Expand for detailed instructions...")
 
-    # Code Submission Area
-    code_input = st.text_area("Paste Your Code Here")
+        with tab2:
+            st.markdown("""
+            #### Grading Breakdown
+            - Library Imports: 5 points
+            - Coordinate Handling: 5 points
+            - Code Execution: 10 points
+            - Map Visualization: 40 points
+            - Distance Calculations: 30 points
+            """)
 
-    # Form Submit Buttons
-    run_button = st.form_submit_button("Run")
-    submit_button = st.form_submit_button("Submit")
+        # Code Submission Area
+        code_input = st.text_area("Paste Your Code Here")
 
-# Execute the code
-if run_button and code_input:
-    try:
-        exec(code_input)
-        st.success("Code executed successfully. Check the map and output summary.")
-    except Exception as e:
-        st.error(f"Error executing code: {e}")
+        # Form Submit Buttons
+        run_button = st.form_submit_button("Run")
+        submit_button = st.form_submit_button("Submit")
 
-# Submit and grade
-if submit_button and code_input:
-    if not full_name or not email:
-        st.error("Please fill in both Full Name and Email before submitting.")
-    else:
-        grade = grade_assignment(code_input)
-        update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-        st.success(f"Submission successful! Your grade: {grade}/100")
+    # Execute the code
+    if run_button and code_input:
+        try:
+            exec(code_input)
+            st.success("Code executed successfully. Check the map and output summary.")
+        except Exception as e:
+            st.error(f"Error executing code: {e}")
+
+    # Submit and grade
+    if submit_button and code_input:
+        if not full_name or not email:
+            st.error("Please fill in both Full Name and Email before submitting.")
+        else:
+            grade = grade_assignment(code_input)
+            update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+            st.success(f"Submission successful! Your grade: {grade}/100")
+
+# Entry point
+if __name__ == "__main__":
+    main()
