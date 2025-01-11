@@ -3,11 +3,15 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
 
+# Debug: Print all secrets
+st.write("Secrets:", st.secrets)
+
 # Authenticate and connect to Google Sheets API
 def authenticate_google_sheets():
     try:
         # Use Streamlit secrets to get Google Sheets API credentials
         creds_dict = st.secrets["google_credentials"]
+        st.write("Credentials found in secrets.toml.")
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
