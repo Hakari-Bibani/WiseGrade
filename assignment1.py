@@ -1,7 +1,7 @@
 import streamlit as st
 from geopy.distance import geodesic
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import folium_static  # Add this import
 from utils.style1 import apply_style
 from grades.grade1 import calculate_grade
 import google_sheet  # Custom module to interact with Google Sheets API
@@ -84,6 +84,24 @@ def assignment1():
             try:
                 # Execute user code
                 exec(user_code)
+
+                # Plot the map
+                point1 = (36.325735, 43.928414)  # Point 1
+                point2 = (36.393432, 44.586781)  # Point 2
+                point3 = (36.660477, 43.840174)  # Point 3
+                mymap = plot_map(point1, point2, point3)
+                folium_static(mymap)  # Display the map
+
+                # Calculate and display distances
+                distance_1_2 = geodesic(point1, point2).kilometers
+                distance_2_3 = geodesic(point2, point3).kilometers
+                distance_1_3 = geodesic(point1, point3).kilometers
+
+                st.subheader("Distance Summary (in kilometers):")
+                st.write(f"Distance between Point 1 and Point 2: **{distance_1_2:.2f} km**")
+                st.write(f"Distance between Point 2 and Point 3: **{distance_2_3:.2f} km**")
+                st.write(f"Distance between Point 1 and Point 3: **{distance_1_3:.2f} km**")
+
                 st.success("Code executed successfully!")
             except Exception as e:
                 st.error(f"Error executing code: {e}")
