@@ -56,16 +56,12 @@ try:
         home.show()  # Display the Home page
     else:
         module = importlib.import_module(selected)
-        if selected.startswith("assignment") or selected.startswith("quiz"):
-            # Call the main function for assignments or quizzes
-            if hasattr(module, selected):  # Check if the module has a function named after itself
-                getattr(module, selected)()  # Call the function
-            else:
-                st.error(f"The module '{selected}' does not have a main function.")
-        elif hasattr(module, 'show'):
-            module.show()  # Call the 'show' method for other modules
+        if hasattr(module, "assignment1"):  # Check for assignment function
+            getattr(module, "assignment1")()  # Call the function
+        elif hasattr(module, "show"):
+            module.show()  # Call the show function
         else:
-            st.error(f"The module '{selected}' does not have a 'show' method.")
+            st.error(f"The module '{selected}' does not have a valid entry point.")
 except ImportError:
     st.error(f"Module '{selected}' not found.")
 
