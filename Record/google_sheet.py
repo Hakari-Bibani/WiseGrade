@@ -12,6 +12,9 @@ def authenticate_google_sheets():
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         return client
+    except KeyError:
+        st.error("Google Sheets API credentials not found in secrets.toml. Please add them.")
+        return None
     except Exception as e:
         st.error(f"Failed to authenticate with Google Sheets API: {e}")
         return None
@@ -36,6 +39,9 @@ def save_to_sheet(data):
         ]
         sheet.append_row(row)
         return True
+    except gspread.exceptions.APIError as e:
+        st.error(f"Google Sheets API error: {e}")
+        return False
     except Exception as e:
         st.error(f"Failed to save data to Google Sheet: {e}")
         return False
