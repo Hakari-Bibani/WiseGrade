@@ -23,98 +23,12 @@ def show():
 
         with tab1:
             st.markdown("""
-            ### Objective
-            In this assignment, you will analyze real-time earthquake data from the USGS Earthquake API. You will filter earthquakes with a magnitude greater than 4.0, plot their locations on a map, and calculate statistics about the data.
-
-            ### Assignment: Week 2 – Earthquake Data Analysis
-            **Objective:**
-            - Fetch earthquake data from the USGS Earthquake API for a specified date range.
-            - Filter earthquakes with a magnitude greater than 4.0.
-            - Plot the earthquake locations on an interactive map.
-            - Calculate and display statistics about the earthquakes.
-            """)
-            # Add "See More" expandable section
-            with st.expander("See More"):
-                st.markdown("""
-            **Task Requirements:**
-            1. **Fetch Earthquake Data:**
-               - Use the USGS Earthquake API to fetch data for the date range January 2nd, 2025, to January 9th, 2025.
-               - The data should include latitude, longitude, magnitude, and time.
-
-            2. **Filter Earthquakes:**
-               - Filter the data to include only earthquakes with a magnitude greater than 4.0.
-
-            3. **Map Visualization:**
-               - Plot the filtered earthquake locations on an interactive map using `folium`.
-               - Use color-coded markers based on magnitude:
-                 - Green: 4.0-5.0
-                 - Yellow: 5.0-5.5
-                 - Red: 5.5+
-               - Add popups to display additional information (magnitude, location, and time).
-
-            4. **Statistics and Bar Chart:**
-               - Calculate the number of earthquakes in the following magnitude ranges:
-                 - 4.0-4.5
-                 - 4.5-5.0
-                 - 5.0+
-               - Generate a bar chart to visualize the frequency of earthquakes in each range.
-               - Provide a text summary with:
-                 - Total number of earthquakes with magnitude > 4.0.
-                 - Average, maximum, and minimum magnitudes.
-                 - Number of earthquakes in each magnitude range.
-
-            **Python Libraries You Will Use:**
-            - `folium` for the map.
-            - `matplotlib` or `seaborn` for the bar chart.
-            - `requests` or `urllib` for API calls.
-            - `pandas` for data processing.
-
-            **Expected Output:**
-            1. A map showing earthquake locations.
-            2. A bar chart showing earthquake frequency by magnitude range.
-            3. A text summary of earthquake statistics.
-            """)
-
-        with tab2:
-            st.markdown("""
-            ### Detailed Grading Breakdown
-
-            #### 1. Code Structure and Implementation (30 points)
-            - **Library Imports (5 points):**
-                - Checks if the required libraries (`folium`, `matplotlib`, `requests`, `pandas`) are imported.
-            - **API Data Fetching (5 points):**
-                - Checks if the USGS Earthquake API is used correctly to fetch data.
-            - **Code Execution (10 points):**
-                - Checks if the code runs without errors.
-            - **Code Quality (10 points):**
-                - **Variable Naming:** 2 points (deducted if single-letter variables are used).
-                - **Spacing:** 2 points (deducted if improper spacing is found, e.g., no space after `=`).
-                - **Comments:** 2 points (deducted if no comments are present).
-                - **Code Organization:** 2 points (deducted if no blank lines are used for separation).
-            """)
-            # Add "See More" expandable section
-            with st.expander("See More"):
-                st.markdown("""
-            #### 2. Map Visualization (40 points)
-            - **Map Generation (15 points):**
-                - Checks if the `folium.Map` is correctly initialized.
-            - **Markers (15 points):**
-                - Checks if markers are added to the map for each earthquake location.
-            - **Color Coding (5 points):**
-                - Checks if markers are color-coded based on magnitude.
-            - **Popups (5 points):**
-                - Checks if popups are added to the markers.
-
-            #### 3. Statistics and Bar Chart (30 points)
-            - **Data Filtering (10 points):**
-                - Checks if earthquakes with magnitude > 4.0 are filtered correctly.
-            - **Bar Chart (10 points):**
-                - Checks if the bar chart is generated and displays the correct magnitude ranges.
-            - **Text Summary (10 points):**
-                - Checks if the text summary includes:
-                  - Total number of earthquakes.
-                  - Average, maximum, and minimum magnitudes.
-                  - Number of earthquakes in each magnitude range.
+            ### Instructions for Code Submission
+            1. Fetch earthquake data from the USGS API.
+            2. Filter earthquakes with magnitude > 4.0.
+            3. Create a Folium map and assign it to a variable named `earthquake_map`.
+            4. Create a DataFrame with earthquake statistics and assign it to a variable named `earthquakes`.
+            5. Paste your code below and click **Run** to see the outputs.
             """)
 
         # Code Submission Area
