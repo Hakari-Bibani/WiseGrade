@@ -6,16 +6,19 @@ def set_page_style():
     body {
         font-family: 'Tiranti Solid Std Regular', cursive;
     }
-    .stTextInput, .stTextArea {
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 10px;
-        background-color: #e6ffe6; /* Light green background */
-        height: 200px; /* Increase the height of the text area */
+    /* Target the text area container */
+    div.stTextArea > div > div > textarea {
+        background-color: #e6ffe6 !important; /* Light green background */
+        font-size: 16px !important; /* Increase font size */
+        height: 200px !important; /* Increase height */
+        border: 1px solid #ccc !important;
+        border-radius: 5px !important;
+        padding: 10px !important;
     }
-    .stTextArea textarea {
-        background-color: #e6ffe6; /* Light green background for the text area */
-        font-size: 16px; /* Increase font size */
+    /* Target the text area label (if needed) */
+    div.stTextArea > label {
+        font-size: 16px !important;
+        color: #333 !important;
     }
     </style>
     """, unsafe_allow_html=True)
