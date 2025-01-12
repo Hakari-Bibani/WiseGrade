@@ -10,13 +10,20 @@ def set_page_style():
         border: 1px solid #ccc;
         border-radius: 5px;
         padding: 10px;
-        background-color: #f9f9f9; /* Light gray background */
     }
+    /* Custom styling for the text area */
     .stTextArea textarea {
-        background-color: #e6f7ff; /* Light blue background for the text area */
-        color: #333; /* Text color */
-        border: 1px solid #4da6ff; /* Blue border */
-        border-radius: 5px;
+        background-color: #f0f2f6; /* Light gray background */
+        border: 2px solid #4CAF50; /* Green border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 15px; /* Increased padding */
+        font-size: 16px; /* Larger font size */
+        height: 200px; /* Increased height */
+    }
+    .stTextArea label {
+        font-size: 18px; /* Larger label font size */
+        font-weight: bold; /* Bold label */
+        color: #4CAF50; /* Green label color */
     }
     </style>
     """, unsafe_allow_html=True)
