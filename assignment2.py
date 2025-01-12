@@ -1,136 +1,184 @@
 import streamlit as st
-import traceback
-import io
-import os
-import sys
-import shutil
-
-# The libraries we want to patch
-import folium
-import matplotlib.pyplot as plt
-
 from utils.style2 import set_page_style
 from grades.grade2 import grade_assignment
 from Record.google_sheet import update_google_sheet
+import traceback
+import folium
+import pandas as pd
+import os
+
+# Apply custom styling (light blue code box, etc.)
+set_page_style()
+
+def find_folium_map(local_context):
+    """Search for a Folium map object in the local context."""
+    for var_name, var_value in local_context.items():
+        if isinstance(var_value, folium.Map):
+            return var_value
+    return None
+
+def find_dataframe(local_context):
+    """Search for a Pandas DataFrame (or similar) in the local context."""
+    for var_name, var_value in local_context.items():
+        if isinstance(var_value, pd.DataFrame):
+            return var_value
+    return None
+
+def find_text_summary(local_context):
+    """
+    Search for a string variable containing 'Text Summary:' in the local context.
+    This is a naive approach that looks for the typical heading in the user's summary.
+    """
+    for var_name, var_value in local_context.items():
+        if isinstance(var_value, str) and "Text Summary:" in var_value:
+            return var_value
+    return None
 
 def show():
-    set_page_style()
     st.title("Assignment 2: Real-Time Earthquake Data Analysis")
 
-    # 1) Student ID
+    # Student ID field (this must match an existing ID from Assignment 1 in the Google Sheet)
     student_id = st.text_input("Enter Your Student ID")
 
-    # 2) Tabs for assignment details
+    # Create tabs for the Assignment and Grading details
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+
     with tab1:
-        st.markdown("... (Your assignment instructions) ...")
+        st.markdown("""
+        **Objective**  
+        In this assignment, you will write a Python script that fetches real-time earthquake data from the USGS Earthquake API, processes the data to filter earthquakes with a magnitude greater than 4.0, and plots the earthquake locations on a map. Additionally, you will calculate the number of earthquakes in different magnitude ranges and present the results visually.
+
+        **API Reference**  
+        The USGS Earthquake API can be accessed at:  
+        [https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD](https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD)
+
+        **Task Requirements**  
+        - Use the USGS Earthquake API to fetch data for the date range **January 2nd, 2025, to January 9th, 2025**.
+        - Filter to include only earthquakes with **magnitude > 4.0**.
+        - Create an interactive map showing the filtered earthquakes.
+          - Markers color-coded by magnitude range:
+            - Green for 4.0-5.0  
+            - Yellow for 5.0-5.5  
+            - Red for 5.5+  
+        - Add popups displaying magnitude, location, and time (in readable format).
+        - Generate a **bar chart** illustrating earthquake frequency by magnitude range:
+          - 4.0-4.5, 4.5-5.0, and greater than 5.0
+        - Generate a **text summary** (and save as CSV) including:
+          1. Total number of earthquakes (mag > 4.0)
+          2. Average, maximum, and minimum magnitudes (rounded to 2 decimals)
+          3. Number of earthquakes in each magnitude range
+
+        **Python Libraries to Use**  
+        - `requests` or `urllib` for the API calls  
+        - `pandas` for data processing  
+        - `folium` for map visualization  
+        - `matplotlib` or `seaborn` for bar chart  
+
+        **Expected Output**  
+        1. An interactive map of earthquake locations  
+        2. A bar chart of the earthquake frequency by magnitude range  
+        3. A text summary (CSV) with required metrics  
+        """)
+
     with tab2:
-        st.markdown("... (Your grading details) ...")
+        st.markdown("""
+        **Grading Breakdown**  
 
-    # 3) Code text area
-    code_input = st.text_area("Paste your code below:", height=300)
+        1. **Library Imports (10 Points)**  
+           - folium, matplotlib/seaborn, requests/urllib, pandas (8 points)  
+           - Proper import organization and no unused libraries (2 points)  
 
-    # 4) Buttons
+        2. **Code Quality (20 Points)**  
+           - Variable Naming (5)  
+           - Spacing (5)  
+           - Comments (5)  
+           - Code Organization (5)  
+
+        3. **Fetching Data from the API (10 Points)**  
+           - Correct URL for date range (3)  
+           - Successful data retrieval (3)  
+           - Proper error handling (4)  
+
+        4. **Filtering Earthquakes (10 Points)**  
+           - Filter magnitude > 4.0 (5)  
+           - Extract latitude, longitude, magnitude, time (5)  
+
+        5. **Map Visualization (20 Points)**  
+           - Display map (5)  
+           - Color-coded markers:  
+             - Green (4.0-5.0): 3  
+             - Yellow (5.0-5.5): 3  
+             - Red (5.5+): 3  
+           - Popups for magnitude, lat/long, time (2 + 2 + 2)  
+
+        6. **Bar Chart (15 Points)**  
+           - Display bar chart (5)  
+           - Magnitude ranges (4.0-4.5, 4.5-5.0, 5.0+) (3+3+3)  
+           - Proper labeling (1)  
+
+        7. **Text Summary (15 Points)**  
+           - Total count of earthquakes (3)  
+           - Average, max, min magnitude (3 each)  
+           - Magnitude range counts (4.0-4.5, 4.5-5.0, 5.0+) (1 each)  
+           - Must save as CSV (-5 if missing)  
+
+        8. **Overall Execution (10 Points)**  
+           - Runs without errors (5)  
+           - All outputs correct and complete (5)  
+        """)
+
+    # Code submission area (light blue background in style2.py)
+    code_input = st.text_area("Paste your code below", height=300)
+
+    # Buttons for run and submit
     run_button = st.button("Run")
     submit_button = st.button("Submit")
 
-    # ---------------------------------------------------------
-    #  MONKEY-PATCH SECTION
-    # ---------------------------------------------------------
-
-    # (A) Patch 'print' to capture all printed output in a buffer
-    printed_buffer = io.StringIO()
-    orig_print = print  # keep original Python print
-
-    def patched_print(*args, **kwargs):
-        text_str = " ".join(str(a) for a in args) + "\n"
-        printed_buffer.write(text_str)
-        # Still call original print so we can see it in logs (optional)
-        orig_print(*args, **kwargs)
-
-    # Override built-in print globally
-    import builtins
-    builtins.print = patched_print
-
-    # (B) Patch folium.Map.save to always also copy to "earthquake_map.html"
-    orig_folium_save = folium.Map.save
-
-    def custom_folium_save(self, outfile, *args, **kwargs):
-        # Call original save method
-        orig_folium_save(self, outfile, *args, **kwargs)
-        # Copy user’s chosen file to "earthquake_map.html" (overwrite if needed)
-        if outfile != "earthquake_map.html":
-            shutil.copyfile(outfile, "earthquake_map.html")
-
-    folium.Map.save = custom_folium_save
-
-    # (C) Patch matplotlib.pyplot.savefig to also copy to "earthquake_frequency.png"
-    orig_plt_savefig = plt.savefig
-
-    def custom_plt_savefig(fname, *args, **kwargs):
-        orig_plt_savefig(fname, *args, **kwargs)
-        if fname != "earthquake_frequency.png":
-            shutil.copyfile(fname, "earthquake_frequency.png")
-
-    plt.savefig = custom_plt_savefig
-
-    # ---------------------------------------------------------
-    # RUN THE USER CODE
-    # ---------------------------------------------------------
-
+    # Run the user code
     if run_button and code_input:
-        # Cleanup any old files from previous runs
-        if os.path.exists("earthquake_map.html"):
-            os.remove("earthquake_map.html")
-        if os.path.exists("earthquake_frequency.png"):
-            os.remove("earthquake_frequency.png")
-
-        # Also clear the printed_buffer
-        printed_buffer.truncate(0)
-        printed_buffer.seek(0)
-
-        # Safely run user code
         try:
+            # Create a dict to hold the user's executed code context
             local_context = {}
             exec(code_input, {}, local_context)
-        except Exception:
+
+            # 1. Detect a Folium map
+            map_object = find_folium_map(local_context)
+            if map_object:
+                st.success("Map generated successfully!")
+                st.markdown("### 🗺️ Generated Map")
+                st.components.v1.html(map_object._repr_html_(), height=500)
+            else:
+                st.warning("No Folium map found in the code output.")
+
+            # 2. Detect a DataFrame
+            dataframe_object = find_dataframe(local_context)
+            if dataframe_object is not None:
+                st.markdown("### 📊 Earthquake Summary DataFrame")
+                st.write(dataframe_object)
+            else:
+                st.warning("No DataFrame found in the code output.")
+
+            # 3. Detect a .png file (bar chart)
+            # By default, the user might save it as 'earthquake_frequency.png'
+            if os.path.exists("earthquake_frequency.png"):
+                st.markdown("### 📈 Earthquake Frequency Bar Chart")
+                st.image("earthquake_frequency.png")
+            else:
+                st.warning("No bar chart (.png) found in the code output.")
+
+            # 4. Detect a text summary
+            summary_text = find_text_summary(local_context)
+            if summary_text:
+                st.markdown("### 📄 Earthquake Text Summary")
+                st.text(summary_text)
+            else:
+                st.warning("No text summary found in the code output. Be sure to store your text summary in a variable containing 'Text Summary:'")
+
+        except Exception as e:
             st.error("An error occurred while executing your code:")
             st.error(traceback.format_exc())
 
-        # Retrieve all captured prints
-        printed_output = printed_buffer.getvalue()
-
-        # 1) Display any printed output
-        if printed_output.strip():
-            st.markdown("### Printed Summary")
-            st.text(printed_output)
-        else:
-            st.warning("No text summary found in the output.")
-
-        # 2) Display the Folium map
-        if os.path.exists("earthquake_map.html"):
-            st.markdown("### Generated Earthquake Map")
-            with open("earthquake_map.html", "r", encoding="utf-8") as f:
-                html_map = f.read()
-            st.components.v1.html(html_map, height=600)
-        else:
-            st.warning("No map file (earthquake_map.html) found.")
-
-        # 3) Display the bar chart
-        if os.path.exists("earthquake_frequency.png"):
-            st.markdown("### Generated Bar Chart")
-            st.image("earthquake_frequency.png")
-        else:
-            st.warning("No bar chart file (earthquake_frequency.png) found.")
-
-        # Restore the original print (optional cleanup)
-        builtins.print = orig_print
-        folium.Map.save = orig_folium_save
-        plt.savefig = orig_plt_savefig
-
-    # ---------------------------------------------------------
-    # SUBMIT
-    # ---------------------------------------------------------
+    # Submit and grade
     if submit_button and code_input:
         if student_id:
             grade = grade_assignment(code_input)
