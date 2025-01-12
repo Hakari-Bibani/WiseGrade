@@ -2,14 +2,6 @@ import streamlit as st
 
 def set_page_style():
     """Set the style for the Streamlit page."""
-    # Set page configuration
-    st.set_page_config(
-        page_title="WiseGrade - Assignment 2",
-        page_icon="📊",
-        layout="centered",
-        initial_sidebar_state="collapsed",
-    )
-
     # Custom CSS for styling
     st.markdown(
         """
