@@ -9,3 +9,5 @@ folium
 IPython
 matplotlib
 requests
+requests
+seaborn
