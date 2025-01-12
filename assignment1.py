@@ -72,7 +72,7 @@ def show():
                  - The distance between Point 1 and Point 3.
                - Add Markers to the map for each coordinate.
                - Add polylines to connect the points.
-               - Add popups between markers to display information about the distance.
+               - Add popups to display information about the distance.
 
             **Coordinates:**
             - Point 1: Latitude: 36.325735, Longitude: 43.928414
