@@ -157,13 +157,13 @@ def show():
             if map_object:
                 st.success("Map generated successfully!")
                 map_object.save("map_kurdistan.html")
-                st.markdown("### Generated Map")
+                st.markdown("### 🗺️Generated Map")
                 st.components.v1.html(map_object._repr_html_(), height=500)
             else:
                 st.warning("No Folium map found in the code output.")
 
             if dataframe_object is not None:
-                st.markdown("### Distance Summary")
+                st.markdown("### 📏Distance Summary")
                 st.write(dataframe_object)
             else:
                 st.warning("No DataFrame with distances found in the code output.")
