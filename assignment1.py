@@ -51,23 +51,69 @@ def show():
 
         with tab1:
             st.markdown("""
-            ### Objective
-            Plot three geographical coordinates on a map and calculate the distances between them in kilometers.
-            #### Coordinates:
-            - Point 1: Latitude: 36.325735, Longitude: 43.928414
-            - Point 2: Latitude: 36.393432, Longitude: 44.586781
-            - Point 3: Latitude: 36.660477, Longitude: 43.840174
+            Assignment: Week 1 – Mapping Coordinates and Calculating Distances in Python
+Objective:
+In this assignment, you will write a Python script to plot three geographical coordinates on a map and calculate the distance between each pair of points in kilometers. This will help you practice working with geospatial data and Python libraries for mapping and calculations.
+Task Requirements:
+1.	Plot the Three Coordinates on a Map:
+o	The coordinates represent three locations in the Kurdistan Region.
+o	You will use Python libraries to plot these points on a map.
+o	The map should visually display the exact locations of the coordinates.
+2.	Calculate the Distance Between Each Pair of Points:
+o	You will calculate the distances between the three points in kilometers.
+o	Specifically, calculate:
+	The distance between Point 1 and Point 2.
+	The distance between Point 2 and Point 3.
+	The distance between Point 1 and Point 3.
+	Markers are added to the map for each coordinate.
+	Add polylines to connect the points.
+	Add popups between markers to display information about the distance.
+Coordinates:
+•	Point 1: Latitude: 36.325735, Longitude: 43.928414
+•	Point 2: Latitude: 36.393432, Longitude: 44.586781
+•	Point 3: Latitude: 36.660477, Longitude: 43.840174
+Python Libraries You Will Use:
+•	geopy for calculating the distance between two coordinates.
+•	folium for plotting the points on an interactive map.
+•	Use pandas to create a DataFrame that displays the distances between the points
+Expected Output:
+1.	A map showing the three coordinates.
+2.	A text summary (Express values to two decimal places.): showing the calculated distances (in kilometers) between:
+o	Point 1 and Point 2.
+o	Point 2 and Point 3.
+o	Point 1 and Point 3.
             """)
             st.markdown("Expand for detailed instructions...")
 
         with tab2:
             st.markdown("""
-            #### Grading Breakdown
-            - Library Imports: 5 points
-            - Coordinate Handling: 5 points
-            - Code Execution: 10 points
-            - Map Visualization: 40 points
-            - Distance Calculations: 30 points
+1. Code Structure and Implementation (30 points)
+•	Library Imports (5 points):
+o	Checks if the required libraries (folium, geopy, geodesic) are imported.
+•	Coordinate Handling (5 points):
+o	Checks if the correct coordinates are defined in the code.
+•	Code Execution (10 points):
+o	Checks if the code runs without errors.
+•	Code Quality (10 points):
+o	Variable Naming: 2 points (deducted if single-letter variables are used).
+o	Spacing: 2 points (deducted if improper spacing is found, e.g., no space after =).
+o	Comments: 2 points (deducted if no comments are present).
+o	Code Organization: 2 points (deducted if no blank lines are used for separation).
+2. Map Visualization (40 points)
+•	Map Generation (15 points):
+o	Checks if the folium.Map is correctly initialized.
+•	Markers (15 points):
+o	Checks if markers are added to the map for each coordinate.
+•	Polylines (5 points):
+o	Checks if polylines are used to connect the points.
+•	Popups (5 points):
+o	Checks if popups are added to the markers.
+3. Distance Calculations (30 points)
+•	Geodesic Implementation (10 points):
+o	Checks if the geodesic function is used correctly to calculate distances.
+•	Distance Accuracy (20 points):
+o	Checks if the calculated distances are accurate within a 100-meter tolerance.
+
             """)
 
         # Code Submission Area
