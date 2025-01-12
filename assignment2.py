@@ -6,9 +6,20 @@ from Record.google_sheet import update_google_sheet
 import traceback
 import folium
 import pandas as pd
+import matplotlib.pyplot as plt
+import sys
+from io import StringIO
 
 # Set the page style
 set_page_style()
+
+# Custom display hook to capture the last evaluated expression
+class OutputCapture:
+    def __init__(self):
+        self.last_output = None
+
+    def __call__(self, value):
+        self.last_output = value
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
@@ -26,9 +37,10 @@ def show():
             ### Instructions for Code Submission
             1. Fetch earthquake data from the USGS API.
             2. Filter earthquakes with magnitude > 4.0.
-            3. Create a Folium map and assign it to a variable named `earthquake_map`.
-            4. Create a DataFrame with earthquake statistics and assign it to a variable named `earthquakes`.
-            5. Paste your code below and click **Run** to see the outputs.
+            3. Create a Folium map.
+            4. Create a DataFrame with earthquake statistics.
+            5. Create a bar chart.
+            6. Paste your code below and click **Run** to see the outputs.
             """)
 
         # Code Submission Area
@@ -43,25 +55,42 @@ def show():
         try:
             # Create a local dictionary to capture code execution results
             local_context = {}
+            output_capture = OutputCapture()
+            sys.displayhook = output_capture
+
+            # Redirect stdout to capture print statements
+            stdout_capture = StringIO()
+            sys.stdout = stdout_capture
+
+            # Execute the user's code
             exec(code_input, {}, local_context)
 
-            # Search for outputs
-            map_object = find_folium_map(local_context)
-            dataframe_object = find_dataframe(local_context)
+            # Restore stdout and display hook
+            sys.stdout = sys.__stdout__
+            sys.displayhook = sys.__displayhook__
+
+            # Capture the last evaluated expression
+            last_output = output_capture.last_output
 
             # Display outputs
-            if map_object:
+            if isinstance(last_output, folium.Map):
                 st.success("Map generated successfully!")
                 st.markdown("### 🗺️ Generated Map")
-                st.components.v1.html(map_object._repr_html_(), height=500)
-            else:
-                st.warning("No Folium map found in the code output.")
-
-            if dataframe_object is not None:
+                st.components.v1.html(last_output._repr_html_(), height=500)
+            elif isinstance(last_output, pd.DataFrame):
                 st.markdown("### 📊 Earthquake Statistics")
-                st.write(dataframe_object)
+                st.write(last_output)
+            elif isinstance(last_output, plt.Figure):
+                st.markdown("### 📈 Earthquake Frequency by Magnitude Range")
+                st.pyplot(last_output)
             else:
-                st.warning("No DataFrame with earthquake statistics found in the code output.")
+                st.warning("No supported output found in the code (expected: Folium map, DataFrame, or Matplotlib plot).")
+
+            # Display captured stdout (print statements)
+            stdout_output = stdout_capture.getvalue()
+            if stdout_output:
+                st.markdown("### 📝 Console Output")
+                st.text(stdout_output)
 
         except Exception as e:
             st.error("An error occurred while executing your code:")
@@ -75,21 +104,6 @@ def show():
             st.success(f"Submission successful! Your grade: {grade}/100")
         else:
             st.error("Please enter your Student ID to submit your assignment.")
-
-# Helper functions
-def find_folium_map(local_context):
-    """Search for a Folium map object in the local context."""
-    for var_name, var_value in local_context.items():
-        if isinstance(var_value, folium.Map):
-            return var_value
-    return None
-
-def find_dataframe(local_context):
-    """Search for a Pandas DataFrame or similar in the local context."""
-    for var_name, var_value in local_context.items():
-        if isinstance(var_value, pd.DataFrame):
-            return var_value
-    return None
 
 # Entry point for Streamlit
 def main():
