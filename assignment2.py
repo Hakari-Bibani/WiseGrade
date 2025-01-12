@@ -6,39 +6,31 @@ import traceback
 import folium
 import pandas as pd
 import os
+import re
 
 # Apply custom styling (light blue code box, etc.)
 set_page_style()
 
-def find_folium_map(local_context):
+def find_all_folium_maps(local_context):
     """
-    Search for a Folium map object in the local context.
-    Returns the first map found, or None if none is found.
+    Return a list of (variable_name, variable_value) for all folium.Map objects found.
     """
+    results = []
     for var_name, var_value in local_context.items():
         if isinstance(var_value, folium.Map):
-            return var_value
-    return None
+            results.append((var_name, var_value))
+    return results
 
-def find_dataframe(local_context):
+def find_all_summaries(local_context):
     """
-    Search for a Pandas DataFrame (or similar) in the local context.
-    Returns the first DataFrame found, or None if none is found.
+    Return a list of (variable_name, string_value) for all string variables 
+    containing 'summary' (case-insensitive).
     """
+    results = []
     for var_name, var_value in local_context.items():
-        if isinstance(var_value, pd.DataFrame):
-            return var_value
-    return None
-
-def find_text_summary(local_context):
-    """
-    Search for a string variable containing 'Text Summary:' in the local context.
-    We'll return the first match we find.
-    """
-    for var_name, var_value in local_context.items():
-        if isinstance(var_value, str) and "Text Summary:" in var_value:
-            return var_value
-    return None
+        if isinstance(var_value, str) and re.search(r"summary", var_value, re.IGNORECASE):
+            results.append((var_name, var_value))
+    return results
 
 def show():
     st.title("Assignment 2: Real-Time Earthquake Data Analysis")
@@ -58,36 +50,12 @@ def show():
         Additionally, you will calculate the number of earthquakes in different magnitude ranges 
         and present the results visually.
 
-        **API Reference**  
-        The USGS Earthquake API can be accessed at:  
-        [https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD](https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD)
-
-        **Task Requirements**  
-        - Use the USGS Earthquake API to fetch data for the date range **January 2nd, 2025, to January 9th, 2025**.
-        - Filter to include only earthquakes with **magnitude > 4.0**.
-        - Create an interactive map showing the filtered earthquakes.
-          - Markers color-coded by magnitude range:
-            - Green for 4.0-5.0  
-            - Yellow for 5.0-5.5  
-            - Red for 5.5+  
-        - Add popups displaying magnitude, location, and time (in readable format).
-        - Generate a **bar chart** illustrating earthquake frequency by magnitude range:
-          - 4.0-4.5, 4.5-5.0, and greater than 5.0
-        - Generate a **text summary** (and save as CSV) including:
-          1. Total number of earthquakes (mag > 4.0)
-          2. Average, maximum, and minimum magnitudes (rounded to 2 decimals)
-          3. Number of earthquakes in each magnitude range
-
-        **Python Libraries to Use**  
-        - `requests` or `urllib` for the API calls  
-        - `pandas` for data processing  
-        - `folium` for map visualization  
-        - `matplotlib` or `seaborn` for bar chart  
-
-        **Expected Output**  
-        1. An interactive map of earthquake locations  
-        2. A bar chart of the earthquake frequency by magnitude range  
-        3. A text summary (CSV) with required metrics  
+        **Key Points**  
+        - Use the USGS Earthquake API with the date range: 2025-01-02 to 2025-01-09.
+        - Filter earthquakes with magnitude > 4.0.
+        - Display an interactive Folium map with colored markers (Green, Yellow, Red based on magnitude range).
+        - Generate a bar chart (matplotlib/seaborn) and save it as a PNG.
+        - Provide a text summary of results.
         """)
 
     with tab2:
@@ -95,46 +63,14 @@ def show():
         **Grading Breakdown**  
 
         1. **Library Imports (10 Points)**  
-           - folium, matplotlib/seaborn, requests/urllib, pandas (8 points)  
-           - Proper import organization and no unused libraries (2 points)  
-
+           - folium, matplotlib/seaborn, requests/urllib, pandas  
         2. **Code Quality (20 Points)**  
-           - Variable Naming (5)  
-           - Spacing (5)  
-           - Comments (5)  
-           - Code Organization (5)  
-
         3. **Fetching Data from the API (10 Points)**  
-           - Correct URL for date range (3)  
-           - Successful data retrieval (3)  
-           - Proper error handling (4)  
-
         4. **Filtering Earthquakes (10 Points)**  
-           - Filter magnitude > 4.0 (5)  
-           - Extract latitude, longitude, magnitude, time (5)  
-
         5. **Map Visualization (20 Points)**  
-           - Display map (5)  
-           - Color-coded markers:  
-             - Green (4.0-5.0): 3  
-             - Yellow (5.0-5.5): 3  
-             - Red (5.5+): 3  
-           - Popups for magnitude, lat/long, time (2 + 2 + 2)  
-
         6. **Bar Chart (15 Points)**  
-           - Display bar chart (5)  
-           - Magnitude ranges (4.0-4.5, 4.5-5.0, 5.0+) (3+3+3)  
-           - Proper labeling (1)  
-
         7. **Text Summary (15 Points)**  
-           - Total count of earthquakes (3)  
-           - Average, max, min magnitude (3 each)  
-           - Magnitude range counts (4.0-4.5, 4.5-5.0, 5.0+) (1 each)  
-           - Must save as CSV (-5 if missing)  
-
         8. **Overall Execution (10 Points)**  
-           - Runs without errors (5)  
-           - All outputs correct and complete (5)  
         """)
 
     # Code submission area (light blue background in style2.py)
@@ -147,49 +83,40 @@ def show():
     # Run the user code
     if run_button and code_input:
         try:
-            # Clear out old PNGs from previous runs, if you wish:
-            # (Optional) You might want to remove prior .png files to avoid confusion 
-            # for f in os.listdir('.'):
-            #     if f.endswith('.png'):
-            #         os.remove(f)
-
+            # Run code in an isolated local context
             local_context = {}
             exec(code_input, {}, local_context)
 
-            # 1. Detect a Folium map
-            map_object = find_folium_map(local_context)
-            if map_object:
-                st.success("Map generated successfully!")
-                st.markdown("### 🗺️ Generated Map")
-                st.components.v1.html(map_object._repr_html_(), height=500)
+            # 1. Detect all Folium maps
+            all_maps = find_all_folium_maps(local_context)
+            if all_maps:
+                st.success(f"Detected {len(all_maps)} folium Map object(s)!")
+                for var_name, map_obj in all_maps:
+                    st.markdown(f"### Map variable: `{var_name}`")
+                    st.components.v1.html(map_obj._repr_html_(), height=500)
             else:
                 st.warning("No Folium map found in the code output.")
 
-            # 2. Detect a DataFrame
-            dataframe_object = find_dataframe(local_context)
-            if dataframe_object is not None:
-                st.markdown("### 📊 Earthquake Summary DataFrame")
-                st.write(dataframe_object)
-            else:
-                st.warning("No DataFrame found in the code output.")
-
-            # 3. Detect any PNG file(s) in the current directory
-            png_files = [f for f in os.listdir('.') if f.endswith('.png')]
+            # 2. Detect any PNG file(s) in the current directory
+            png_files = [f for f in os.listdir('.') if f.lower().endswith('.png')]
             if png_files:
-                st.markdown("### 📈 Bar Chart(s) Detected")
+                st.success(f"Detected {len(png_files)} PNG file(s).")
                 for png_file in png_files:
-                    st.image(png_file, caption=png_file)
+                    st.markdown(f"### Displaying: {png_file}")
+                    st.image(png_file)
             else:
                 st.warning("No PNG files found in the code output.")
 
-            # 4. Detect a text summary
-            summary_text = find_text_summary(local_context)
-            if summary_text:
-                st.markdown("### 📄 Earthquake Text Summary")
-                st.text(summary_text)
+            # 3. Detect any summaries
+            all_summaries = find_all_summaries(local_context)
+            if all_summaries:
+                st.success(f"Detected {len(all_summaries)} string variable(s) containing 'summary'.")
+                for var_name, summary_text in all_summaries:
+                    st.markdown(f"### Potential Summary Variable: `{var_name}`")
+                    st.text(summary_text)
             else:
                 st.warning("No text summary found in the code output. "
-                           "Be sure to store your text summary in a variable containing 'Text Summary:'")
+                           "Hint: store your summary in a variable containing the word 'summary'.")
 
         except Exception as e:
             st.error("An error occurred while executing your code:")
