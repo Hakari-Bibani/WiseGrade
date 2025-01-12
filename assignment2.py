@@ -11,14 +11,20 @@ import os
 set_page_style()
 
 def find_folium_map(local_context):
-    """Search for a Folium map object in the local context."""
+    """
+    Search for a Folium map object in the local context.
+    Returns the first map found, or None if none is found.
+    """
     for var_name, var_value in local_context.items():
         if isinstance(var_value, folium.Map):
             return var_value
     return None
 
 def find_dataframe(local_context):
-    """Search for a Pandas DataFrame (or similar) in the local context."""
+    """
+    Search for a Pandas DataFrame (or similar) in the local context.
+    Returns the first DataFrame found, or None if none is found.
+    """
     for var_name, var_value in local_context.items():
         if isinstance(var_value, pd.DataFrame):
             return var_value
@@ -27,7 +33,7 @@ def find_dataframe(local_context):
 def find_text_summary(local_context):
     """
     Search for a string variable containing 'Text Summary:' in the local context.
-    This is a naive approach that looks for the typical heading in the user's summary.
+    We'll return the first match we find.
     """
     for var_name, var_value in local_context.items():
         if isinstance(var_value, str) and "Text Summary:" in var_value:
@@ -46,7 +52,11 @@ def show():
     with tab1:
         st.markdown("""
         **Objective**  
-        In this assignment, you will write a Python script that fetches real-time earthquake data from the USGS Earthquake API, processes the data to filter earthquakes with a magnitude greater than 4.0, and plots the earthquake locations on a map. Additionally, you will calculate the number of earthquakes in different magnitude ranges and present the results visually.
+        In this assignment, you will write a Python script that fetches real-time earthquake data from the USGS Earthquake API, 
+        processes the data to filter earthquakes with a magnitude greater than 4.0, 
+        and plots the earthquake locations on a map. 
+        Additionally, you will calculate the number of earthquakes in different magnitude ranges 
+        and present the results visually.
 
         **API Reference**  
         The USGS Earthquake API can be accessed at:  
@@ -137,7 +147,12 @@ def show():
     # Run the user code
     if run_button and code_input:
         try:
-            # Create a dict to hold the user's executed code context
+            # Clear out old PNGs from previous runs, if you wish:
+            # (Optional) You might want to remove prior .png files to avoid confusion 
+            # for f in os.listdir('.'):
+            #     if f.endswith('.png'):
+            #         os.remove(f)
+
             local_context = {}
             exec(code_input, {}, local_context)
 
@@ -158,13 +173,14 @@ def show():
             else:
                 st.warning("No DataFrame found in the code output.")
 
-            # 3. Detect a .png file (bar chart)
-            # By default, the user might save it as 'earthquake_frequency.png'
-            if os.path.exists("earthquake_frequency.png"):
-                st.markdown("### 📈 Earthquake Frequency Bar Chart")
-                st.image("earthquake_frequency.png")
+            # 3. Detect any PNG file(s) in the current directory
+            png_files = [f for f in os.listdir('.') if f.endswith('.png')]
+            if png_files:
+                st.markdown("### 📈 Bar Chart(s) Detected")
+                for png_file in png_files:
+                    st.image(png_file, caption=png_file)
             else:
-                st.warning("No bar chart (.png) found in the code output.")
+                st.warning("No PNG files found in the code output.")
 
             # 4. Detect a text summary
             summary_text = find_text_summary(local_context)
@@ -172,7 +188,8 @@ def show():
                 st.markdown("### 📄 Earthquake Text Summary")
                 st.text(summary_text)
             else:
-                st.warning("No text summary found in the code output. Be sure to store your text summary in a variable containing 'Text Summary:'")
+                st.warning("No text summary found in the code output. "
+                           "Be sure to store your text summary in a variable containing 'Text Summary:'")
 
         except Exception as e:
             st.error("An error occurred while executing your code:")
