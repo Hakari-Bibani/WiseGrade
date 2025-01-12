@@ -1,6 +1,10 @@
 # utils/style2.py
+import streamlit as st
+
 def set_page_style():
-    """Set the style for the Streamlit page."""
+    """
+    Set the style for the Streamlit page.
+    """
     st.markdown(
         """
         <style>
