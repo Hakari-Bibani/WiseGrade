@@ -1,58 +1,58 @@
-# style2.py
-
 import streamlit as st
 
 def set_page_style():
     """
-    Applies a custom style to the Streamlit page.
-    Modify the CSS below according to your design needs.
+    Apply a custom page style (CSS) to the Streamlit application.
+    You can customize the styling as needed.
     """
-    st.markdown(
-        """
-        <style>
-        /* Page background and font styling */
-        body {
-            background-color: #F9F9F9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+    custom_css = """
+    <style>
+    /* Change the background color */
+    body {
+        background-color: #f7f7f7;
+    }
 
-        /* Title and header color */
-        h1, h2, h3, h4, h5, h6 {
-            color: #0A0A0A;
-        }
+    /* Customize the main container */
+    .main {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+    }
 
-        /* Streamlit tabs styling */
-        .stTabs [data-baseweb="tab"] {
-            font-weight: bold;
-            color: #333;
-            background-color: #FFF;
-            border-radius: 8px 8px 0 0;
-            border-color: #CCC;
-        }
-        .stTabs [data-baseweb="tab"].stTabs-itemActive {
-            color: #007BFF;
-            background-color: #EFEFEF;
-        }
+    /* Style the title text */
+    h1, h2, h3, h4 {
+        color: #333333;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        /* Buttons (Analyze / Submit) styling */
-        .stButton button {
-            background-color: #2e7eed !important;
-            color: white !important;
-            padding: 0.5rem 1rem !important;
-            border-radius: 4px !important;
-            border: none !important;
-        }
-        .stButton button:hover {
-            background-color: #1c5bb3 !important;
-            color: #FFF !important;
-        }
+    /* Button styles */
+    div.stButton > button:first-child {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 0.6em 1.2em;
+        font-size: 1em;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
 
-        /* Optional: Customize file uploader text color */
-        .stFileUploader label {
-            color: #333 !important;
-        }
-        
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    div.stButton > button:first-child:hover {
+        background-color: #45a049;
+    }
+
+    /* Tabs style */
+    .stTabs [data-baseweb="tab"] .stMarkdown p {
+        margin-bottom: 0;
+    }
+
+    /* Code block style */
+    .stTextArea textarea {
+        font-family: "Courier New", monospace;
+        background-color: #f0f8ff;
+    }
+    </style>
+    """
+    
+    st.markdown(custom_css, unsafe_allow_html=True)
