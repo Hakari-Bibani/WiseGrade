@@ -1,4 +1,4 @@
- import streamlit as st
+import streamlit as st
 from utils.style1 import set_page_style
 from grades.grade1 import grade_assignment
 from Record.google_sheet import update_google_sheet
