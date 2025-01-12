@@ -133,10 +133,10 @@ def show():
                 - Checks if the calculated distances are accurate within a 100-meter tolerance.
             """)
 
-------------
+
 
         # Code Submission Area
-        code_input = st.text_area("Paste Your Code Here")
+        code_input = st.text_area("📝 Paste Your Code Here")
 
         # Form Submit Buttons
         run_button = st.form_submit_button("Run")
