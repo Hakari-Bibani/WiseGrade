@@ -1,58 +1,33 @@
-# utils/style2.py
 import streamlit as st
 
 def set_page_style():
     """
-    Set the style for the Streamlit page.
+    Apply custom styling to the Streamlit app, particularly
+    ensuring that the code input area (st.text_area) has a light blue background.
     """
     st.markdown(
         """
         <style>
-        /* Main page style */
-        .stApp {
-            background-color: #f0f2f6;
-        }
-        /* Title style */
-        h1 {
-            color: #2e86c1;
-            text-align: center;
-        }
-        /* Form style */
-        .stForm {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-        /* Button style */
-        .stButton button {
-            background-color: #2e86c1;
-            color: white;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-        }
-        /* Text area style */
-        .stTextArea textarea {
-            background-color: #eaf2f8;
-            border-radius: 5px;
-            padding: 10px;
-        }
-        /* Tab style */
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: #ffffff;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        .stTabs [data-baseweb="tab"] {
-            color: #2e86c1;
+        /* Style the label above the text area */
+        div[data-testid="stTextArea"] label p {
             font-weight: bold;
+            color: #2c3e50; /* Adjust text color as desired */
         }
-        .stTabs [aria-selected="true"] {
-            background-color: #2e86c1;
-            color: white;
+
+        /* Style the text area background, font, etc. */
+        div[data-testid="stTextArea"] textarea {
+            background-color: #e6f7ff; /* Light blue background */
+            color: #2c3e50;           /* Dark text for contrast */
+            font-family: "Courier New", monospace;
+            font-size: 14px;
         }
+
+        /* Optional: Adjust the overall page background color (uncomment if needed)
+        body {
+            background-color: #f5f7fa;
+        }
+        */
         </style>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
