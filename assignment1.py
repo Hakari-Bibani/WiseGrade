@@ -112,7 +112,10 @@ def show():
                 - **Spacing:** 2 points (deducted if improper spacing is found, e.g., no space after `=`).
                 - **Comments:** 2 points (deducted if no comments are present).
                 - **Code Organization:** 2 points (deducted if no blank lines are used for separation).
-
+            """)
+            # Add "See More" expandable section
+            with st.expander("See More"):
+                st.markdown("""
             #### 2. Map Visualization (40 points)
             - **Map Generation (15 points):**
                 - Checks if the `folium.Map` is correctly initialized.
