@@ -70,7 +70,7 @@ def show():
                  - The distance between Point 1 and Point 2.
                  - The distance between Point 2 and Point 3.
                  - The distance between Point 1 and Point 3.
-               - Markers are added to the map for each coordinate.
+               - Add Markers to the map for each coordinate.
                - Add polylines to connect the points.
                - Add popups between markers to display information about the distance.
 
@@ -82,7 +82,7 @@ def show():
             **Python Libraries You Will Use:**
             - `geopy` for calculating the distance between two coordinates.
             - `folium` for plotting the points on an interactive map.
-            - Use `pandas` to create a DataFrame that displays the distances between the points.
+            -  `pandas` to create a DataFrame that displays the distances between the points.
 
             **Expected Output:**
             1. A map showing the three coordinates.
