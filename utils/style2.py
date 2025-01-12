@@ -1,32 +1,28 @@
 import streamlit as st
 
-def set_page_style():
+def set_page_style_2():
     """
-    Apply custom styling to the Streamlit app, particularly
-    ensuring that the code input area (st.text_area) has a light blue background.
+    Applies a custom style for Assignment 2, including a light-blue box for code input.
     """
     st.markdown(
         """
         <style>
-        /* Style the label above the text area */
-        div[data-testid="stTextArea"] label p {
-            font-weight: bold;
-            color: #2c3e50; /* Adjust text color as desired */
-        }
-
-        /* Style the text area background, font, etc. */
-        div[data-testid="stTextArea"] textarea {
-            background-color: #e6f7ff; /* Light blue background */
-            color: #2c3e50;           /* Dark text for contrast */
+        /* Change the background of the text area used for code input */
+        .stTextArea textarea {
+            background-color: #e6f7ff !important;  /* light-blue shade */
             font-family: "Courier New", monospace;
-            font-size: 14px;
+            color: #000000;
         }
 
-        /* Optional: Adjust the overall page background color (uncomment if needed)
-        body {
-            background-color: #f5f7fa;
+        /* You can also define additional custom styles for headings, tabs, etc. */
+        .stTabs [data-baseweb="tab"] .stTab {
+            font-weight: bold;
         }
-        */
+
+        .stFileUploader div[data-testid="stFileUploadDropzone"] {
+            background-color: #fafafa;
+            border: 2px dashed #cccccc;
+        }
         </style>
         """,
         unsafe_allow_html=True
