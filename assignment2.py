@@ -13,14 +13,6 @@ from io import StringIO
 # Set the page style
 set_page_style()
 
-# Custom display hook to capture the last evaluated expression
-class OutputCapture:
-    def __init__(self):
-        self.last_output = None
-
-    def __call__(self, value):
-        self.last_output = value
-
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -55,8 +47,6 @@ def show():
         try:
             # Create a local dictionary to capture code execution results
             local_context = {}
-            output_capture = OutputCapture()
-            sys.displayhook = output_capture
 
             # Redirect stdout to capture print statements
             stdout_capture = StringIO()
@@ -65,26 +55,41 @@ def show():
             # Execute the user's code
             exec(code_input, {}, local_context)
 
-            # Restore stdout and display hook
+            # Restore stdout
             sys.stdout = sys.__stdout__
-            sys.displayhook = sys.__displayhook__
 
-            # Capture the last evaluated expression
-            last_output = output_capture.last_output
+            # Search for outputs
+            map_object = None
+            dataframe_object = None
+            bar_chart_object = None
+
+            for var_name, var_value in local_context.items():
+                if isinstance(var_value, folium.Map):
+                    map_object = var_value
+                elif isinstance(var_value, pd.DataFrame):
+                    dataframe_object = var_value
+                elif isinstance(var_value, plt.Figure):
+                    bar_chart_object = var_value
 
             # Display outputs
-            if isinstance(last_output, folium.Map):
+            if map_object:
                 st.success("Map generated successfully!")
                 st.markdown("### 🗺️ Generated Map")
-                st.components.v1.html(last_output._repr_html_(), height=500)
-            elif isinstance(last_output, pd.DataFrame):
-                st.markdown("### 📊 Earthquake Statistics")
-                st.write(last_output)
-            elif isinstance(last_output, plt.Figure):
-                st.markdown("### 📈 Earthquake Frequency by Magnitude Range")
-                st.pyplot(last_output)
+                st.components.v1.html(map_object._repr_html_(), height=500)
             else:
-                st.warning("No supported output found in the code (expected: Folium map, DataFrame, or Matplotlib plot).")
+                st.warning("No Folium map found in the code output.")
+
+            if dataframe_object is not None:
+                st.markdown("### 📊 Earthquake Statistics")
+                st.write(dataframe_object)
+            else:
+                st.warning("No DataFrame with earthquake statistics found in the code output.")
+
+            if bar_chart_object:
+                st.markdown("### 📈 Earthquake Frequency by Magnitude Range")
+                st.pyplot(bar_chart_object)
+            else:
+                st.warning("No bar chart found in the code output.")
 
             # Display captured stdout (print statements)
             stdout_output = stdout_capture.getvalue()
