@@ -7,6 +7,7 @@ import traceback
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import sys
 from io import StringIO
 
@@ -31,7 +32,7 @@ def show():
             2. Filter earthquakes with magnitude > 4.0.
             3. Create a Folium map.
             4. Create a DataFrame with earthquake statistics.
-            5. Create a bar chart.
+            5. Create a bar chart using `matplotlib` or `seaborn`.
             6. Paste your code below and click **Run** to see the outputs.
             """)
 
@@ -70,6 +71,8 @@ def show():
                     dataframe_object = var_value
                 elif isinstance(var_value, plt.Figure):
                     bar_chart_object = var_value
+                elif hasattr(var_value, "figure"):  # Detect Seaborn plots
+                    bar_chart_object = var_value.figure
 
             # Display outputs
             if map_object:
