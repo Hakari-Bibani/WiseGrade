@@ -1,24 +1,28 @@
 import streamlit as st
 
 def set_page_style():
-    st.markdown("""
+    """
+    Applies custom CSS to style the Streamlit page for Assignment 2.
+    """
+    custom_css = """
     <style>
-    body {
-        font-family: 'Tiranti Solid Std Regular', cursive;
+    /* Make the code text area have a light blue background */
+    .stTextArea textarea {
+        background-color: #eaf7ff !important;  /* light blue */
+        font-family: "Courier New", monospace;
     }
-    /* Target the text area container */
-    div.stTextArea > div > div > textarea {
-        background-color: #e6ffe6 !important; /* Light green background */
-        font-size: 16px !important; /* Increase font size */
-        height: 200px !important; /* Increase height */
-        border: 1px solid #ccc !important;
-        border-radius: 5px !important;
-        padding: 10px !important;
+
+    /* Optionally style the titles and headers */
+    h1, h2, h3 {
+        color: #004477;
     }
-    /* Target the text area label (if needed) */
-    div.stTextArea > label {
-        font-size: 16px !important;
-        color: #333 !important;
+
+    /* Example: change tab label colors */
+    .stTabs [role="tab"] span {
+        color: #005599;
+        font-weight: 600;
     }
+
     </style>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
