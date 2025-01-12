@@ -136,7 +136,8 @@ def show():
 
 
         # Code Submission Area
-        code_input = st.text_area("📝 Paste Your Code Here")
+# Bold text in st.text_area using Markdown
+  code_input = st.text_area("📝 Paste Your Code Here")
 
         # Form Submit Buttons
         run_button = st.form_submit_button("Run")
