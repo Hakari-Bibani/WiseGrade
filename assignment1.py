@@ -95,33 +95,36 @@ def show():
 
         with tab2:
             st.markdown("""
-1. Code Structure and Implementation (30 points)
-•	Library Imports (5 points):
-o	Checks if the required libraries (folium, geopy, geodesic) are imported.
-•	Coordinate Handling (5 points):
-o	Checks if the correct coordinates are defined in the code.
-•	Code Execution (10 points):
-o	Checks if the code runs without errors.
-•	Code Quality (10 points):
-o	Variable Naming: 2 points (deducted if single-letter variables are used).
-o	Spacing: 2 points (deducted if improper spacing is found, e.g., no space after =).
-o	Comments: 2 points (deducted if no comments are present).
-o	Code Organization: 2 points (deducted if no blank lines are used for separation).
-2. Map Visualization (40 points)
-•	Map Generation (15 points):
-o	Checks if the folium.Map is correctly initialized.
-•	Markers (15 points):
-o	Checks if markers are added to the map for each coordinate.
-•	Polylines (5 points):
-o	Checks if polylines are used to connect the points.
-•	Popups (5 points):
-o	Checks if popups are added to the markers.
-3. Distance Calculations (30 points)
-•	Geodesic Implementation (10 points):
-o	Checks if the geodesic function is used correctly to calculate distances.
-•	Distance Accuracy (20 points):
-o	Checks if the calculated distances are accurate within a 100-meter tolerance.
+            ### Detailed Grading Breakdown
 
+            #### 1. Code Structure and Implementation (30 points)
+            - **Library Imports (5 points):**
+                - Checks if the required libraries (`folium`, `geopy`, `geodesic`) are imported.
+            - **Coordinate Handling (5 points):**
+                - Checks if the correct coordinates are defined in the code.
+            - **Code Execution (10 points):**
+                - Checks if the code runs without errors.
+            - **Code Quality (10 points):**
+                - **Variable Naming:** 2 points (deducted if single-letter variables are used).
+                - **Spacing:** 2 points (deducted if improper spacing is found, e.g., no space after `=`).
+                - **Comments:** 2 points (deducted if no comments are present).
+                - **Code Organization:** 2 points (deducted if no blank lines are used for separation).
+
+            #### 2. Map Visualization (40 points)
+            - **Map Generation (15 points):**
+                - Checks if the `folium.Map` is correctly initialized.
+            - **Markers (15 points):**
+                - Checks if markers are added to the map for each coordinate.
+            - **Polylines (5 points):**
+                - Checks if polylines are used to connect the points.
+            - **Popups (5 points):**
+                - Checks if popups are added to the markers.
+
+            #### 3. Distance Calculations (30 points)
+            - **Geodesic Implementation (10 points):**
+                - Checks if the `geodesic` function is used correctly to calculate distances.
+            - **Distance Accuracy (20 points):**
+                - Checks if the calculated distances are accurate within a 100-meter tolerance.
             """)
 
         # Code Submission Area
