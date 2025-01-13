@@ -1,5 +1,5 @@
 def grade_assignment(code):
-    grade = 0  # Initialize grade variable
+    grade = 0
     print("\n=== Grading Submission ===\n")
 
     # Library Imports (5 points)
@@ -19,7 +19,7 @@ def grade_assignment(code):
     # Code Execution (10 points)
     try:
         local_context = {}
-        exec(code, {}, local_context)
+        exec(code, globals(), local_context)
         execution_score = 10
         grade += execution_score
         print("Code Execution: Success (10/10)")
@@ -75,38 +75,52 @@ def grade_assignment(code):
         distance_score += 10
         print("Geodesic Function: Detected (10/10)")
         try:
-            local_context = {}
-            exec(code, globals(), local_context)  # Execute code to get DataFrame
-            dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
+            # Extract all float values from the code execution context
+            import re
             
-            if dataframe_object is not None:
-                print("DataFrame Detected")
-                # Get all numeric columns
-                numeric_cols = dataframe_object.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
-                
-                expected_distances = [59.57, 73.14, 37.98]
-                found_distances = False
-                
-                # Check each numeric column for the expected distances
-                for col in numeric_cols:
-                    values = dataframe_object[col].round(2).tolist()
-                    # Sort both lists to compare values regardless of order
-                    values.sort()
-                    expected_distances_sorted = sorted(expected_distances)
-                    
-                    # Check if values match expected distances
-                    if all(abs(a - b) <= 0.5 for a, b in zip(values, expected_distances_sorted)):
-                        print(f"Correct distances found in column: {col}")
-                        distance_score += 20  # Full points for correct distances
-                        found_distances = True
-                        break
-                
-                if not found_distances:
-                    print("Expected distances not found in any column")
-                    print(f"Expected distances: {expected_distances}")
-                    print(f"Found values: {[dataframe_object[col].tolist() for col in numeric_cols]}")
+            # First look for printed output containing the distances
+            printed_values = []
+            def mock_print(*args, **kwargs):
+                printed_values.extend(str(arg) for arg in args)
+            
+            # Re-execute code with mocked print to capture output
+            mock_globals = {'print': mock_print, **globals()}
+            exec(code, mock_globals, local_context)
+            
+            # Look for float values in printed output
+            all_numbers = []
+            for output in printed_values:
+                numbers = re.findall(r'\d+\.\d+', output)
+                all_numbers.extend([float(num) for num in numbers])
+            
+            # Also look for DataFrame values
+            for var in local_context.values():
+                if isinstance(var, pd.DataFrame):
+                    for col in var.columns:
+                        if var[col].dtype in ['float64', 'float32', 'int64', 'int32']:
+                            all_numbers.extend(var[col].tolist())
+            
+            # Round all numbers to 2 decimal places
+            all_numbers = [round(num, 2) for num in all_numbers]
+            
+            # Expected distances
+            expected_distances = [59.57, 73.14, 37.98]
+            
+            # Check if all expected distances are present
+            matched_distances = 0
+            for expected in expected_distances:
+                if any(abs(actual - expected) <= 0.5 for actual in all_numbers):
+                    matched_distances += 1
+            
+            # Award points based on matched distances
+            if matched_distances == 3:
+                distance_score += 20
+                print("All distances correctly calculated (20/20)")
             else:
-                print("No DataFrame Detected")
+                partial_score = (matched_distances * 20) // 3
+                distance_score += partial_score
+                print(f"Partially correct distances ({partial_score}/20)")
+                
         except Exception as e:
             print(f"Distance Validation Error: {e}")
     else:
