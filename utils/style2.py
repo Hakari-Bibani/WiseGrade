@@ -1,4 +1,4 @@
-# utils/style2.py
+import streamlit as st
 
 def set_page_style():
     """Set a custom style for the Streamlit app."""
@@ -7,6 +7,7 @@ def set_page_style():
         <style>
             body {
                 font-family: 'Arial', sans-serif;
+                background-color: #f9f9f9;
                 color: #333;
             }
             .stButton > button {
