@@ -7,7 +7,7 @@ import requests
 from datetime import datetime
 from io import StringIO
 from streamlit_folium import st_folium
-from style2 import set_page_style
+from utils.style1 import set_page_style
 from Record.google_sheet import fetch_student_record, update_google_sheet
 
 def fetch_earthquake_data(start_date, end_date):
@@ -82,7 +82,8 @@ def show():
     student_id = st.text_input("Student ID")
     
     # Validate Student ID
-    if st.button("Validate Student ID"):
+    validate_button = st.button("Validate Student ID")
+    if validate_button:
         student_record = fetch_student_record(student_id)
         if student_record:
             if student_record.get("assignment_2_submitted"):
@@ -97,7 +98,8 @@ def show():
     start_date = "2025-01-02"
     end_date = "2025-01-09"
 
-    if st.button("Fetch Data"):
+    fetch_data_button = st.button("Fetch Data")
+    if fetch_data_button:
         raw_data = fetch_earthquake_data(start_date, end_date)
         if raw_data:
             earthquake_data = process_earthquake_data(raw_data)
@@ -106,10 +108,13 @@ def show():
                 st.stop()
             else:
                 st.success("Earthquake data fetched and processed successfully.")
+                st.session_state["earthquake_data"] = earthquake_data
 
     # Visualizations
     st.header("Step 3: Visualize the Data")
-    if 'earthquake_data' in locals() or 'earthquake_data' in globals():
+    if "earthquake_data" in st.session_state:
+        earthquake_data = st.session_state["earthquake_data"]
+
         st.markdown("### Interactive Map")
         map_object = create_map(earthquake_data)
         st_folium(map_object, width=700, height=500)
@@ -136,8 +141,9 @@ def show():
 
     # Submission
     st.header("Step 4: Submit Assignment")
-    if st.button("Submit Assignment"):
-        if 'earthquake_data' not in locals() and 'earthquake_data' not in globals():
+    submit_button = st.button("Submit Assignment")
+    if submit_button:
+        if "earthquake_data" not in st.session_state:
             st.error("Please fetch and process earthquake data before submitting.")
         elif student_id:
             update_google_sheet(student_id, "assignment_2_submitted", True)
