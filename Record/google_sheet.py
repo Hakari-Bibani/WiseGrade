@@ -5,7 +5,19 @@ import streamlit as st
 def update_google_sheet(full_name, email, student_id, grade, current_assignment):
     try:
         # Load secrets
-        google_sheets_secrets = st.secrets["google_sheets"]
+        google_sheets_secrets = st.secrets.get("google_sheets", None)
+        if not google_sheets_secrets:
+            st.error("Google Sheets credentials are missing in Streamlit secrets.")
+            return
+
+        # Required keys validation
+        required_keys = ["type", "project_id", "private_key_id", "private_key", "client_email",
+                         "client_id", "auth_uri", "token_uri", "auth_provider_x509_cert_url",
+                         "client_x509_cert_url", "spreadsheet_id"]
+        missing_keys = [key for key in required_keys if key not in google_sheets_secrets]
+        if missing_keys:
+            st.error(f"Missing keys in Google Sheets secrets: {', '.join(missing_keys)}")
+            return
 
         # Define the scope
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -23,7 +35,7 @@ def update_google_sheet(full_name, email, student_id, grade, current_assignment)
         # Check if email exists in the sheet
         try:
             cell = worksheet.find(email)  # Locate email in the sheet
-        except gspread.exceptions.APIError:
+        except gspread.exceptions.CellNotFound:
             cell = None
 
         if cell:
