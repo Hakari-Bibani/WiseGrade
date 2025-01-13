@@ -1,33 +1,37 @@
 def grade_assignment(code):
     grade = 0
-    print("\n=== Grading Submission ===\n")
 
-    # Library Imports (5 points)
+    # a. Library Imports (5 points)
     required_imports = ["folium", "geopy", "geodesic", "pandas"]
     imported_libraries = sum(1 for lib in required_imports if lib in code)
-    library_score = min(5, imported_libraries * 1.25)
-    grade += library_score
-    print(f"Library Imports: {library_score}/5")
+    if imported_libraries == 4:
+        grade += 5
+    elif imported_libraries == 3:
+        grade += 3.75
+    elif imported_libraries == 2:
+        grade += 2.5
+    elif imported_libraries == 1:
+        grade += 1.25
 
-    # Coordinates (5 points)
+    # b. Coordinate Handling (5 points)
     coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
     correct_coordinates = sum(1 for coord in coordinates if coord in code)
-    coordinate_score = min(5, correct_coordinates * (5 / 3))
-    grade += coordinate_score
-    print(f"Coordinate Handling: {coordinate_score}/5")
+    if correct_coordinates == 3:
+        grade += 5
+    elif correct_coordinates == 2:
+        grade += 3.33
+    elif correct_coordinates == 1:
+        grade += 1.67
 
-    # Code Execution (10 points)
+    # c. Code Execution (10 points)
     try:
         local_context = {}
-        exec(code, globals(), local_context)
-        execution_score = 10
-        grade += execution_score
-        print("Code Execution: Success (10/10)")
+        exec(code, {}, local_context)
+        grade += 10  # Full points if the code runs without errors
     except Exception as e:
-        execution_score = 0
-        print(f"Code Execution: Error ({e}) (0/10)")
+        print(f"Execution Error: {e}")
 
-    # Code Quality (10 points)
+    # d. Code Quality (10 points)
     code_quality_issues = 0
     if any(f" {char} =" in code or f" {char}=" in code for char in "abcdefghijklmnopqrstuvwxyz"):
         code_quality_issues += 1
@@ -37,97 +41,41 @@ def grade_assignment(code):
         code_quality_issues += 1
     if "\n\n" not in code:
         code_quality_issues += 1
-    quality_score = max(0, 10 - code_quality_issues * 2.5)
-    grade += quality_score
-    print(f"Code Quality: {quality_score}/10")
+    grade += max(0, 10 - code_quality_issues * 2.5)
 
-    # Map Visualization (40 points)
-    map_score = 0
+    # 2. Map Visualization (40 points)
     if "folium.Map" in code:
-        map_score += 15
-        print("Map Generation: Detected (15/15)")
-    else:
-        print("Map Generation: Not Detected (0/15)")
+        grade += 15
 
     marker_count = code.count("folium.Marker")
-    marker_score = min(15, marker_count * 5)
-    map_score += marker_score
-    print(f"Markers: {marker_score}/15")
+    grade += min(15, marker_count * 5)  # Each marker is worth 5 points, max 15 points
 
     if "PolyLine" in code:
-        map_score += 5
-        print("Polylines: Detected (5/5)")
-    else:
-        print("Polylines: Not Detected (0/5)")
+        grade += 5
 
     if "popup=" in code:
-        map_score += 5
-        print("Popups: Detected (5/5)")
-    else:
-        print("Popups: Not Detected (0/5)")
+        grade += 5
 
-    grade += map_score
-    print(f"Map Visualization: {map_score}/40")
-
-    # Distance Calculations (30 points)
-    distance_score = 0
+    # 3. Distance Calculations (30 points)
     if "geodesic" in code:
-        distance_score += 10
-        print("Geodesic Function: Detected (10/10)")
+        grade += 10  # Full points for geodesic implementation
+
+        # Verify accuracy of distance calculations
         try:
-            # Extract all float values from the code execution context
-            import re
-            
-            # First look for printed output containing the distances
-            printed_values = []
-            def mock_print(*args, **kwargs):
-                printed_values.extend(str(arg) for arg in args)
-            
-            # Re-execute code with mocked print to capture output
-            mock_globals = {'print': mock_print, **globals()}
-            exec(code, mock_globals, local_context)
-            
-            # Look for float values in printed output
-            all_numbers = []
-            for output in printed_values:
-                numbers = re.findall(r'\d+\.\d+', output)
-                all_numbers.extend([float(num) for num in numbers])
-            
-            # Also look for DataFrame values
-            for var in local_context.values():
-                if isinstance(var, pd.DataFrame):
-                    for col in var.columns:
-                        if var[col].dtype in ['float64', 'float32', 'int64', 'int32']:
-                            all_numbers.extend(var[col].tolist())
-            
-            # Round all numbers to 2 decimal places
-            all_numbers = [round(num, 2) for num in all_numbers]
-            
-            # Expected distances
-            expected_distances = [59.57, 73.14, 37.98]
-            
-            # Check if all expected distances are present
-            matched_distances = 0
-            for expected in expected_distances:
-                if any(abs(actual - expected) <= 0.5 for actual in all_numbers):
-                    matched_distances += 1
-            
-            # Award points based on matched distances
-            if matched_distances == 3:
-                distance_score += 20
-                print("All distances correctly calculated (20/20)")
+            exec(code, {}, local_context)
+
+            # Search for DataFrame or numeric values
+            dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
+            numeric_columns = []
+
+            if dataframe_object is not None:
+                # Extract numeric columns from DataFrame
+                numeric_columns = dataframe_object.select_dtypes(include=['float64', 'int64']).columns
+                if numeric_columns.any():
+                    actual_distances = dataframe_object[numeric_columns[0]].tolist()
+                else:
+                    print("No numeric columns found in DataFrame.")
             else:
-                partial_score = (matched_distances * 20) // 3
-                distance_score += partial_score
-                print(f"Partially correct distances ({partial_score}/20)")
-                
-        except Exception as e:
-            print(f"Distance Validation Error: {e}")
-    else:
-        print("Geodesic Function: Not Detected (0/10)")
+                # Check for captured numeric values in local_context
 
-    grade += distance_score
-    print(f"Distance Calculations: {distance_score}/30")
-
-    print(f"\n=== Final Grade: {round(grade)}/100 ===\n")
-    return round(grade)
+               target distance verification to all returnign functional.
