@@ -184,7 +184,7 @@ def show():
             st.write("No text output captured.")
 
         if st.session_state["map_object"]:
-            st.markdown("###  Map Output")
+            st.markdown("### 🗺️ Map Output")
             st_folium(st.session_state["map_object"], width=700, height=500)
 
         if st.session_state["dataframe_object"] is not None:
