@@ -44,7 +44,7 @@ def show():
     tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
     with tab1:
-                    st.markdown("""
+        st.markdown("""
             ### Objective
             In this assignment, you will write a Python script to plot three geographical coordinates on a map and calculate the distance between each pair of points in kilometers. This will help you practice working with geospatial data and Python libraries for mapping and calculations.
 
