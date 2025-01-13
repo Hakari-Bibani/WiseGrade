@@ -4,24 +4,12 @@ def grade_assignment(code):
     # a. Library Imports (5 points)
     required_imports = ["folium", "geopy", "geodesic", "pandas"]
     imported_libraries = sum(1 for lib in required_imports if lib in code)
-    if imported_libraries == 4:
-        grade += 5
-    elif imported_libraries == 3:
-        grade += 3.75
-    elif imported_libraries == 2:
-        grade += 2.5
-    elif imported_libraries == 1:
-        grade += 1.25
+    grade += min(5, imported_libraries * 1.25)
 
     # b. Coordinate Handling (5 points)
     coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
     correct_coordinates = sum(1 for coord in coordinates if coord in code)
-    if correct_coordinates == 3:
-        grade += 5
-    elif correct_coordinates == 2:
-        grade += 3.33
-    elif correct_coordinates == 1:
-        grade += 1.67
+    grade += min(5, correct_coordinates * (5 / 3))
 
     # c. Code Execution (10 points)
     try:
@@ -48,7 +36,7 @@ def grade_assignment(code):
         grade += 15
 
     marker_count = code.count("folium.Marker")
-    grade += min(15, marker_count * 5)  # Each marker is worth 5 points, max 15 points
+    grade += min(15, marker_count * 5)
 
     if "PolyLine" in code:
         grade += 5
@@ -64,40 +52,37 @@ def grade_assignment(code):
         try:
             exec(code, {}, local_context)
 
-            # Search for DataFrame with distances
+            # Check for DataFrame in local_context
             dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
-            captured_output = ""  # Placeholder for captured print output
+            distances_detected = []
 
-            # Extract numeric columns from the DataFrame
             if dataframe_object is not None:
-                numeric_columns = dataframe_object.select_dtypes(include=['float', 'int']).columns
+                # Extract numeric columns from DataFrame
+                numeric_columns = dataframe_object.select_dtypes(include=["float", "int"]).columns
                 if not numeric_columns.empty:
-                    actual_distances = dataframe_object[numeric_columns[0]].tolist()
-                else:
-                    actual_distances = []
+                    distances_detected = dataframe_object[numeric_columns[0]].tolist()
+                    print(f"Distances found in DataFrame: {distances_detected}")
             else:
-                print("No DataFrame found. Checking captured output for distances.")
+                # Fallback to analyzing captured output
+                print("No DataFrame found. Checking captured output...")
                 import io
-                import sys
-                captured_output_stream = io.StringIO()
-                sys.stdout = captured_output_stream
-                try:
-                    exec(code, {}, local_context)
-                finally:
-                    sys.stdout = sys.__stdout__
-                    captured_output = captured_output_stream.getvalue()
-                actual_distances = [float(val) for val in captured_output.split() if val.replace('.', '', 1).isdigit()]
+                captured_output = io.StringIO()
+                exec(code, {}, {"print": captured_output.write})
+                distances_detected = [
+                    float(val) for val in captured_output.getvalue().split() if val.replace(".", "", 1).isdigit()
+                ]
+                print(f"Distances found in captured output: {distances_detected}")
 
             # Validate distances
             expected_distances = [59.57, 73.14, 37.98]  # Expected distances
-            tolerance = 0.5  # Allowable error in km
+            tolerance = 0.5
             correct_distances = 0
             for expected in expected_distances:
-                if any(abs(expected - actual) <= tolerance for actual in actual_distances):
+                if any(abs(expected - actual) <= tolerance for actual in distances_detected):
                     correct_distances += 1
 
-            # Assign points based on correct distances
-            grade += correct_distances * (20 / len(expected_distances))  # Divide 20 points equally
+            # Award points based on correct distances
+            grade += correct_distances * (20 / len(expected_distances))
         except Exception as e:
             print(f"Distance Verification Error: {e}")
 
