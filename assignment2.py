@@ -99,16 +99,11 @@ def show():
 
             # Process outputs
             st.session_state["captured_output"] = captured_output.getvalue()
-            map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
-            dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
-            bar_chart = plt.gcf() if plt.get_fignums() else None
+            st.session_state["map_object"] = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
+            st.session_state["dataframe_object"] = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
+            st.session_state["bar_chart"] = plt.gcf() if plt.get_fignums() else None
 
-            st.session_state.update({
-                "map_object": map_object,
-                "dataframe_object": dataframe_object,
-                "bar_chart": bar_chart,
-                "run_success": True,
-            })
+            st.session_state["run_success"] = True
 
         except Exception as e:
             sys.stdout = sys.__stdout__
@@ -136,6 +131,6 @@ def show():
     if submit_button:
         if st.session_state.get("run_success", False):
             st.success("Code submitted successfully! Your outputs have been recorded.")
-            # Additional logic to save the submission (e.g., Google Sheets, database, etc.)
+            # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
