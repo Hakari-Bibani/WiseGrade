@@ -3,20 +3,10 @@ import streamlit as st
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime
 from io import StringIO
 from streamlit_folium import st_folium
 from utils.style2 import set_page_style
-import requests
-import json
-
-# Helper function for earthquake data fetching
-def fetch_earthquake_data(start_date, end_date):
-    """Fetch earthquake data from USGS API."""
-    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={start_date}&endtime={end_date}"
-    response = requests.get(url)
-    response.raise_for_status()  # Raise an error for failed requests
-    return response.json()
+import traceback
 
 def show():
     # Apply the custom page style
@@ -31,6 +21,8 @@ def show():
         st.session_state["dataframe_object"] = None
     if "bar_chart" not in st.session_state:
         st.session_state["bar_chart"] = None
+    if "captured_output" not in st.session_state:
+        st.session_state["captured_output"] = ""
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -38,11 +30,10 @@ def show():
     st.header("Step 1: Enter Your Student ID")
     with st.form("student_id_form", clear_on_submit=False):
         student_id = st.text_input("Enter Your Student ID", key="student_id")
-
         submit_id_button = st.form_submit_button("Verify Student ID")
 
         if submit_id_button:
-            if student_id:  # Verify student ID logic
+            if student_id:  # Verify student ID logic (placeholder)
                 st.success(f"Student ID {student_id} verified. You may proceed.")
             else:
                 st.error("Please provide a valid Student ID.")
@@ -90,6 +81,7 @@ def show():
     run_button = st.button("Run Code", key="run_code_button")
     if run_button and code_input:
         st.session_state["run_success"] = False
+        st.session_state["captured_output"] = ""
         try:
             # Redirect stdout to capture output
             captured_output = StringIO()
@@ -119,9 +111,14 @@ def show():
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"An error occurred while running your code: {e}")
+            st.error(traceback.format_exc())
 
     # Display Outputs
     if st.session_state["run_success"]:
+        if st.session_state["captured_output"]:
+            st.markdown("### \U0001F4DA Captured Output")
+            st.text(st.session_state["captured_output"])
+
         if st.session_state["map_object"]:
             st.markdown("### \U0001F5FA Map Output")
             st_folium(st.session_state["map_object"], width=700, height=500)
