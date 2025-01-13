@@ -7,7 +7,7 @@ import requests
 from datetime import datetime
 from io import StringIO
 from streamlit_folium import st_folium
-from utils.style1 import set_page_style
+from style2 import set_page_style
 from Record.google_sheet import fetch_student_record, update_google_sheet
 
 def fetch_earthquake_data(start_date, end_date):
