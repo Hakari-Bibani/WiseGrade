@@ -64,18 +64,41 @@ def grade_assignment(code):
         try:
             exec(code, {}, local_context)
 
-            # Search for DataFrame or numeric values
+            # Search for DataFrame with distances
             dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
-            numeric_columns = []
+            captured_output = ""  # Placeholder for captured print output
 
+            # Extract numeric columns from the DataFrame
             if dataframe_object is not None:
-                # Extract numeric columns from DataFrame
-                numeric_columns = dataframe_object.select_dtypes(include=['float64', 'int64']).columns
-                if numeric_columns.any():
+                numeric_columns = dataframe_object.select_dtypes(include=['float', 'int']).columns
+                if not numeric_columns.empty:
                     actual_distances = dataframe_object[numeric_columns[0]].tolist()
                 else:
-                    print("No numeric columns found in DataFrame.")
+                    actual_distances = []
             else:
-                # Check for captured numeric values in local_context
+                print("No DataFrame found. Checking captured output for distances.")
+                import io
+                import sys
+                captured_output_stream = io.StringIO()
+                sys.stdout = captured_output_stream
+                try:
+                    exec(code, {}, local_context)
+                finally:
+                    sys.stdout = sys.__stdout__
+                    captured_output = captured_output_stream.getvalue()
+                actual_distances = [float(val) for val in captured_output.split() if val.replace('.', '', 1).isdigit()]
 
-               target distance verification to all returnign functional.
+            # Validate distances
+            expected_distances = [59.57, 73.14, 37.98]  # Expected distances
+            tolerance = 0.5  # Allowable error in km
+            correct_distances = 0
+            for expected in expected_distances:
+                if any(abs(expected - actual) <= tolerance for actual in actual_distances):
+                    correct_distances += 1
+
+            # Assign points based on correct distances
+            grade += correct_distances * (20 / len(expected_distances))  # Divide 20 points equally
+        except Exception as e:
+            print(f"Distance Verification Error: {e}")
+
+    return round(grade)
