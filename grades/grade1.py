@@ -84,7 +84,7 @@ def grade_assignment(code):
                     # Assign points based on correct distances
                     grade += correct_distances * (20 / len(expected_distances))  # Divide 20 points equally
                 else:
-                    print("DataFrame is missing a column with distances.")
+                    print("DataFrame found but missing 'distance' column.")
             else:
                 print("No DataFrame with distances found.")
         except Exception as e:
