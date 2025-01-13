@@ -20,9 +20,11 @@ def show():
     # Apply the custom page style
     set_page_style()
 
-    st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
+    # Initialize session state variables
+    if "run_success" not in st.session_state:
+        st.session_state["run_success"] = False
 
-    # Split the UI into three sections
+    st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
     # Section 1: Student Information Form
     st.header("Step 1: Enter Your Details")
@@ -33,7 +35,7 @@ def show():
         generate_id_button = st.form_submit_button("Generate Student ID")
 
         if generate_id_button:
-            if run_success and full_name and email:
+            if full_name and email:
                 student_id = generate_student_id(full_name, email)
                 st.success(f"Student ID generated: {student_id}")
             else:
@@ -130,52 +132,51 @@ def show():
     st.header("Step 3: Submit and Run Your Code")
     code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
+    # Run Code Button
     run_button = st.button("Run Code", key="run_code_button")
+    if run_button and code_input:
+        st.session_state["run_success"] = False
+        try:
+            # Create a local dictionary to capture code execution results
+            local_context = {}
+            exec(code_input, {}, local_context)
 
-    run_success = False
-if run_button and code_input:
-    st.session_state['run_success'] = False
-    try:
-        # Create a local dictionary to capture code execution results
-        local_context = {}
-        exec(code_input, {}, local_context)
+            # Search for outputs
+            map_object = next((var for var in local_context.values() if isinstance(var, folium.Map)), None)
+            dataframe_object = next((var for var in local_context.values() if isinstance(var, pd.DataFrame)), None)
 
-        # Search for outputs
-        map_object = next((var for var in local_context.values() if isinstance(var, folium.Map)), None)
-        dataframe_object = next((var for var in local_context.values() if isinstance(var, pd.DataFrame)), None)
+            # Display outputs
+            if map_object:
+                st.success("Map generated successfully!")
+                st_folium(map_object, width=700, height=500)
+            else:
+                st.warning("No Folium map found in the code output.")
 
-        # Display outputs
-        if map_object:
-            st.success("Map generated successfully!")
-            st_folium(map_object, width=700, height=500)
+            if dataframe_object is not None:
+                st.markdown("### 📏Distance Summary")
+                st.dataframe(dataframe_object)
+            else:
+                st.warning("No DataFrame with distances found in the code output.")
+
+            # Mark run as successful
+            st.session_state["run_success"] = True
+
+        except Exception as e:
+            st.error("An error occurred while executing your code:")
+            st.error(str(e))
+
+    # Submit Code Button
+    submit_button = st.button("Submit Code", key="submit_code_button")
+    if submit_button:
+        if not st.session_state.get("run_success", False):
+            st.error("Please run your code successfully before submitting.")
+        elif full_name and email:
+            from grades.grade1 import grade_assignment
+            from Record.google_sheet import update_google_sheet
+
+            grade = grade_assignment(code_input)
+            student_id = generate_student_id(full_name, email)
+            update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+            st.success(f"Submission successful! Your grade: {grade}/100")
         else:
-            st.warning("No Folium map found in the code output.")
-
-        if dataframe_object is not None:
-            st.markdown("### 📏Distance Summary")
-            st.dataframe(dataframe_object)
-        else:
-            st.warning("No DataFrame with distances found in the code output.")
-
-        # Mark run as successful
-        st.session_state['run_success'] = True
-
-    except Exception as e:
-        st.error("An error occurred while executing your code:")
-        st.error(str(e))
-
-# Submit button always visible but only works if run is successful
-submit_button = st.button("Submit Code", key="submit_code_button")
-if submit_button:
-    if not st.session_state.get('run_success', False):
-        st.error("Please run your code successfully before submitting.")
-    elif full_name and email:
-        from grades.grade1 import grade_assignment
-        from Record.google_sheet import update_google_sheet
-
-        grade = grade_assignment(code_input)
-        student_id = generate_student_id(full_name, email)
-        update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-        st.success(f"Submission successful! Your grade: {grade}/100")
-    else:
-        st.error("Please ensure Full Name and Email are entered to submit.")
+            st.error("Please ensure Full Name and Email are entered to submit.")
