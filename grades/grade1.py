@@ -1,4 +1,4 @@
-def grade_assignment(code):
+def grade_assignment(code): 
     grade = 0
 
     # a. Library Imports (5 points)
@@ -70,6 +70,8 @@ def grade_assignment(code):
                 expected_distances = [59.57, 73.14, 37.98]  # Expected distances
                 tolerance = 0.5  # Allowable error in km
                 actual_distances = dataframe_object["Distance (km)"].tolist()
+                
+                # Compare each expected distance with the actual ones
                 for expected, actual in zip(expected_distances, actual_distances):
                     if abs(expected - actual) <= tolerance:
                         grade += 6.67  # Divide 20 points equally among 3 distances
