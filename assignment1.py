@@ -22,17 +22,21 @@ def show():
 
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-    # Student Information Form
-    with st.form("student_form", clear_on_submit=False):
-        # Fields for student information
-        full_name = st.text_input("Full Name", key="full_name")
-        email = st.text_input("Email", key="email")
+    # Section 1: Student Information
+    with st.expander("📝 Student Information"):
+        with st.form("student_form", clear_on_submit=False):
+            # Fields for student information
+            full_name = st.text_input("Full Name", key="full_name")
+            email = st.text_input("Email", key="email")
 
-        # Generate Student ID dynamically
-        student_id = generate_student_id(full_name, email)
-        st.write(f"Student ID: {student_id}")
+            # Generate Student ID dynamically
+            student_id = generate_student_id(full_name, email)
+            st.write(f"Student ID: {student_id}")
 
-        # Tabs for assignment and grading details
+            submitted_info = st.form_submit_button("Save Information")
+
+    # Section 2: Assignment Details and Grading
+    with st.expander("📘 Assignment Details and Grading"):
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
@@ -76,49 +80,56 @@ def show():
             - **Distance Accuracy (20 points)**
             """)
 
-        # Code Submission Area
-        code_input = st.text_area("**📝 Paste Your Code Here**")
+    # Section 3: Code Submission and Execution
+    with st.expander("💻 Code Submission and Execution"):
+        with st.form("code_form"):
+            st.markdown("### Submit Your Python Code Below")
+            code_input = st.text_area("Paste your Python script here", height=200)
+            run_button = st.form_submit_button("Run Code")
 
-        # Form Submit Buttons
-        run_button = st.form_submit_button("Run")
-        submit_button = st.form_submit_button("Submit")
+        # Execute the code
+        if run_button and code_input:
+            try:
+                # Create a local dictionary to capture code execution results
+                local_context = {}
+                exec(code_input, {}, local_context)
 
-    # Execute the code
-    if run_button and code_input:
-        try:
-            # Create a local dictionary to capture code execution results
-            local_context = {}
-            exec(code_input, {}, local_context)
+                # Search for outputs
+                map_object = next((var for var in local_context.values() if isinstance(var, folium.Map)), None)
+                dataframe_object = next((var for var in local_context.values() if isinstance(var, pd.DataFrame)), None)
 
-            # Search for outputs
-            map_object = next((var for var in local_context.values() if isinstance(var, folium.Map)), None)
-            dataframe_object = next((var for var in local_context.values() if isinstance(var, pd.DataFrame)), None)
+                # Display outputs
+                if map_object:
+                    st.success("Map generated successfully!")
+                    st_folium(map_object, width=700, height=500)
+                else:
+                    st.warning("No Folium map found in the code output.")
 
-            # Display outputs
-            if map_object:
-                st.success("Map generated successfully!")
-                st_folium(map_object, width=700, height=500)
-            else:
-                st.warning("No Folium map found in the code output.")
+                if dataframe_object is not None:
+                    st.markdown("### 📏Distance Summary")
+                    st.dataframe(dataframe_object)
+                else:
+                    st.warning("No DataFrame with distances found in the code output.")
 
-            if dataframe_object is not None:
-                st.markdown("### 📏Distance Summary")
-                st.dataframe(dataframe_object)
-            else:
-                st.warning("No DataFrame with distances found in the code output.")
+                st.session_state.code_ran = True
 
-        except Exception as e:
-            st.error("An error occurred while executing your code:")
-            st.error(str(e))
+            except Exception as e:
+                st.error("An error occurred while executing your code:")
+                st.error(str(e))
+                st.session_state.code_ran = False
 
-    # Submit and grade
-    if submit_button and code_input:
-        if full_name and email:
-            from grades.grade1 import grade_assignment
-            from Record.google_sheet import update_google_sheet
+    # Section 4: Submission
+    with st.expander("✅ Submit Your Work"):
+        if "code_ran" in st.session_state and st.session_state.code_ran:
+            if st.button("Submit Assignment"):
+                if full_name and email:
+                    from grades.grade1 import grade_assignment
+                    from Record.google_sheet import update_google_sheet
 
-            grade = grade_assignment(code_input)
-            update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-            st.success(f"Submission successful! Your grade: {grade}/100")
+                    grade = grade_assignment(code_input)
+                    update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+                    st.success(f"Submission successful! Your grade: {grade}/100")
+                else:
+                    st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
         else:
-            st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
+            st.warning("Please run your code successfully before submitting.")
