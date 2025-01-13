@@ -6,23 +6,37 @@ import pandas as pd
 from streamlit_folium import st_folium
 from utils.style1 import set_page_style
 
+def generate_student_id(name, email):
+    """Generate a unique student ID based on name and email."""
+    import random
+    import string
+    if name and email:
+        random_numbers = ''.join(random.choices(string.digits, k=4))
+        random_letter = random.choice(string.ascii_uppercase)
+        return random_numbers + random_letter
+    return "N/A"
+
 def show():
     # Apply the custom page style
     set_page_style()
 
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-    # Predefined coordinates for the assignment
-    coordinates = {
-        "Point 1": (36.325735, 43.928414),
-        "Point 2": (36.393432, 44.586781),
-        "Point 3": (36.660477, 43.840174),
-    }
+    # Student Information Form
+    with st.form("student_form", clear_on_submit=False):
+        # Fields for student information
+        full_name = st.text_input("Full Name", key="full_name")
+        email = st.text_input("Email", key="email")
 
-    # Display the assignment instructions
-    with st.expander("Assignment Objective and Requirements"):
-        st.markdown(
-            """
+        # Generate Student ID dynamically
+        student_id = generate_student_id(full_name, email)
+        st.write(f"Student ID: {student_id}")
+
+        # Tabs for assignment and grading details
+        tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+
+        with tab1:
+            st.markdown("""
             ### Objective
             In this assignment, you will write a Python script to:
             1. Plot three geographical coordinates on a map.
@@ -39,49 +53,72 @@ def show():
             - Point 3: Latitude: 36.660477, Longitude: 43.840174
 
             Use Python libraries like `folium`, `geopy`, and `pandas` for the task.
-            """
-        )
+            """)
 
-    # Student script input area
-    st.markdown("### Submit Your Python Code Below")
-    code_input = st.text_area("Paste your Python script here", height=200)
+        with tab2:
+            st.markdown("""
+            ### Detailed Grading Breakdown
 
-    # Run and visualize the script
-    if st.button("Run Script"):
-        if not code_input.strip():
-            st.warning("Please paste your Python script to run.")
+            #### 1. Code Structure and Implementation (30 points)
+            - **Library Imports (5 points)**
+            - **Coordinate Handling (5 points)**
+            - **Code Execution (10 points)**
+            - **Code Quality (10 points)**
+
+            #### 2. Map Visualization (40 points)
+            - **Map Generation (15 points)**
+            - **Markers (15 points)**
+            - **Polylines (5 points)**
+            - **Popups (5 points)**
+
+            #### 3. Distance Calculations (30 points)
+            - **Geodesic Implementation (10 points)**
+            - **Distance Accuracy (20 points)**
+            """)
+
+        # Code Submission Area
+        code_input = st.text_area("**📝 Paste Your Code Here**")
+
+        # Form Submit Buttons
+        run_button = st.form_submit_button("Run")
+        submit_button = st.form_submit_button("Submit")
+
+    # Execute the code
+    if run_button and code_input:
+        try:
+            # Create a local dictionary to capture code execution results
+            local_context = {}
+            exec(code_input, {}, local_context)
+
+            # Search for outputs
+            map_object = next((var for var in local_context.values() if isinstance(var, folium.Map)), None)
+            dataframe_object = next((var for var in local_context.values() if isinstance(var, pd.DataFrame)), None)
+
+            # Display outputs
+            if map_object:
+                st.success("Map generated successfully!")
+                st_folium(map_object, width=700, height=500)
+            else:
+                st.warning("No Folium map found in the code output.")
+
+            if dataframe_object is not None:
+                st.markdown("### 📏Distance Summary")
+                st.dataframe(dataframe_object)
+            else:
+                st.warning("No DataFrame with distances found in the code output.")
+
+        except Exception as e:
+            st.error("An error occurred while executing your code:")
+            st.error(str(e))
+
+    # Submit and grade
+    if submit_button and code_input:
+        if full_name and email:
+            from grades.grade1 import grade_assignment
+            from Record.google_sheet import update_google_sheet
+
+            grade = grade_assignment(code_input)
+            update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+            st.success(f"Submission successful! Your grade: {grade}/100")
         else:
-            try:
-                # Create a local execution context for the student's code
-                local_context = {}
-                exec(code_input, {}, local_context)
-
-                # Extract folium map if present
-                map_object = None
-                for var in local_context.values():
-                    if isinstance(var, folium.Map):
-                        map_object = var
-                        break
-
-                if map_object:
-                    st.success("Map generated successfully!")
-                    st_folium(map_object, width=700, height=500)
-                else:
-                    st.warning("No folium map was found in the code output.")
-
-                # Extract DataFrame for distances if present
-                dataframe = None
-                for var in local_context.values():
-                    if isinstance(var, pd.DataFrame):
-                        dataframe = var
-                        break
-
-                if dataframe is not None:
-                    st.markdown("### Distance Calculations")
-                    st.dataframe(dataframe)
-                else:
-                    st.warning("No DataFrame found displaying distances.")
-
-            except Exception as e:
-                st.error("An error occurred while running your script:")
-                st.error(str(e))
+            st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
