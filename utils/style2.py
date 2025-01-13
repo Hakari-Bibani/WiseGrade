@@ -1,86 +1,73 @@
 import streamlit as st
 
 def set_page_style():
-    """Set the style for the Streamlit page."""
-    # Custom CSS for styling
-    st.markdown(
-        """
-        <style>
-        /* General page styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f9f9f9;
-            color: #333;
-        }
+    """Set custom CSS styles for Assignment 2."""
+    custom_css = """
+    <style>
+    /* Set background color */
+    .stApp {
+        background-color: #f8f9fa;
+    }
 
-        /* Title styling */
-        h1 {
-            color: #2E86C1;
-            text-align: center;
-        }
+    /* Style headers */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Arial', sans-serif;
+        color: #2c3e50;
+    }
 
-        /* Form and input styling */
-        .stTextInput label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+    /* Style text input and buttons */
+    .stTextInput > div > input {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 10px;
+    }
 
-        .stTextArea label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+    .stButton > button {
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
 
-        .stTextArea textarea {
-            background-color: #e7f3ff;
-            border: 1px solid #d0e6f8;
-        }
+    .stButton > button:hover {
+        background-color: #0056b3;
+    }
 
-        /* Tabs styling */
-        .stTabs .stTab {
-            font-weight: bold;
-            color: #2E86C1;
-        }
+    /* Style success and error messages */
+    .stAlert {
+        border-radius: 4px;
+        padding: 15px;
+        font-size: 14px;
+    }
 
-        /* File uploader styling */
-        .stFileUploader label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+    .stAlert[data-baseweb="success"] {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
 
-        /* Button styling */
-        .stButton button {
-            background-color: #2E86C1;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 14px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+    .stAlert[data-baseweb="error"] {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
 
-        .stButton button:hover {
-            background-color: #1C598A;
-        }
+    /* Style tables */
+    .stDataFrame {
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
 
-        /* Success and error messages */
-        .stAlert {
-            border-radius: 5px;
-            padding: 15px;
-        }
-
-        .stSuccess {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .stError {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    /* Center the map */
+    iframe[title="streamlit-folium"] {
+        border-radius: 10px;
+    }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
