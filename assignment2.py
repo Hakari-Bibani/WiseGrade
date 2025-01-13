@@ -112,9 +112,20 @@ def show():
             captured_output = StringIO()
             sys.stdout = captured_output
 
+            # Pre-import required libraries
+            pre_imports = """
+import requests
+import pandas as pd
+import folium
+import matplotlib.pyplot as plt
+from io import StringIO
+"""
+            # Combine pre-imports with user code
+            exec_code = pre_imports + "\n" + code_input
+
             # Execute user code
             local_context = {}
-            exec(code_input, {}, local_context)
+            exec(exec_code, {}, local_context)
 
             # Restore stdout
             sys.stdout = sys.__stdout__
