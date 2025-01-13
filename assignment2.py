@@ -79,6 +79,8 @@ def show():
     code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
     run_button = st.button("Run Code", key="run_code_button")
+    submit_button = st.button("Submit Code", key="submit_code_button")
+
     if run_button and code_input:
         st.session_state["run_success"] = False
         st.session_state["captured_output"] = ""
@@ -130,3 +132,10 @@ def show():
         if st.session_state["dataframe_object"] is not None:
             st.markdown("### \U0001F4CA Data Summary")
             st.dataframe(st.session_state["dataframe_object"])
+
+    if submit_button:
+        if st.session_state.get("run_success", False):
+            st.success("Code submitted successfully! Your outputs have been recorded.")
+            # Additional logic to save the submission (e.g., Google Sheets, database, etc.)
+        else:
+            st.error("Please run your code successfully before submitting.")
