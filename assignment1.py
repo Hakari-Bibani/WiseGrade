@@ -22,8 +22,11 @@ def show():
 
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-    # Section 1: Student Information
-    with st.expander("📝 Student Information"):
+    # Split the UI into three parts: Information, Tabs, and Code Space
+
+    # Part 1: Information Section
+    with st.container():
+        st.header("Student Information")
         with st.form("student_form", clear_on_submit=False):
             # Fields for student information
             full_name = st.text_input("Full Name", key="full_name")
@@ -33,10 +36,9 @@ def show():
             student_id = generate_student_id(full_name, email)
             st.write(f"Student ID: {student_id}")
 
-            submitted_info = st.form_submit_button("Save Information")
-
-    # Section 2: Assignment Details and Grading
-    with st.expander("📘 Assignment Details and Grading"):
+    # Part 2: Assignment and Grading Details (Tabs)
+    with st.container():
+        st.header("Assignment and Grading Details")
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
@@ -80,12 +82,20 @@ def show():
             - **Distance Accuracy (20 points)**
             """)
 
-    # Section 3: Code Submission and Execution
-    with st.expander("💻 Code Submission and Execution"):
-        with st.form("code_form"):
-            st.markdown("### Submit Your Python Code Below")
-            code_input = st.text_area("Paste your Python script here", height=200)
-            run_button = st.form_submit_button("Run Code")
+    # Part 3: Code Space
+    with st.container():
+        st.header("Code Submission and Output")
+
+        # Code Submission Area
+        code_input = st.text_area("**📝 Paste Your Code Here**")
+
+        # Buttons for running and submitting code
+        run_button = st.button("Run Code")
+        submit_button = st.button("Submit")
+
+        # Ensure students must run the code before submitting
+        if not run_button and submit_button:
+            st.error("You must run your code and verify the outputs before submitting.")
 
         # Execute the code
         if run_button and code_input:
@@ -111,25 +121,18 @@ def show():
                 else:
                     st.warning("No DataFrame with distances found in the code output.")
 
-                st.session_state.code_ran = True
-
             except Exception as e:
                 st.error("An error occurred while executing your code:")
                 st.error(str(e))
-                st.session_state.code_ran = False
 
-    # Section 4: Submission
-    with st.expander("✅ Submit Your Work"):
-        if "code_ran" in st.session_state and st.session_state.code_ran:
-            if st.button("Submit Assignment"):
-                if full_name and email:
-                    from grades.grade1 import grade_assignment
-                    from Record.google_sheet import update_google_sheet
+        # Submit and grade
+        if submit_button and run_button and code_input:
+            if full_name and email:
+                from grades.grade1 import grade_assignment
+                from Record.google_sheet import update_google_sheet
 
-                    grade = grade_assignment(code_input)
-                    update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-                    st.success(f"Submission successful! Your grade: {grade}/100")
-                else:
-                    st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
-        else:
-            st.warning("Please run your code successfully before submitting.")
+                grade = grade_assignment(code_input)
+                update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+                st.success(f"Submission successful! Your grade: {grade}/100")
+            else:
+                st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
