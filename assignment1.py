@@ -22,10 +22,11 @@ def show():
 
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
-    # Split the UI into three parts: Information, Tabs, and Code Space
+    # Split UI into three sections
+    col1, col2 = st.columns([1, 2])
 
-    # Part 1: Information Section
-    with st.container():
+    # Section 1: Student Information
+    with col1:
         st.header("Student Information")
         with st.form("student_form", clear_on_submit=False):
             # Fields for student information
@@ -36,9 +37,12 @@ def show():
             student_id = generate_student_id(full_name, email)
             st.write(f"Student ID: {student_id}")
 
-    # Part 2: Assignment and Grading Details (Tabs)
-    with st.container():
-        st.header("Assignment and Grading Details")
+            # Submit button for the form
+            submit_info_button = st.form_submit_button("Save Information")
+
+    # Section 2: Tabs for Assignment and Grading Details
+    with col2:
+        st.header("Assignment Details and Grading")
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
@@ -82,23 +86,19 @@ def show():
             - **Distance Accuracy (20 points)**
             """)
 
-    # Part 3: Code Space
-    with st.container():
-        st.header("Code Submission and Output")
+    # Section 3: Code Submission and Execution
+    st.header("Code Submission")
+    code_input = st.text_area("**📝 Paste Your Code Here**")
 
-        # Code Submission Area
-        code_input = st.text_area("**📝 Paste Your Code Here**")
+    # Run and Submit Buttons
+    run_button = st.button("Run Code")
+    submit_button = st.button("Submit Code", disabled=True)
 
-        # Buttons for running and submitting code
-        run_button = st.button("Run Code")
-        submit_button = st.button("Submit")
-
-        # Ensure students must run the code before submitting
-        if not run_button and submit_button:
-            st.error("You must run your code and verify the outputs before submitting.")
-
-        # Execute the code
-        if run_button and code_input:
+    # Execute the code
+    if run_button:
+        if not code_input.strip():
+            st.warning("Please paste your Python script to run.")
+        else:
             try:
                 # Create a local dictionary to capture code execution results
                 local_context = {}
@@ -118,21 +118,22 @@ def show():
                 if dataframe_object is not None:
                     st.markdown("### 📏Distance Summary")
                     st.dataframe(dataframe_object)
-                else:
-                    st.warning("No DataFrame with distances found in the code output.")
+
+                # Enable submission after successful run
+                submit_button = st.button("Submit Code", disabled=False)
 
             except Exception as e:
                 st.error("An error occurred while executing your code:")
                 st.error(str(e))
 
-        # Submit and grade
-        if submit_button and run_button and code_input:
-            if full_name and email:
-                from grades.grade1 import grade_assignment
-                from Record.google_sheet import update_google_sheet
+    # Submit and grade
+    if submit_button:
+        if full_name and email:
+            from grades.grade1 import grade_assignment
+            from Record.google_sheet import update_google_sheet
 
-                grade = grade_assignment(code_input)
-                update_google_sheet(full_name, email, student_id, grade, "assignment_1")
-                st.success(f"Submission successful! Your grade: {grade}/100")
-            else:
-                st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
+            grade = grade_assignment(code_input)
+            update_google_sheet(full_name, email, student_id, grade, "assignment_1")
+            st.success(f"Submission successful! Your grade: {grade}/100")
+        else:
+            st.error("Please fill out both 'Full Name' and 'Email' to generate your Student ID.")
