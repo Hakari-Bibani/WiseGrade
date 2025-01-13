@@ -1,17 +1,10 @@
 def grade_assignment(code):
     grade = 0
 
-    # a. Library Imports (7 points: 5 for main libraries + 2 for pandas)
+    # a. Library Imports (5 points: 1.25 points per library)
     required_imports = ["folium", "geopy", "geodesic", "pandas"]
     imported_libraries = sum(1 for lib in required_imports if lib in code)
-    if imported_libraries == 4:
-        grade += 7
-    elif imported_libraries == 3:
-        grade += 5.25
-    elif imported_libraries == 2:
-        grade += 3.5
-    elif imported_libraries == 1:
-        grade += 1.75
+    grade += min(5, imported_libraries * 1.25)  # Maximum 5 points
 
     # b. Coordinate Handling (5 points)
     coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
