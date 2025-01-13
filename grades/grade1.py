@@ -1,6 +1,5 @@
 def grade_assignment(code):
     grade = 0
-    print("Starting grading process...")
 
     # a. Library Imports (5 points)
     required_imports = ["folium", "geopy", "geodesic", "pandas"]
@@ -13,7 +12,6 @@ def grade_assignment(code):
         grade += 2.5
     elif imported_libraries == 1:
         grade += 1.25
-    print(f"Grade after Library Imports: {grade}")
 
     # b. Coordinate Handling (5 points)
     coordinates = ["36.325735, 43.928414", "36.393432, 44.586781", "36.660477, 43.840174"]
@@ -24,7 +22,6 @@ def grade_assignment(code):
         grade += 3.33
     elif correct_coordinates == 1:
         grade += 1.67
-    print(f"Grade after Coordinate Handling: {grade}")
 
     # c. Code Execution (10 points)
     try:
@@ -33,7 +30,6 @@ def grade_assignment(code):
         grade += 10  # Full points if the code runs without errors
     except Exception as e:
         print(f"Execution Error: {e}")
-    print(f"Grade after Code Execution: {grade}")
 
     # d. Code Quality (10 points)
     code_quality_issues = 0
@@ -46,7 +42,6 @@ def grade_assignment(code):
     if "\n\n" not in code:
         code_quality_issues += 1
     grade += max(0, 10 - code_quality_issues * 2.5)
-    print(f"Grade after Code Quality: {grade}")
 
     # 2. Map Visualization (40 points)
     if "folium.Map" in code:
@@ -60,30 +55,39 @@ def grade_assignment(code):
 
     if "popup=" in code:
         grade += 5
-    print(f"Grade after Map Visualization: {grade}")
 
     # 3. Distance Calculations (30 points)
     if "geodesic" in code:
         grade += 10  # Full points for geodesic implementation
-        print("Geodesic function detected.")
 
         # Verify accuracy of distance calculations
         try:
             exec(code, {}, local_context)
+
+            # Search for DataFrame with distances
             dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
             if dataframe_object is not None:
-                print("DataFrame Detected:")
-                print(dataframe_object)
-                actual_distances = dataframe_object["Distance (km)"].tolist()
-                expected_distances = [59.57, 73.14, 37.98]
-                tolerance = 0.5
-                for expected, actual in zip(expected_distances, actual_distances):
-                    print(f"Expected: {expected}, Actual: {actual}, Difference: {abs(expected - actual)}")
-                    if abs(expected - actual) <= tolerance:
-                        grade += 6.67  # Award points
+                # Check if the DataFrame has a column with distance values
+                distance_col = next((col for col in dataframe_object.columns if "distance" in col.lower()), None)
+                if distance_col:
+                    # Validate distances
+                    expected_distances = [59.57, 73.14, 37.98]  # Expected distances
+                    tolerance = 0.5  # Allowable error in km
+                    actual_distances = dataframe_object[distance_col].tolist()
+
+                    # Check each distance
+                    correct_distances = 0
+                    for expected, actual in zip(expected_distances, actual_distances):
+                        if abs(expected - actual) <= tolerance:
+                            correct_distances += 1
+
+                    # Assign points based on correct distances
+                    grade += correct_distances * (20 / len(expected_distances))  # Divide 20 points equally
+                else:
+                    print("DataFrame is missing a column with distances.")
             else:
-                print("DataFrame not found.")
+                print("No DataFrame with distances found.")
         except Exception as e:
-            print(f"Distance Validation Error: {e}")
-    print(f"Final grade: {round(grade)}")
+            print(f"Distance Verification Error: {e}")
+
     return round(grade)
