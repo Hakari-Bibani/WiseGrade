@@ -50,35 +50,36 @@ def grade_assignment(code):
 
         # Verify accuracy of distance calculations
         try:
-            exec(code, {}, local_context)
-
-            # Check for DataFrame in local_context
+            print("Checking for DataFrame...")
             dataframe_object = next((obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None)
-            distances_detected = []
+            actual_distances = []
 
             if dataframe_object is not None:
-                # Extract numeric columns from DataFrame
+                print(f"DataFrame detected: {dataframe_object}")
                 numeric_columns = dataframe_object.select_dtypes(include=["float", "int"]).columns
                 if not numeric_columns.empty:
-                    distances_detected = dataframe_object[numeric_columns[0]].tolist()
-                    print(f"Distances found in DataFrame: {distances_detected}")
+                    actual_distances = dataframe_object[numeric_columns[0]].tolist()
+                    print(f"Extracted distances from DataFrame: {actual_distances}")
+                else:
+                    print("No numeric columns found in DataFrame.")
             else:
-                # Fallback to analyzing captured output
                 print("No DataFrame found. Checking captured output...")
                 import io
-                captured_output = io.StringIO()
-                exec(code, {}, {"print": captured_output.write})
-                distances_detected = [
-                    float(val) for val in captured_output.getvalue().split() if val.replace(".", "", 1).isdigit()
+                captured_output_stream = io.StringIO()
+                exec(code, {}, {"print": captured_output_stream.write})
+                captured_output = captured_output_stream.getvalue()
+                print(f"Captured output: {captured_output}")
+                actual_distances = [
+                    float(val) for val in captured_output.split() if val.replace(".", "", 1).isdigit()
                 ]
-                print(f"Distances found in captured output: {distances_detected}")
+                print(f"Extracted distances from captured output: {actual_distances}")
 
             # Validate distances
             expected_distances = [59.57, 73.14, 37.98]  # Expected distances
             tolerance = 0.5
             correct_distances = 0
             for expected in expected_distances:
-                if any(abs(expected - actual) <= tolerance for actual in distances_detected):
+                if any(abs(expected - actual) <= tolerance for actual in actual_distances):
                     correct_distances += 1
 
             # Award points based on correct distances
