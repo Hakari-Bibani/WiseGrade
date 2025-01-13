@@ -23,6 +23,10 @@ def show():
     # Initialize session state variables
     if "run_success" not in st.session_state:
         st.session_state["run_success"] = False
+    if "map_object" not in st.session_state:
+        st.session_state["map_object"] = None
+    if "dataframe_object" not in st.session_state:
+        st.session_state["dataframe_object"] = None
 
     st.title("Assignment 1: Mapping Coordinates and Calculating Distances")
 
@@ -147,12 +151,14 @@ def show():
 
             # Display outputs
             if map_object:
+                st.session_state["map_object"] = map_object  # Store map in session state
                 st.success("Map generated successfully!")
                 st_folium(map_object, width=700, height=500)
             else:
                 st.warning("No Folium map found in the code output.")
 
             if dataframe_object is not None:
+                st.session_state["dataframe_object"] = dataframe_object  # Store DataFrame in session state
                 st.markdown("### 📏Distance Summary")
                 st.dataframe(dataframe_object)
             else:
@@ -164,6 +170,15 @@ def show():
         except Exception as e:
             st.error("An error occurred while executing your code:")
             st.error(str(e))
+
+    # Restore outputs if already run
+    if st.session_state.get("map_object"):
+        st.markdown("### 📍Map Output")
+        st_folium(st.session_state["map_object"], width=700, height=500)
+
+    if st.session_state.get("dataframe_object") is not None:
+        st.markdown("### 📏Distance Summary")
+        st.dataframe(st.session_state["dataframe_object"])
 
     # Submit Code Button
     submit_button = st.button("Submit Code", key="submit_code_button")
