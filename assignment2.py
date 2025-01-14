@@ -1,68 +1,60 @@
+# assignment2.py
 import streamlit as st
 import folium
 import pandas as pd
-@@ -9,33 +8,11 @@
+import matplotlib.pyplot as plt
+from io import StringIO
+from streamlit_folium import st_folium
+import traceback
 import sys
 from grades.grade2 import grade_assignment2
+from Record.google_sheet import update_google_sheet, verify_student_id
 from Record.google_sheet import get_student_data, update_google_sheet
-from utils.style2 import set_page_style  # Import the style function
 
 def show():
     # Apply the custom page style
-    st.markdown(
-        """
-        <style>
-            body {
-                font-family: 'Arial', sans-serif;
-                background-color: #f9f9f9;
-                color: #333;
-            }
-            .stButton > button {
-                background-color: #4CAF50;
-                color: white;
-                font-size: 16px;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            .stButton > button:hover {
-                background-color: #45a049;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    set_page_style()  # Apply the styles from style2.py
+@@ -53,17 +53,19 @@
 
-    # Initialize session state variables
-    if "run_success" not in st.session_state:
-@@ -51,27 +28,29 @@
-
-    st.title("Assignment 2: Earthquake Data Analysis")
-
-    st.title("Assignment 2: Earthquake Data Analysis")
     # Section 1: Student ID Form
     st.header("Step 1: Enter Your Student ID")
     valid_student_id = False
     student_data = get_student_data()  # Fetch student data from Google Sheet
-
     with st.form("student_id_form", clear_on_submit=False):
         student_id = st.text_input("Enter Your Student ID", key="student_id")
         submit_id_button = st.form_submit_button("Verify Student ID")
 
         if submit_id_button:
+            if verify_student_id(student_id):  # Verify student ID using Google Sheets
             if student_id in student_data:
                 st.success(f"Student ID {student_id} verified. You may proceed.")
+                st.session_state["student_id_verified"] = True
                 valid_student_id = True
             else:
+                st.error("Invalid Student ID. Please provide a valid ID from Assignment 1.")
+                st.session_state["student_id_verified"] = False
                 st.error("Invalid Student ID. Please enter a valid ID from Assignment 1.")
 
     # Section 2: Assignment and Grading Details
     st.header("Step 2: Review Assignment Details")
-    tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+@@ -166,10 +168,17 @@
+            st.dataframe(st.session_state["dataframe_object"])
 
-    with tab1:
-        st.markdown("""
-        ### Objective
-        Write a Python script that fetches real-time earthquake data from the USGS Earthquake API, filters earthquakes with a magnitude greater than 4.0, and visualizes the data on a map and as a bar chart.
+    if submit_button:
+        if st.session_state.get("run_success", False) and st.session_state.get("student_id_verified", False):
+            grade = grade_assignment2(code_input)  # Grade the assignment
+            student_id = st.session_state.get("student_id")
+            update_google_sheet(student_id, grade, "assignment_2")  # Save grade in Google Sheet
+            st.success(f"Code submitted successfully! Your grade: {grade}/100")
+        if st.session_state.get("run_success", False) and valid_student_id:
+            # Grade the code
+            grade = grade_assignment2(code_input)
+            # Update Google Sheet
+            update_google_sheet(
+                student_id=student_id,
+                grade=grade,
+                assignment="assignment_2"
+            )
+            st.success(f"Code submitted successfully! Your grade: {grade}/100.")
+        else:
+            st.error("Please ensure your Student ID is verified and your code runs successfully before submitting.")
+            st.error("Please ensure your Student ID is verified and the code runs successfully before submitting.")
