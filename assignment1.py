@@ -128,7 +128,7 @@ def show():
         """)
 
     # Section 3: Code Submission and Output
-    st.header("Step 3: Submit and Run Your Code")
+    st.header("Step 3: Run and Submit Your Code")
     code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
     # Run Code Button
