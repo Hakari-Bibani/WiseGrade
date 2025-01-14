@@ -36,12 +36,12 @@ def show():
     # Initialize session state variables
     if "run_success" not in st.session_state:
         st.session_state["run_success"] = False
-    if "map_object" not in st.session_state:
-        st.session_state["map_object"] = None
+    if "map_html" not in st.session_state:
+        st.session_state["map_html"] = None
     if "bar_chart" not in st.session_state:
         st.session_state["bar_chart"] = None
     if "text_summary" not in st.session_state:
-        st.session_state["text_summary"] = ""
+        st.session_state["text_summary"] = None
     if "captured_output" not in st.session_state:
         st.session_state["captured_output"] = ""
 
@@ -76,9 +76,9 @@ def show():
 
     if st.button("Run Code"):
         st.session_state["run_success"] = False
-        st.session_state["map_object"] = None
+        st.session_state["map_html"] = None
         st.session_state["bar_chart"] = None
-        st.session_state["text_summary"] = ""
+        st.session_state["text_summary"] = None
         st.session_state["captured_output"] = ""
 
         # Capture stdout
@@ -94,29 +94,20 @@ def show():
             st.session_state["captured_output"] = new_stdout.getvalue()
 
             # Extract main outputs
-            # 1. Detect a folium map
-            map_object = next(
-                (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
-            )
-            st.session_state["map_object"] = map_object
+            # 1. Detect saved HTML map
+            if "earthquake_map.html" in local_context.get("earthquake_map", ""):
+                with open("earthquake_map.html", "r") as file:
+                    st.session_state["map_html"] = file.read()
 
-            # 2. Detect a PNG bar chart
-            bar_chart = next(
-                (obj for obj in local_context.values() if isinstance(obj, BytesIO)), None
-            )
-            if not bar_chart:
-                # Try to capture the last matplotlib plot
-                buf = BytesIO()
-                plt.savefig(buf, format="png")
-                buf.seek(0)
-                st.session_state["bar_chart"] = buf
+            # 2. Detect bar chart saved as PNG
+            buf = BytesIO()
+            plt.savefig(buf, format="png")
+            buf.seek(0)
+            st.session_state["bar_chart"] = buf
 
-            # 3. Detect a text summary (assumed to be a DataFrame)
-            text_summary = next(
-                (obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None
-            )
-            if text_summary is not None:
-                st.session_state["text_summary"] = text_summary.to_csv(index=False, float_format="%.2f")
+            # 3. Detect text summary (CSV output)
+            if "earthquake_summary.csv" in local_context.get("summary_df", ""):
+                st.session_state["text_summary"] = local_context["summary_df"]
 
             st.session_state["run_success"] = True
             st.success("Code executed successfully!")
@@ -131,19 +122,19 @@ def show():
     # Section 4: Display Outputs
     st.header("Step 4: Visualize Your Outputs")
 
-    if st.session_state.get("map_object"):
+    if st.session_state.get("map_html"):
         st.markdown("### Interactive Map")
-        st_folium(st.session_state["map_object"], width=700, height=500)
+        st.components.v1.html(st.session_state["map_html"], height=500)
 
     if st.session_state.get("bar_chart"):
         st.markdown("### Bar Chart")
         st.image(st.session_state["bar_chart"])
 
-    if st.session_state.get("text_summary"):
+    if st.session_state.get("text_summary") is not None:
         st.markdown("### Text Summary (CSV)")
         st.download_button(
             label="Download Summary CSV",
-            data=st.session_state["text_summary"],
+            data=st.session_state["text_summary"].to_csv(index=False),
             file_name="earthquake_summary.csv",
             mime="text/csv"
         )
