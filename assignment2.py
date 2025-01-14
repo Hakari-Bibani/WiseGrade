@@ -1,116 +1,136 @@
 import streamlit as st
+import requests
 import pandas as pd
 import folium
+from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
-from io import StringIO
-import traceback
-import sys
-import os
-from matplotlib import pyplot as plt
-from PIL import Image
+import matplotlib.pyplot as plt
 
-def run_user_script(code_input):
-    """
-    Executes the user-provided script and extracts key outputs.
-    """
-    # Initialize storage for outputs
-    outputs = {"map": None, "bar_chart_path": None, "text_summary": None, "errors": None}
+# Fetch earthquake data from the USGS API
+def fetch_earthquake_data(start_time, end_time):
+    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={start_time}&endtime={end_time}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Failed to fetch data: {response.status_code}")
+        return None
 
-    # Redirect stdout to capture print output
-    old_stdout = sys.stdout
-    captured_output = StringIO()
-    sys.stdout = captured_output
+# Filter earthquakes with magnitude > 4.0
+def filter_earthquakes(data):
+    features = data['features']
+    earthquakes = []
+    for feature in features:
+        properties = feature['properties']
+        geometry = feature['geometry']
+        magnitude = properties['mag']
+        if magnitude > 4.0:
+            earthquake = {
+                'time': pd.to_datetime(properties['time'], unit='ms'),
+                'latitude': geometry['coordinates'][1],
+                'longitude': geometry['coordinates'][0],
+                'magnitude': magnitude
+            }
+            earthquakes.append(earthquake)
+    return pd.DataFrame(earthquakes)
 
-    try:
-        # Execute the user's code in a controlled environment
-        local_context = {}
-        exec(code_input, {}, local_context)
+# Generate an interactive map
+def create_earthquake_map(earthquakes):
+    earthquake_map = folium.Map(location=[0, 0], zoom_start=2)
+    marker_cluster = MarkerCluster().add_to(earthquake_map)
 
-        # Detect `folium` map
-        map_object = next((v for v in local_context.values() if isinstance(v, folium.Map)), None)
-        if map_object:
-            map_file = "temp_map.html"
-            map_object.save(map_file)
-            outputs["map"] = map_file
-
-        # Detect bar chart saved as an image
-        bar_chart_path = next(
-            (v for v in local_context.values() if isinstance(v, str) and v.endswith(".png")), None
-        )
-        if bar_chart_path and os.path.exists(bar_chart_path):
-            outputs["bar_chart_path"] = bar_chart_path
-
-        # Detect text summary (assumed to be a pandas DataFrame)
-        text_summary = next((v for v in local_context.values() if isinstance(v, pd.DataFrame)), None)
-        if text_summary is not None:
-            outputs["text_summary"] = text_summary
-
-    except Exception as e:
-        outputs["errors"] = traceback.format_exc()
-
-    # Restore stdout
-    sys.stdout = old_stdout
-
-    return outputs, captured_output.getvalue()
-
-def show():
-    """
-    Main function to render the Streamlit app.
-    """
-    st.title("Assignment 2: Earthquake Data Analysis Viewer")
-
-    st.markdown("""
-    Paste your Python script below. This app will execute the code and display:
-    - An interactive `folium` map.
-    - A bar chart image created with `matplotlib` or `seaborn`.
-    - A text summary created using `pandas`.
-    """)
-
-    # Text Area for Code Input
-    st.header("Step 1: Enter Your Code")
-    code_input = st.text_area("Paste your Python script here:", height=300)
-
-    if st.button("Run Code"):
-        with st.spinner("Running your code..."):
-            # Run user script and extract outputs
-            outputs, captured_output = run_user_script(code_input)
-
-        # Handle errors
-        if outputs["errors"]:
-            st.error("An error occurred while running your code:")
-            st.text(outputs["errors"])
+    for _, row in earthquakes.iterrows():
+        magnitude = row['magnitude']
+        if 4.0 <= magnitude < 5.0:
+            color = 'green'
+        elif 5.0 <= magnitude < 5.5:
+            color = 'yellow'
         else:
-            st.success("Code executed successfully!")
+            color = 'red'
 
-            # Display Map
-            if outputs["map"]:
-                st.subheader("Interactive Map")
-                st_folium(outputs["map"], width=700, height=500)
-            else:
-                st.warning("No `folium` map detected in your script.")
+        popup = folium.Popup(
+            f"Magnitude: {magnitude}<br>"
+            f"Location: ({row['latitude']}, {row['longitude']})<br>"
+            f"Time: {row['time']}"
+        )
+        folium.Marker(
+            location=[row['latitude'], row['longitude']],
+            popup=popup,
+            icon=folium.Icon(color=color)
+        ).add_to(marker_cluster)
 
-            # Display Bar Chart
-            if outputs["bar_chart_path"]:
-                st.subheader("Bar Chart")
-                try:
-                    img = Image.open(outputs["bar_chart_path"])
-                    st.image(img, use_column_width=True)
-                except Exception as e:
-                    st.error(f"Error displaying the bar chart: {e}")
-            else:
-                st.warning("No bar chart image detected in your script.")
+    return earthquake_map
 
-            # Display Text Summary
-            if outputs["text_summary"] is not None:
-                st.subheader("Text Summary")
-                st.dataframe(outputs["text_summary"])
-            else:
-                st.warning("No text summary detected in your script.")
+# Generate a bar chart for earthquake frequency by magnitude range
+def create_bar_chart(earthquakes):
+    bins = [4.0, 4.5, 5.0, float('inf')]
+    labels = ['4.0-4.5', '4.5-5.0', '5.0+']
+    earthquakes['magnitude_range'] = pd.cut(earthquakes['magnitude'], bins=bins, labels=labels, right=False)
+    magnitude_counts = earthquakes['magnitude_range'].value_counts().sort_index()
 
-        # Display Captured Output
-        if captured_output:
-            st.subheader("Captured Output")
-            st.text(captured_output)
+    plt.figure(figsize=(8, 5))
+    magnitude_counts.plot(kind='bar', color='skyblue')
+    plt.title('Earthquake Frequency by Magnitude Range')
+    plt.xlabel('Magnitude Range')
+    plt.ylabel('Frequency')
+    plt.xticks(rotation=0)
+    plt.tight_layout()
+    return plt
+
+# Generate a text summary of the earthquake data
+def generate_text_summary(earthquakes):
+    total_earthquakes = len(earthquakes)
+    avg_magnitude = earthquakes['magnitude'].mean()
+    max_magnitude = earthquakes['magnitude'].max()
+    min_magnitude = earthquakes['magnitude'].min()
+
+    bins = [4.0, 4.5, 5.0, float('inf')]
+    labels = ['4.0-4.5', '4.5-5.0', '5.0+']
+    earthquakes['magnitude_range'] = pd.cut(earthquakes['magnitude'], bins=bins, labels=labels, right=False)
+    magnitude_counts = earthquakes['magnitude_range'].value_counts().sort_index()
+
+    summary = {
+        'Total Earthquakes': total_earthquakes,
+        'Average Magnitude': round(avg_magnitude, 2),
+        'Maximum Magnitude': round(max_magnitude, 2),
+        'Minimum Magnitude': round(min_magnitude, 2),
+        'Earthquakes in 4.0-4.5': magnitude_counts.get('4.0-4.5', 0),
+        'Earthquakes in 4.5-5.0': magnitude_counts.get('4.5-5.0', 0),
+        'Earthquakes in 5.0+': magnitude_counts.get('5.0+', 0)
+    }
+
+    return pd.DataFrame(list(summary.items()), columns=['Metric', 'Value'])
+
+# Streamlit app
+def main():
+    st.title("Earthquake Data Analysis")
+
+    # Input date range
+    st.sidebar.header("Date Range")
+    start_time = st.sidebar.date_input("Start Date", pd.to_datetime("2025-01-02"))
+    end_time = st.sidebar.date_input("End Date", pd.to_datetime("2025-01-09"))
+
+    if st.sidebar.button("Fetch and Analyze"):
+        st.write("Fetching earthquake data...")
+        data = fetch_earthquake_data(start_time.strftime("%Y-%m-%d"), end_time.strftime("%Y-%m-%d"))
+        if data:
+            earthquakes = filter_earthquakes(data)
+            st.write(f"Found {len(earthquakes)} earthquakes with magnitude > 4.0.")
+
+            # Display map
+            st.subheader("Earthquake Map")
+            earthquake_map = create_earthquake_map(earthquakes)
+            st_folium(earthquake_map, width=700, height=500)
+
+            # Display bar chart
+            st.subheader("Earthquake Frequency by Magnitude Range")
+            plt = create_bar_chart(earthquakes)
+            st.pyplot(plt)
+
+            # Display text summary
+            st.subheader("Earthquake Data Summary")
+            summary_df = generate_text_summary(earthquakes)
+            st.dataframe(summary_df)
 
 if __name__ == "__main__":
-    show()
+    main()
