@@ -8,35 +8,60 @@ import traceback
 import sys
 
 
-def detect_outputs(local_context):
+def execute_user_code(code):
     """
-    Detect and capture outputs (map, PNG bar chart, text summary) from the user's script.
+    Executes user-provided Python code and captures outputs.
     """
-    detected_outputs = {
-        "map": None,
-        "bar_chart": None,
-        "text_summary": None,
-    }
+    local_context = {}
+    stdout_buffer = StringIO()
 
-    # Detect Folium Map
-    detected_outputs["map"] = next(
-        (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
-    )
+    # Redirect stdout to capture print statements
+    sys.stdout = stdout_buffer
 
-    # Detect Matplotlib Figure (bar chart)
-    for fig_num in plt.get_fignums():
-        fig = plt.figure(fig_num)
+    try:
+        # Execute user code
+        exec(code, {}, local_context)
+
+        # Restore stdout
+        sys.stdout = sys.__stdout__
+
+        return local_context, stdout_buffer.getvalue(), None
+    except Exception as e:
+        # Restore stdout
+        sys.stdout = sys.__stdout__
+        return local_context, stdout_buffer.getvalue(), traceback.format_exc()
+
+
+def find_folium_map(local_context):
+    """
+    Searches for a Folium map in the local execution context.
+    """
+    for obj in local_context.values():
+        if isinstance(obj, folium.Map):
+            return obj
+    return None
+
+
+def find_matplotlib_figure():
+    """
+    Captures the latest Matplotlib figure as a BytesIO object.
+    """
+    if plt.get_fignums():
         buffer = BytesIO()
-        fig.savefig(buffer, format="png")
+        plt.savefig(buffer, format="png")
         buffer.seek(0)
-        detected_outputs["bar_chart"] = buffer
+        return buffer
+    return None
 
-    # Detect Pandas DataFrame (text summary)
-    detected_outputs["text_summary"] = next(
-        (obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None
-    )
 
-    return detected_outputs
+def find_dataframe(local_context):
+    """
+    Searches for a Pandas DataFrame in the local execution context.
+    """
+    for obj in local_context.values():
+        if isinstance(obj, pd.DataFrame):
+            return obj
+    return None
 
 
 def show():
@@ -47,52 +72,48 @@ def show():
 
     if st.button("Run Code"):
         st.session_state["run_success"] = False
-        st.session_state["detected_outputs"] = {}
+        st.session_state["detected_map"] = None
+        st.session_state["detected_chart"] = None
+        st.session_state["detected_summary"] = None
 
-        # Capture stdout
-        old_stdout = sys.stdout
-        new_stdout = StringIO()
-        sys.stdout = new_stdout
+        # Execute user code and capture outputs
+        local_context, stdout_output, error_output = execute_user_code(code)
 
-        try:
-            # Prepare local environment for code execution
-            local_context = {}
-
-            # Execute the user's code
-            exec(code, {}, local_context)
+        if error_output:
+            st.error("An error occurred while executing your code:")
+            st.text_area("Error Details", error_output, height=200)
+        else:
             st.session_state["run_success"] = True
 
             # Detect outputs
-            st.session_state["detected_outputs"] = detect_outputs(local_context)
+            st.session_state["detected_map"] = find_folium_map(local_context)
+            st.session_state["detected_chart"] = find_matplotlib_figure()
+            st.session_state["detected_summary"] = find_dataframe(local_context)
+
             st.success("Code executed successfully!")
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-            st.text_area("Error Details", traceback.format_exc(), height=200)
-        finally:
-            sys.stdout = old_stdout
+            st.text_area("Captured Output", stdout_output, height=200)
 
     # Section to display outputs
     st.header("Step 2: View Your Outputs")
-    detected_outputs = st.session_state.get("detected_outputs", {})
 
     # Display Folium Map
-    if detected_outputs.get("map"):
+    if st.session_state.get("detected_map"):
         st.subheader("Interactive Map")
-        st_folium(detected_outputs["map"], width=700, height=500)
+        st_folium(st.session_state["detected_map"], width=700, height=500)
     else:
         st.warning("No map detected in the provided script.")
 
     # Display Bar Chart
-    if detected_outputs.get("bar_chart"):
+    if st.session_state.get("detected_chart"):
         st.subheader("Bar Chart")
-        st.image(detected_outputs["bar_chart"], caption="Earthquake Frequency by Magnitude", use_column_width=True)
+        st.image(st.session_state["detected_chart"], caption="Bar Chart Output", use_column_width=True)
     else:
         st.warning("No bar chart detected in the provided script.")
 
     # Display Text Summary
-    if detected_outputs.get("text_summary") is not None:
+    if st.session_state.get("detected_summary") is not None:
         st.subheader("Text Summary (DataFrame)")
-        st.dataframe(detected_outputs["text_summary"])
+        st.dataframe(st.session_state["detected_summary"])
     else:
         st.warning("No text summary detected in the provided script.")
 
