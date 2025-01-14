@@ -1,128 +1,144 @@
 import streamlit as st
+import folium
 import pandas as pd
 import matplotlib.pyplot as plt
-import folium
 from streamlit_folium import st_folium
+import re
 from io import StringIO
-import traceback
 import sys
+import traceback
 
+def validate_student_id(student_id: str) -> bool:
+    """Validates the student ID format (8 digits)"""
+    return bool(re.match(r'^\d{8}$', student_id))
+
+def extract_summary_stats(output_text: str) -> str:
+    """Extract the summary statistics from print outputs"""
+    # Look for common statistical patterns
+    summary = []
+    lines = output_text.split('\n')
+    for line in lines:
+        # Look for lines containing relevant statistical information
+        if any(keyword in line.lower() for keyword in 
+               ['total', 'average', 'maximum', 'minimum', 'earthquakes', 'magnitude']):
+            summary.append(line.strip())
+    return '\n'.join(summary)
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Section 1: Enter Your Student ID
-    st.header("Section 1: Enter Your Student ID")
+    # Section 1: Student ID
+    st.header("Step 1: Enter Your Student ID")
     with st.form("student_id_form"):
-        student_id = st.text_input("Enter Your Student ID", key="student_id")
-        submit_id_button = st.form_submit_button("Verify Student ID")
-
-        if submit_id_button:
-            if student_id:
-                st.success(f"Student ID {student_id} verified. You may proceed.")
+        student_id = st.text_input("Student ID (8 digits)")
+        submit_id = st.form_submit_button("Verify ID")
+        
+        if submit_id:
+            if validate_student_id(student_id):
+                st.success("ID Verified")
+                st.session_state.id_verified = True
             else:
-                st.error("Please provide a valid Student ID.")
+                st.error("Please enter a valid 8-digit ID")
+                st.session_state.id_verified = False
 
-    # Section 2: Review Assignment Details
-    st.header("Section 2: Review Assignment Details")
-    st.markdown("""
-    ### Objective
-    Write a Python script to:
-    - Fetch earthquake data from the USGS API for January 2nd, 2025, to January 9th, 2025.
-    - Filter earthquakes with a magnitude > 4.0.
-    - Create:
-        1. An interactive map showing earthquake locations.
-        2. A bar chart of earthquake frequency by magnitude ranges.
-        3. A text summary (total, average, max, and min magnitudes and earthquake counts by range).
-    """)
+    # Section 2: Assignment Details
+    st.header("Step 2: Review Assignment Details")
+    with st.expander("View Assignment Requirements"):
+        st.markdown("""
+        ### Requirements:
+        1. Fetch earthquake data from USGS API (Jan 2-9, 2025)
+        2. Filter earthquakes with magnitude > 4.0
+        3. Create visualizations:
+           - Folium map with color-coded markers
+           - Bar chart of earthquake frequencies by magnitude
+        4. Generate summary statistics:
+           - Total number of earthquakes
+           - Average, maximum, and minimum magnitudes
+           - Distribution across magnitude ranges
+        """)
 
-    # Section 3: Run and Submit Your Code
-    st.header("Section 3: Run and Submit Your Code")
-    st.markdown("Paste your Python script below, then click **Run Code** to see your outputs.")
+    # Section 3: Code Submission and Output
+    st.header("Step 3: Run and Submit Your Code")
+    
+    # Initialize session state for outputs
+    if 'map_output' not in st.session_state:
+        st.session_state.map_output = None
+    if 'chart_output' not in st.session_state:
+        st.session_state.chart_output = None
+    if 'summary_output' not in st.session_state:
+        st.session_state.summary_output = ""
 
-    # Code input box
-    code = st.text_area("Paste Your Python Code Here", height=300)
-
-    if st.button("Run Code"):
-        # Reset session state
-        st.session_state["run_success"] = False
-        st.session_state["map_object"] = None
-        st.session_state["bar_chart"] = None
-        st.session_state["summary_text"] = None
-
-        # Modify the user code to bypass unsupported imports
-        filtered_code = "\n".join(
-            line for line in code.split("\n") if "google.colab" not in line
-        )
-
-        # Capture stdout
-        old_stdout = sys.stdout
-        new_stdout = StringIO()
-        sys.stdout = new_stdout
-
+    code = st.text_area("Paste your Google Colab code here:", height=300)
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        run_button = st.button("Run Code")
+    
+    if run_button and code.strip():
+        # Capture stdout for summary statistics
+        stdout_capture = StringIO()
+        sys.stdout = stdout_capture
+        
         try:
-            # Execute the filtered user's code in a controlled environment
-            exec_globals = {
-                "st": st,
-                "pd": pd,
-                "plt": plt,
-                "folium": folium,
+            # Create figure before executing code to capture matplotlib output
+            plt.figure()
+            
+            # Execute the code
+            namespace = {
+                'pd': pd,
+                'plt': plt,
+                'folium': folium,
+                'st': st
             }
-            exec(filtered_code, exec_globals)
-
-            # Capture outputs
-            st.session_state["map_object"] = next(
-                (obj for obj in exec_globals.values() if isinstance(obj, folium.Map)), None
-            )
-            st.session_state["bar_chart"] = next(
-                (obj for obj in exec_globals.values() if isinstance(obj, plt.Figure)), None
-            )
-            st.session_state["summary_text"] = next(
-                (obj for obj in exec_globals.values() if isinstance(obj, pd.DataFrame)), None
-            )
-
-            st.session_state["run_success"] = True
+            exec(code, namespace)
+            
+            # Capture folium map
+            for var in namespace.values():
+                if isinstance(var, folium.Map):
+                    st.session_state.map_output = var
+            
+            # Capture matplotlib figure
+            fig = plt.gcf()
+            if len(fig.axes) > 0:
+                st.session_state.chart_output = fig
+            
+            # Capture printed output for summary
+            sys.stdout = sys.__stdout__
+            output_text = stdout_capture.getvalue()
+            st.session_state.summary_output = extract_summary_stats(output_text)
+            
             st.success("Code executed successfully!")
+            
         except Exception as e:
-            st.error("An error occurred while executing your code.")
-            st.text_area("Error Details", traceback.format_exc(), height=200)
+            st.error(f"Error executing code: {str(e)}")
+            st.code(traceback.format_exc())
         finally:
-            sys.stdout = old_stdout
+            sys.stdout = sys.__stdout__
+            plt.close('all')
 
     # Display Outputs
-    if st.session_state.get("run_success"):
-        st.markdown("### Outputs")
+    if st.session_state.map_output:
+        st.subheader("Earthquake Map")
+        st_folium(st.session_state.map_output, width=700, height=500)
 
-        # Display Map
-        if st.session_state.get("map_object"):
-            st.markdown("#### Interactive Map")
-            st_folium(st.session_state["map_object"], width=700, height=500)
-        else:
-            st.warning("No map object detected in your code.")
+    if st.session_state.chart_output:
+        st.subheader("Magnitude Distribution")
+        st.pyplot(st.session_state.chart_output)
 
-        # Display Bar Chart
-        if st.session_state.get("bar_chart"):
-            st.markdown("#### Bar Chart")
-            st.pyplot(st.session_state["bar_chart"])
-        else:
-            st.warning("No bar chart detected in your code.")
+    if st.session_state.summary_output:
+        st.subheader("Summary Statistics")
+        st.text(st.session_state.summary_output)
 
-        # Display Text Summary
-        if st.session_state.get("summary_text") is not None:
-            st.markdown("#### Text Summary")
-            st.dataframe(st.session_state["summary_text"])
-        else:
-            st.warning("No text summary detected in your code.")
-
-    # Section 4: Submit Assignment
-    st.header("Section 4: Submit Your Assignment")
+    # Submit Button
     if st.button("Submit Assignment"):
-        if not st.session_state.get("run_success", False):
+        if not (st.session_state.map_output and 
+                st.session_state.chart_output and 
+                st.session_state.summary_output):
             st.error("Please run your code successfully before submitting.")
         else:
-            st.success("Your code has been submitted successfully!")
-            # Logic to save submission can be added here (e.g., Google Sheets or database)
-
+            st.success("Assignment submitted successfully!")
+            # Add submission timestamp
+            st.info(f"Submission recorded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     show()
