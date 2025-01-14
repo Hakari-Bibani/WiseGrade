@@ -3,6 +3,7 @@ import traceback
 from io import StringIO
 from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
+import sys  # Ensure sys is imported
 
 
 def show():
