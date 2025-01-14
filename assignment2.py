@@ -87,6 +87,10 @@ def show():
             }
             exec(code, namespace)
 
+            # Debugging: Display namespace content
+            st.write("**Namespace Content After Execution**")
+            st.write(namespace)
+
             # Detect outputs in the namespace
             st.session_state.map_object = next(
                 (obj for obj in namespace.values() if isinstance(obj, folium.Map)), None
