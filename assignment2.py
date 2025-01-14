@@ -1,14 +1,12 @@
 import streamlit as st
-import folium  # Import folium here
+import folium  # Ensure folium is imported for map handling
 import traceback
 import sys
 from io import StringIO
 import matplotlib.pyplot as plt
-from streamlit_folium import st_folium
 
 def extract_main_points(local_context):
     """Extract main points (map, bar chart, text summary) from the executed script."""
-    # Ensure folium is accessible to identify map objects
     map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
     bar_chart = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
     text_summary = next((obj for obj in local_context.values() if isinstance(obj, str) and len(obj) < 1000), None)
@@ -94,21 +92,8 @@ def show():
             # Restore stdout
             sys.stdout = old_stdout
 
-    st.header("Step 2: Visualize Your Outputs")
-
-    # Display captured output
-    if st.session_state["run_success"]:
-        if st.session_state["map_object"]:
-            st.markdown("### 🗺️ Map Output")
-            st_folium(st.session_state["map_object"], width=700, height=500)
-
-        if st.session_state["bar_chart"]:
-            st.markdown("### 📊 Bar Chart")
-            st.pyplot(st.session_state["bar_chart"])
-
-        if st.session_state["text_summary"]:
-            st.markdown("### 📄 Text Summary")
-            st.text(st.session_state["text_summary"])
+    st.header("Step 2: Outputs Hidden")
+    st.info("The outputs of your script (Map, Bar Chart, and Text Summary) have been captured but are not displayed here.")
 
     st.header("Step 3: Submit Your Assignment")
     submit_button = st.button("Submit Assignment")
