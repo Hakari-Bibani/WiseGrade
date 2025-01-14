@@ -7,6 +7,7 @@ from utils.style2 import set_page_style
 from grades.grade2 import grade_assignment
 from Record.google_sheet import validate_student_id, update_google_sheet
 
+
 def show():
     # Apply custom styles
     set_page_style()
@@ -48,8 +49,9 @@ def show():
         st.markdown("""
         ### Objective
         Fetch real-time earthquake data, process it, and visualize it through maps and charts.
+
         **Requirements:**
-        1. Use the USGS Earthquake API to fetch data.
+        1. Use the USGS Earthquake API to fetch data for the given date range.
         2. Filter earthquakes with magnitude > 4.0.
         3. Create an interactive map with earthquake locations and popups.
         4. Visualize earthquake frequency as a bar chart.
@@ -60,7 +62,7 @@ def show():
         st.markdown("""
         ### Grading Breakdown
         1. **Code Implementation (30 points)**
-           - Imports, API integration, data filtering.
+           - Imports, API integration, and data filtering.
         2. **Visualization (40 points)**
            - Map, markers, popups, and bar chart.
         3. **Summary (30 points)**
