@@ -7,32 +7,50 @@ from io import StringIO, BytesIO
 import traceback
 import sys
 
+
 def execute_user_code(code):
     """
-    Execute the user's code in a controlled sandboxed environment
-    and capture map, bar chart, and text summary.
+    Execute the user's code in a sandboxed environment and capture the outputs.
+    Specifically looks for:
+    - A folium.Map object
+    - A Matplotlib bar chart
+    - A pandas DataFrame
     """
+    # Create a sandbox environment for the user code
     sandbox = {
         "folium": folium,
         "pd": pd,
         "plt": plt,
     }
+
     outputs = {
         "map": None,
         "bar_chart": None,
         "text_summary": None,
+        "error": None,
+        "traceback": None,
     }
 
     try:
+        # Capture stdout
+        old_stdout = sys.stdout
+        new_stdout = StringIO()
+        sys.stdout = new_stdout
+
+        # Execute user code
         exec(code, sandbox)
 
-        # Capture map object
+        # Restore stdout
+        sys.stdout = old_stdout
+        outputs["captured_output"] = new_stdout.getvalue()
+
+        # Look for the map
         for obj in sandbox.values():
             if isinstance(obj, folium.Map):
                 outputs["map"] = obj
                 break
 
-        # Capture bar chart
+        # Look for Matplotlib bar chart
         if plt.get_fignums():
             buffer = BytesIO()
             plt.savefig(buffer, format="png")
@@ -40,13 +58,14 @@ def execute_user_code(code):
             outputs["bar_chart"] = buffer
             plt.close()
 
-        # Capture text summary (DataFrame)
+        # Look for pandas DataFrame
         for obj in sandbox.values():
             if isinstance(obj, pd.DataFrame):
                 outputs["text_summary"] = obj
                 break
 
     except Exception as e:
+        # Handle exceptions and capture traceback
         outputs["error"] = str(e)
         outputs["traceback"] = traceback.format_exc()
 
@@ -62,15 +81,16 @@ def show():
     if st.button("Run Code"):
         st.session_state["outputs"] = execute_user_code(code)
 
-        if "error" in st.session_state["outputs"]:
-            st.error(f"An error occurred: {st.session_state['outputs']['error']}")
-            st.text_area("Error Details", st.session_state["outputs"]["traceback"], height=200)
+        outputs = st.session_state["outputs"]
+
+        if outputs.get("error"):
+            st.error(f"An error occurred: {outputs['error']}")
+            st.text_area("Error Details", outputs["traceback"], height=200)
         else:
             st.success("Code executed successfully!")
 
-    # Section to display outputs
+    # Display outputs
     st.header("Step 2: View Your Outputs")
-
     outputs = st.session_state.get("outputs", {})
 
     # Display Map
@@ -94,10 +114,10 @@ def show():
     else:
         st.warning("No text summary detected in the provided script.")
 
-    # Submission section
+    # Submission
     st.header("Step 3: Submit Your Assignment")
     if st.button("Submit Assignment"):
-        if "error" not in outputs:
+        if not outputs.get("error"):
             st.success("Assignment submitted successfully! Your outputs have been recorded.")
         else:
             st.error("Please fix the errors in your script before submitting.")
