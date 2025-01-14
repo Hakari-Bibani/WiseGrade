@@ -91,6 +91,7 @@ def show():
 
     # Display Outputs
     if st.session_state["run_success"]:
+        st.markdown("## Results")
         if st.session_state["map_object"]:
             st.markdown("### 🗺️ Map Output")
             st_folium(st.session_state["map_object"], width=700, height=500)
