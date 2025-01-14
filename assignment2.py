@@ -1,15 +1,14 @@
 import streamlit as st
-import traceback
-import sys
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
 from io import StringIO
 from streamlit_folium import st_folium
+import traceback
+import sys
 
 
 def show():
-    # Apply custom page style
     st.markdown(
         """
         <style>
@@ -40,18 +39,16 @@ def show():
         st.session_state["run_success"] = False
     if "map_object" not in st.session_state:
         st.session_state["map_object"] = None
-    if "dataframe_object" not in st.session_state:
-        st.session_state["dataframe_object"] = None
     if "bar_chart" not in st.session_state:
         st.session_state["bar_chart"] = None
-    if "captured_output" not in st.session_state:
-        st.session_state["captured_output"] = ""
+    if "summary_text" not in st.session_state:
+        st.session_state["summary_text"] = None
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Step 1: Enter Student ID
-    st.header("Step 1: Enter Your Student ID")
-    with st.form("student_id_form", clear_on_submit=False):
+    # Section 1: Enter Your Student ID
+    st.header("Section 1: Enter Your Student ID")
+    with st.form("student_id_form"):
         student_id = st.text_input("Enter Your Student ID", key="student_id")
         submit_id_button = st.form_submit_button("Verify Student ID")
 
@@ -61,33 +58,30 @@ def show():
             else:
                 st.error("Please provide a valid Student ID.")
 
-    # Step 2: Assignment Instructions
-    st.header("Step 2: Review Assignment Details")
+    # Section 2: Review Assignment Details
+    st.header("Section 2: Review Assignment Details")
     st.markdown("""
     ### Objective
-    Write a Python script that:
-    - Fetches real-time earthquake data from the USGS Earthquake API for January 2-9, 2025.
-    - Filters earthquakes with a magnitude greater than 4.0.
-    - Visualizes the data on a map and as a bar chart.
-    - Provides a CSV summary of key metrics.
-
-    ### Output Requirements
-    1. A map of earthquake locations (color-coded markers).
-    2. A bar chart of earthquake counts by magnitude range.
-    3. A CSV summary with total count, average, min, and max magnitudes.
+    Write a Python script to:
+    - Fetch earthquake data from the USGS API for January 2nd, 2025, to January 9th, 2025.
+    - Filter earthquakes with a magnitude > 4.0.
+    - Create:
+        1. An interactive map showing earthquake locations.
+        2. A bar chart of earthquake frequency by magnitude ranges.
+        3. A text summary (total, average, max, and min magnitudes and earthquake counts by range).
     """)
 
-    # Step 3: Code Editor
-    st.header("Step 3: Write and Run Your Code")
-    code = st.text_area("Paste your Python code here", height=300)
+    # Section 3: Run and Submit Your Code
+    st.header("Section 3: Run and Submit Your Code")
+    st.markdown("Paste your Python script below, then click **Run Code** to see your outputs.")
 
-    # Run Code Button
+    code = st.text_area("Paste Your Python Code Here", height=300)
+
     if st.button("Run Code"):
         st.session_state["run_success"] = False
         st.session_state["map_object"] = None
-        st.session_state["dataframe_object"] = None
         st.session_state["bar_chart"] = None
-        st.session_state["captured_output"] = ""
+        st.session_state["summary_text"] = None
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -95,58 +89,52 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Define a controlled environment to execute the user code
-            user_namespace = {}
-
             # Execute the user's code
-            exec(code, {"folium": folium, "pd": pd, "plt": plt, "st": st}, user_namespace)
+            exec_globals = {
+                "st": st,
+                "folium": folium,
+                "pd": pd,
+                "plt": plt,
+            }
+            exec(code, exec_globals)
 
-            # Capture results from user-defined variables
+            # Retrieve outputs if they exist
+            st.session_state["map_object"] = exec_globals.get("map_object", None)
+            st.session_state["bar_chart"] = exec_globals.get("bar_chart", None)
+            st.session_state["summary_text"] = exec_globals.get("summary_text", None)
+
             st.session_state["run_success"] = True
-            st.session_state["captured_output"] = new_stdout.getvalue()
-
-            # Look for specific objects in user namespace
-            if "map_object" in user_namespace:
-                st.session_state["map_object"] = user_namespace["map_object"]
-            if "dataframe_object" in user_namespace:
-                st.session_state["dataframe_object"] = user_namespace["dataframe_object"]
-            if "bar_chart" in user_namespace:
-                st.session_state["bar_chart"] = user_namespace["bar_chart"]
-
             st.success("Code executed successfully!")
         except Exception as e:
-            st.error("An error occurred during execution. Please review your code.")
-            st.session_state["captured_output"] = traceback.format_exc()
+            st.error(f"An error occurred: {e}")
+            st.text_area("Error Details", traceback.format_exc(), height=200)
         finally:
             sys.stdout = old_stdout
 
-    # Display Outputs
-    st.header("Step 4: Visualize Your Outputs")
+    # Display outputs
+    st.markdown("### Outputs")
+    if st.session_state.get("run_success"):
+        if st.session_state.get("map_object"):
+            st.markdown("#### Map Output")
+            st_folium(st.session_state["map_object"], width=700, height=500)
 
-    # Text Output
-    st.markdown("### Text Output")
-    st.text_area("Captured Output", st.session_state["captured_output"], height=150)
+        if st.session_state.get("bar_chart"):
+            st.markdown("#### Bar Chart Output")
+            st.pyplot(st.session_state["bar_chart"])
 
-    # Map Output
-    if st.session_state.get("map_object"):
-        st.markdown("### Interactive Map")
-        st_folium(st.session_state["map_object"], width=700, height=500)
+        if st.session_state.get("summary_text"):
+            st.markdown("#### Text Summary")
+            st.text(st.session_state["summary_text"])
 
-    # DataFrame Output
-    if st.session_state.get("dataframe_object") is not None:
-        st.markdown("### Data Summary (DataFrame)")
-        st.dataframe(st.session_state["dataframe_object"])
-
-    # Bar Chart Output
-    if st.session_state.get("bar_chart"):
-        st.markdown("### Bar Chart Visualization")
-        st.pyplot(st.session_state["bar_chart"])
-
-    # Step 5: Submit Assignment
-    st.header("Step 5: Submit Your Assignment")
+    # Submit Code Button
+    st.header("Submit Your Code")
     if st.button("Submit Assignment"):
-        if st.session_state.get("run_success", False):
-            st.success("Assignment submitted successfully!")
-            # Placeholder for submission logic
-        else:
+        if not st.session_state.get("run_success", False):
             st.error("Please run your code successfully before submitting.")
+        else:
+            st.success("Your code has been submitted successfully!")
+            # Add code to save submission (e.g., Google Sheets or a database)
+
+
+if __name__ == "__main__":
+    show()
