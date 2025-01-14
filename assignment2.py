@@ -70,13 +70,6 @@ def show():
         st.markdown("""
         ### Objective
         Write a Python script that fetches real-time earthquake data from the USGS Earthquake API, filters earthquakes with a magnitude greater than 4.0, and visualizes the data on a map and as a bar chart.
-        
-        **Key Tasks:**
-        1. Fetch earthquake data from the USGS API for the date range January 2nd, 2025, to January 9th, 2025.
-        2. Filter earthquakes with a magnitude greater than 4.0.
-        3. Visualize locations on a map with markers color-coded by magnitude range.
-        4. Create a bar chart showing earthquake counts by magnitude ranges.
-        5. Provide a text summary of the results.
         """)
 
     with tab2:
@@ -165,6 +158,5 @@ def show():
     if submit_button:
         if st.session_state.get("run_success", False):
             st.success("Code submitted successfully! Your outputs have been recorded.")
-            # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
