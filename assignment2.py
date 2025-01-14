@@ -1,115 +1,107 @@
-import streamlit as st
-import folium
-import pandas as pd
-import matplotlib.pyplot as plt
-from streamlit_folium import st_folium
-import re
-from io import StringIO
-import sys
-import traceback
-from folium.plugins import MarkerCluster
+# Import necessary libraries
 import requests
+import pandas as pd
+import folium
+from folium.plugins import MarkerCluster
+import matplotlib.pyplot as plt
 
-def validate_student_id(student_id: str) -> bool:
-    """Validates the student ID format (8 digits)"""
-    return bool(re.match(r'^\d{8}$', student_id))
+# Fetch earthquake data from the USGS API
+def fetch_earthquake_data(start_time, end_time):
+    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={start_time}&endtime={end_time}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to fetch data: {response.status_code}")
 
-def show():
-    st.title("Assignment 2: Earthquake Data Analysis")
-
-    # Initialize session state
-    if "outputs" not in st.session_state:
-        st.session_state.outputs = {
-            "map": None,
-            "chart": None,
-            "summary": None
-        }
-
-    # Section 1: Student ID
-    st.header("Step 1: Enter Your Student ID")
-    student_id = st.text_input("Student ID (8 digits)")
-    if student_id:
-        if not validate_student_id(student_id):
-            st.error("Please enter a valid 8-digit ID")
-
-    # Section 2: Review Requirements
-    st.header("Step 2: Review Assignment Details")
-    with st.expander("View Requirements", expanded=False):
-        st.markdown("""
-        1. Fetch earthquake data from USGS API (Jan 2-9, 2025)
-        2. Filter earthquakes with magnitude > 4.0
-        3. Create visualizations and summary
-        """)
-
-    # Section 3: Code Input and Execution
-    st.header("Step 3: Run and Submit Your Code")
-    code = st.text_area("Paste your Google Colab code here:", height=300)
-    
-    if st.button("Run Code"):
-        try:
-            # Create namespace with modified display function
-            namespace = {
-                'pd': pd,
-                'plt': plt,
-                'folium': folium,
-                'requests': requests,
-                'MarkerCluster': MarkerCluster,
-                'st': st,
-                'display': lambda x: None
+# Filter earthquakes with magnitude > 4.0
+def filter_earthquakes(data):
+    features = data['features']
+    earthquakes = []
+    for feature in features:
+        properties = feature['properties']
+        geometry = feature['geometry']
+        magnitude = properties['mag']
+        if magnitude > 4.0:
+            earthquake = {
+                'time': pd.to_datetime(properties['time'], unit='ms'),
+                'latitude': geometry['coordinates'][1],
+                'longitude': geometry['coordinates'][0],
+                'magnitude': magnitude
             }
+            earthquakes.append(earthquake)
+    return pd.DataFrame(earthquakes)
 
-            # Add capture code
-            capture_code = """
-# Function to capture outputs
-def display(obj):
-    if isinstance(obj, folium.Map):
-        st.session_state.outputs["map"] = obj
-    elif isinstance(obj, pd.DataFrame):
-        st.session_state.outputs["summary"] = obj
-"""
+# Generate an interactive map with color-coded markers
+def create_earthquake_map(earthquakes):
+    earthquake_map = folium.Map(location=[0, 0], zoom_start=2)
+    marker_cluster = MarkerCluster().add_to(earthquake_map)
 
-            # Add figure capture
-            pre_code = """
-plt.figure(figsize=(10, 6))
-"""
-
-            # Add post-execution capture
-            post_code = """
-# Capture the current figure
-if plt.get_fignums():
-    st.session_state.outputs["chart"] = plt.gcf()
-"""
-
-            # Execute all code
-            exec(capture_code + pre_code + code + post_code, namespace)
-            st.success("Code executed successfully!")
-
-            # Display Map
-            if st.session_state.outputs["map"]:
-                st.subheader("Earthquake Map")
-                st_folium(st.session_state.outputs["map"], width=700, height=500)
-
-            # Display Chart
-            if st.session_state.outputs["chart"]:
-                st.subheader("Magnitude Distribution")
-                st.pyplot(st.session_state.outputs["chart"])
-
-            # Display Summary
-            if st.session_state.outputs["summary"] is not None:
-                st.subheader("Summary Statistics")
-                st.dataframe(st.session_state.outputs["summary"])
-
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-            st.code(traceback.format_exc())
-
-    # Submit button
-    if st.button("Submit Assignment"):
-        outputs_present = all(st.session_state.outputs.values())
-        if outputs_present:
-            st.success("Assignment submitted successfully!")
+    for _, row in earthquakes.iterrows():
+        magnitude = row['magnitude']
+        if 4.0 <= magnitude < 5.0:
+            color = 'green'
+        elif 5.0 <= magnitude < 5.5:
+            color = 'yellow'
         else:
-            st.error("Please run your code successfully before submitting.")
+            color = 'red'
 
-if __name__ == "__main__":
-    show()
+        popup = folium.Popup(
+            f"Magnitude: {magnitude}<br>"
+            f"Location: ({row['latitude']}, {row['longitude']})<br>"
+            f"Time: {row['time']}"
+        )
+        folium.Marker(
+            location=[row['latitude'], row['longitude']],
+            popup=popup,
+            icon=folium.Icon(color=color)
+        ).add_to(marker_cluster)
+
+    return earthquake_map
+
+# Main execution
+# Define date range
+start_time = "2025-01-02"
+end_time = "2025-01-09"
+
+# Fetch and filter earthquake data
+data = fetch_earthquake_data(start_time, end_time)
+earthquakes = filter_earthquakes(data)
+
+# Create and save the map
+earthquake_map = create_earthquake_map(earthquakes)
+st.session_state.outputs["map"] = earthquake_map
+
+# Create bar chart
+bins = [4.0, 4.5, 5.0, float('inf')]
+labels = ['4.0-4.5', '4.5-5.0', '5.0+']
+earthquakes['magnitude_range'] = pd.cut(earthquakes['magnitude'], bins=bins, labels=labels, right=False)
+magnitude_counts = earthquakes['magnitude_range'].value_counts().sort_index()
+
+plt.figure(figsize=(8, 5))
+magnitude_counts.plot(kind='bar', color='skyblue')
+plt.title('Earthquake Frequency by Magnitude Range')
+plt.xlabel('Magnitude Range')
+plt.ylabel('Frequency')
+plt.xticks(rotation=0)
+plt.tight_layout()
+st.session_state.outputs["chart"] = plt.gcf()
+
+# Generate summary
+summary = {
+    'Total Earthquakes': len(earthquakes),
+    'Average Magnitude': round(earthquakes['magnitude'].mean(), 2),
+    'Maximum Magnitude': round(earthquakes['magnitude'].max(), 2),
+    'Minimum Magnitude': round(earthquakes['magnitude'].min(), 2),
+    'Earthquakes in 4.0-4.5': magnitude_counts.get('4.0-4.5', 0),
+    'Earthquakes in 4.5-5.0': magnitude_counts.get('4.5-5.0', 0),
+    'Earthquakes in 5.0+': magnitude_counts.get('5.0+', 0)
+}
+
+# Create and display summary DataFrame
+summary_df = pd.DataFrame(list(summary.items()), columns=['Metric', 'Value'])
+st.session_state.outputs["summary"] = summary_df
+
+# Print some information
+print(f"Found {len(earthquakes)} earthquakes with magnitude > 4.0")
+print(f"Average magnitude: {earthquakes['magnitude'].mean():.2f}")
