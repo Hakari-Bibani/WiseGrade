@@ -7,7 +7,8 @@ from io import StringIO
 from streamlit_folium import st_folium
 import traceback
 import sys
-
+from grades.grade2 import grade_assignment2
+from Record.google_sheet import update_google_sheet, verify_student_id
 
 def show():
     # Apply the custom page style
@@ -57,10 +58,12 @@ def show():
         submit_id_button = st.form_submit_button("Verify Student ID")
 
         if submit_id_button:
-            if student_id:  # Verify student ID logic (placeholder)
+            if verify_student_id(student_id):  # Verify student ID using Google Sheets
                 st.success(f"Student ID {student_id} verified. You may proceed.")
+                st.session_state["student_id_verified"] = True
             else:
-                st.error("Please provide a valid Student ID.")
+                st.error("Invalid Student ID. Please provide a valid ID from Assignment 1.")
+                st.session_state["student_id_verified"] = False
 
     # Section 2: Assignment and Grading Details
     st.header("Step 2: Review Assignment Details")
@@ -100,7 +103,7 @@ def show():
 
     # Section 3: Code Submission and Output
     st.header("Step 3: Submit Your Code")
-    code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
+    code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
     run_button = st.button("Run Code", key="run_code_button")
     submit_button = st.button("Submit Code", key="submit_code_button")
@@ -147,24 +150,26 @@ def show():
     # Display Outputs
     if st.session_state["run_success"]:
         if st.session_state["captured_output"]:
-            st.markdown("### 📜 Captured Output")
+            st.markdown("### \U0001F4DA Captured Output")
             st.text(st.session_state["captured_output"])
 
         if st.session_state["map_object"]:
-            st.markdown("### 🗺️ Map Output")
+            st.markdown("### \U0001F5FA Map Output")
             st_folium(st.session_state["map_object"], width=700, height=500)
 
         if st.session_state["bar_chart"]:
-            st.markdown("### 📊 Bar Chart Output")
+            st.markdown("### \U0001F4C8 Bar Chart Output")
             st.pyplot(st.session_state["bar_chart"])
 
         if st.session_state["dataframe_object"] is not None:
-            st.markdown("### 📑 Data Summary")
+            st.markdown("### \U0001F4CA Data Summary")
             st.dataframe(st.session_state["dataframe_object"])
 
     if submit_button:
-        if st.session_state.get("run_success", False):
-            st.success("Code submitted successfully! Your outputs have been recorded.")
-            # Save submission logic here (e.g., Google Sheets or database)
+        if st.session_state.get("run_success", False) and st.session_state.get("student_id_verified", False):
+            grade = grade_assignment2(code_input)  # Grade the assignment
+            student_id = st.session_state.get("student_id")
+            update_google_sheet(student_id, grade, "assignment_2")  # Save grade in Google Sheet
+            st.success(f"Code submitted successfully! Your grade: {grade}/100")
         else:
-            st.error("Please run your code successfully before submitting.")
+            st.error("Please ensure your Student ID is verified and your code runs successfully before submitting.")
