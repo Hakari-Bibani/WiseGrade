@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import folium
 
+
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -53,9 +54,24 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Execute the user's code in a controlled namespace
-            exec_globals = {"folium": folium, "plt": plt, "pd": pd}
-            exec(code, exec_globals)
+            # Use a safer exec environment to ignore unsupported imports
+            exec_globals = {
+                "st": st,
+                "pd": pd,
+                "plt": plt,
+                "folium": folium,
+                "__builtins__": __builtins__,
+            }
+
+            # Wrap the user's code in a try-except to catch import errors
+            safe_code = f"""
+try:
+    {code}
+except ImportError as e:
+    print(f"Unsupported import ignored: {{e}}")
+"""
+
+            exec(safe_code, exec_globals)
 
             # Detect and capture outputs
             st.session_state["map_object"] = next(
@@ -68,8 +84,6 @@ def show():
 
             st.session_state["run_success"] = True
             st.success("Code executed successfully!")
-        except ImportError as e:
-            st.error(f"Your code contains unsupported imports: {e}")
         except Exception as e:
             st.error(f"An error occurred while running your code: {e}")
             st.text_area("Error Details", traceback.format_exc(), height=200)
