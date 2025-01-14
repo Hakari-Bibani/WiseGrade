@@ -53,40 +53,38 @@ def show():
 
     if st.button("Run Code"):
         try:
-            # Create namespace with custom display function for capturing outputs
+            # Create namespace to capture outputs
             namespace = {
                 'pd': pd,
                 'plt': plt,
                 'folium': folium,
                 'requests': requests,
                 'MarkerCluster': MarkerCluster,
-                'st': st,
-                'display': lambda obj: capture_output(obj)
+                'st': st
             }
 
-            def capture_output(obj):
-                """Capture user-generated outputs"""
-                if isinstance(obj, folium.Map):
-                    st.session_state.outputs["map"] = obj
-                elif isinstance(obj, plt.Figure):
-                    st.session_state.outputs["chart"] = obj
-                elif isinstance(obj, pd.DataFrame):
-                    st.session_state.outputs["summary"] = obj
-
-            # Pre-execution setup
+            # Prepend and append code for output capturing
             pre_code = """
 import matplotlib.pyplot as plt
 plt.figure(figsize=(10, 6))
 """
-
-            # Post-execution capture
             post_code = """
-# Capture current matplotlib figure
-if plt.get_fignums():
+# Capture map
+for var_name, var_value in locals().items():
+    if isinstance(var_value, folium.Map) and not st.session_state.outputs["map"]:
+        st.session_state.outputs["map"] = var_value
+
+# Capture chart
+if plt.get_fignums() and not st.session_state.outputs["chart"]:
     st.session_state.outputs["chart"] = plt.gcf()
+
+# Capture summary
+for var_name, var_value in locals().items():
+    if isinstance(var_value, pd.DataFrame) and not st.session_state.outputs["summary"]:
+        st.session_state.outputs["summary"] = var_value
 """
 
-            # Execute user's code
+            # Execute the user-provided code
             exec(pre_code + code + post_code, namespace)
             st.success("Code executed successfully!")
 
