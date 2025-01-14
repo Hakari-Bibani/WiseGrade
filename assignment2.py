@@ -7,61 +7,50 @@ from io import StringIO, BytesIO
 import traceback
 import sys
 
-
 def execute_user_code(code):
     """
-    Executes user-provided Python code and captures outputs.
+    Execute the user's code in a controlled sandboxed environment
+    and capture map, bar chart, and text summary.
     """
-    local_context = {}
-    stdout_buffer = StringIO()
-
-    # Redirect stdout to capture print statements
-    sys.stdout = stdout_buffer
+    sandbox = {
+        "folium": folium,
+        "pd": pd,
+        "plt": plt,
+    }
+    outputs = {
+        "map": None,
+        "bar_chart": None,
+        "text_summary": None,
+    }
 
     try:
-        # Execute user code
-        exec(code, {}, local_context)
+        exec(code, sandbox)
 
-        # Restore stdout
-        sys.stdout = sys.__stdout__
+        # Capture map object
+        for obj in sandbox.values():
+            if isinstance(obj, folium.Map):
+                outputs["map"] = obj
+                break
 
-        return local_context, stdout_buffer.getvalue(), None
+        # Capture bar chart
+        if plt.get_fignums():
+            buffer = BytesIO()
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+            outputs["bar_chart"] = buffer
+            plt.close()
+
+        # Capture text summary (DataFrame)
+        for obj in sandbox.values():
+            if isinstance(obj, pd.DataFrame):
+                outputs["text_summary"] = obj
+                break
+
     except Exception as e:
-        # Restore stdout
-        sys.stdout = sys.__stdout__
-        return local_context, stdout_buffer.getvalue(), traceback.format_exc()
+        outputs["error"] = str(e)
+        outputs["traceback"] = traceback.format_exc()
 
-
-def find_folium_map(local_context):
-    """
-    Searches for a Folium map in the local execution context.
-    """
-    for obj in local_context.values():
-        if isinstance(obj, folium.Map):
-            return obj
-    return None
-
-
-def find_matplotlib_figure():
-    """
-    Captures the latest Matplotlib figure as a BytesIO object.
-    """
-    if plt.get_fignums():
-        buffer = BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-        return buffer
-    return None
-
-
-def find_dataframe(local_context):
-    """
-    Searches for a Pandas DataFrame in the local execution context.
-    """
-    for obj in local_context.values():
-        if isinstance(obj, pd.DataFrame):
-            return obj
-    return None
+    return outputs
 
 
 def show():
@@ -71,56 +60,47 @@ def show():
     code = st.text_area("Paste your Python script here", height=300)
 
     if st.button("Run Code"):
-        st.session_state["run_success"] = False
-        st.session_state["detected_map"] = None
-        st.session_state["detected_chart"] = None
-        st.session_state["detected_summary"] = None
+        st.session_state["outputs"] = execute_user_code(code)
 
-        # Execute user code and capture outputs
-        local_context, stdout_output, error_output = execute_user_code(code)
-
-        if error_output:
-            st.error("An error occurred while executing your code:")
-            st.text_area("Error Details", error_output, height=200)
+        if "error" in st.session_state["outputs"]:
+            st.error(f"An error occurred: {st.session_state['outputs']['error']}")
+            st.text_area("Error Details", st.session_state["outputs"]["traceback"], height=200)
         else:
-            st.session_state["run_success"] = True
-
-            # Detect outputs
-            st.session_state["detected_map"] = find_folium_map(local_context)
-            st.session_state["detected_chart"] = find_matplotlib_figure()
-            st.session_state["detected_summary"] = find_dataframe(local_context)
-
             st.success("Code executed successfully!")
-            st.text_area("Captured Output", stdout_output, height=200)
 
     # Section to display outputs
     st.header("Step 2: View Your Outputs")
 
-    # Display Folium Map
-    if st.session_state.get("detected_map"):
+    outputs = st.session_state.get("outputs", {})
+
+    # Display Map
+    if outputs.get("map"):
         st.subheader("Interactive Map")
-        st_folium(st.session_state["detected_map"], width=700, height=500)
+        st_folium(outputs["map"], width=700, height=500)
     else:
         st.warning("No map detected in the provided script.")
 
     # Display Bar Chart
-    if st.session_state.get("detected_chart"):
+    if outputs.get("bar_chart"):
         st.subheader("Bar Chart")
-        st.image(st.session_state["detected_chart"], caption="Bar Chart Output", use_column_width=True)
+        st.image(outputs["bar_chart"], caption="Earthquake Frequency by Magnitude", use_column_width=True)
     else:
         st.warning("No bar chart detected in the provided script.")
 
     # Display Text Summary
-    if st.session_state.get("detected_summary") is not None:
-        st.subheader("Text Summary (DataFrame)")
-        st.dataframe(st.session_state["detected_summary"])
+    if outputs.get("text_summary") is not None:
+        st.subheader("Text Summary")
+        st.dataframe(outputs["text_summary"])
     else:
         st.warning("No text summary detected in the provided script.")
 
-    # Allow submission if script executed successfully
-    if st.session_state.get("run_success", False):
-        if st.button("Submit Assignment"):
+    # Submission section
+    st.header("Step 3: Submit Your Assignment")
+    if st.button("Submit Assignment"):
+        if "error" not in outputs:
             st.success("Assignment submitted successfully! Your outputs have been recorded.")
+        else:
+            st.error("Please fix the errors in your script before submitting.")
 
 
 if __name__ == "__main__":
