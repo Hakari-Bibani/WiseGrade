@@ -79,10 +79,64 @@ def show():
         """)
 
     with tab2:
-@@ -165,6 +158,5 @@
+        st.markdown("""
+        ### Grading Criteria
+        - **Code Correctness (50%)**: The code should run without errors and produce the correct outputs.
+        - **Visualization Quality (30%)**: The map and bar chart should be clear and informative.
+        - **Code Quality (20%)**: The code should be well-structured, readable, and commented.
+        """)
+
+    # Section 3: Code Editor
+    st.header("Step 3: Write and Run Your Code")
+    code = st.text_area("Write your Python code here", height=300)
+
+    if st.button("Run Code"):
+        st.session_state["run_success"] = False
+        st.session_state["map_object"] = None
+        st.session_state["dataframe_object"] = None
+        st.session_state["bar_chart"] = None
+        st.session_state["captured_output"] = ""
+
+        # Capture stdout
+        old_stdout = sys.stdout
+        new_stdout = StringIO()
+        sys.stdout = new_stdout
+
+        try:
+            # Execute the user's code
+            exec(code)
+            st.session_state["run_success"] = True
+            st.session_state["captured_output"] = new_stdout.getvalue()
+            st.success("Code executed successfully!")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+            st.session_state["captured_output"] = traceback.format_exc()
+        finally:
+            sys.stdout = old_stdout
+
+        # Display captured output
+        st.text_area("Code Output", st.session_state["captured_output"], height=200)
+
+    # Section 4: Visualize Outputs
+    st.header("Step 4: Visualize Your Outputs")
+    if st.session_state.get("map_object"):
+        st_folium(st.session_state["map_object"], width=700, height=500)
+    if st.session_state.get("dataframe_object") is not None:
+        st.dataframe(st.session_state["dataframe_object"])
+    if st.session_state.get("bar_chart"):
+        st.pyplot(st.session_state["bar_chart"])
+
+    # Section 5: Submit Assignment
+    st.header("Step 5: Submit Your Assignment")
+    submit_button = st.button("Submit Assignment")
+
     if submit_button:
         if st.session_state.get("run_success", False):
             st.success("Code submitted successfully! Your outputs have been recorded.")
             # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
+
+
+if __name__ == "__main__":
+    show()
