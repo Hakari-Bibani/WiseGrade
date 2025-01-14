@@ -3,9 +3,43 @@ import folium
 import pandas as pd
 from io import StringIO
 from streamlit_folium import st_folium
+import traceback
+import sys
 from utils.style2 import set_page_style
 from grades.grade2 import grade_assignment
 from Record.google_sheet import validate_student_id, update_google_sheet
+
+def execute_user_code(code_input):
+    """
+    Executes the user-provided code and captures outputs.
+    Returns a dictionary containing captured outputs, map object, and image object.
+    """
+    captured_output = StringIO()
+    local_context = {}
+    sys.stdout = captured_output  # Redirect stdout to capture print statements
+
+    try:
+        exec(code_input, {}, local_context)  # Execute user code in an isolated context
+        sys.stdout = sys.__stdout__  # Restore stdout
+
+        # Extract outputs from the local context
+        map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
+        image_object = local_context.get("image_object", None)
+
+        return {
+            "captured_output": captured_output.getvalue(),
+            "map_object": map_object,
+            "image_object": image_object,
+            "success": True,
+        }
+    except Exception as e:
+        sys.stdout = sys.__stdout__  # Restore stdout
+        return {
+            "captured_output": traceback.format_exc(),  # Capture traceback for debugging
+            "map_object": None,
+            "image_object": None,
+            "success": False,
+        }
 
 def show():
     # Apply custom styles
@@ -74,29 +108,19 @@ def show():
         st.session_state["map_object"] = None
         st.session_state["image_object"] = None
 
-        try:
-            # Capture print statements
-            captured_output = StringIO()
-            import sys
-            sys.stdout = captured_output
+        # Execute user code
+        result = execute_user_code(code_input)
 
-            # Execute user code
-            local_context = {}
-            exec(code_input, {}, local_context)
+        # Update session state with results
+        st.session_state["captured_output"] = result["captured_output"]
+        st.session_state["map_object"] = result["map_object"]
+        st.session_state["image_object"] = result["image_object"]
+        st.session_state["run_success"] = result["success"]
 
-            # Restore stdout
-            sys.stdout = sys.__stdout__
-
-            # Capture results
-            st.session_state["captured_output"] = captured_output.getvalue()
-            st.session_state["map_object"] = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
-            st.session_state["image_object"] = local_context.get("image_object", None)
-
-            st.session_state["run_success"] = True
-        except Exception as e:
-            sys.stdout = sys.__stdout__
-            st.error(f"An error occurred: {e}")
-            st.session_state["captured_output"] = f"Error: {e}"
+        if result["success"]:
+            st.success("Code executed successfully!")
+        else:
+            st.error("An error occurred while executing the code.")
 
     # Display Outputs
     if st.session_state["run_success"]:
@@ -120,7 +144,7 @@ def show():
                 update_google_sheet(student_id, grade, "assignment_2")
                 st.success(f"Submission successful! Your grade: {grade}/100")
             except Exception as e:
-                st.error(f"Failed to submit assignment: {e}")
+                st.error(f"An error occurred while updating the Google Sheet: {e}")
         else:
             st.error("Please run your code successfully before submitting.")
 
