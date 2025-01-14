@@ -28,8 +28,6 @@ def show():
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    st.title("Assignment 2: Earthquake Data Analysis")
-
     # Section 1: Student ID Form
     st.header("Step 1: Enter Your Student ID")
     valid_student_id = False
