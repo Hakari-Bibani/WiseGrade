@@ -1,4 +1,3 @@
-# assignment2.py
 import streamlit as st
 import folium
 import pandas as pd
@@ -9,33 +8,11 @@ import traceback
 import sys
 from grades.grade2 import grade_assignment2
 from Record.google_sheet import get_student_data, update_google_sheet
+from utils.style2 import set_page_style  # Import the style function
 
 def show():
     # Apply the custom page style
-    st.markdown(
-        """
-        <style>
-            body {
-                font-family: 'Arial', sans-serif;
-                background-color: #f9f9f9;
-                color: #333;
-            }
-            .stButton > button {
-                background-color: #4CAF50;
-                color: white;
-                font-size: 16px;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            .stButton > button:hover {
-                background-color: #45a049;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    set_page_style()  # Apply the styles from style2.py
 
     # Initialize session state variables
     if "run_success" not in st.session_state:
@@ -48,6 +25,8 @@ def show():
         st.session_state["bar_chart"] = None
     if "captured_output" not in st.session_state:
         st.session_state["captured_output"] = ""
+
+    st.title("Assignment 2: Earthquake Data Analysis")
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
