@@ -1,7 +1,7 @@
+# utils/style2.py
 import streamlit as st
 
 def set_page_style():
-    """Set a custom style for the Streamlit app."""
     st.markdown(
         """
         <style>
