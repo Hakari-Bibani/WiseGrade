@@ -24,9 +24,10 @@ def detect_outputs(local_context):
     )
 
     # Detect Matplotlib Figure (bar chart)
-    if plt.get_fignums():
+    for fig_num in plt.get_fignums():
+        fig = plt.figure(fig_num)
         buffer = BytesIO()
-        plt.savefig(buffer, format="png")
+        fig.savefig(buffer, format="png")
         buffer.seek(0)
         detected_outputs["bar_chart"] = buffer
 
@@ -54,8 +55,10 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Execute the user's code
+            # Prepare local environment for code execution
             local_context = {}
+
+            # Execute the user's code
             exec(code, {}, local_context)
             st.session_state["run_success"] = True
 
