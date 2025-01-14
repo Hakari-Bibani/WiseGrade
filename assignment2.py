@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import folium
 
-
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -54,13 +53,8 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Execute the user's code
-            exec_globals = {
-                "st": st,
-                "pd": pd,
-                "plt": plt,
-                "folium": folium,
-            }
+            # Execute the user's code in a controlled namespace
+            exec_globals = {"folium": folium, "plt": plt, "pd": pd}
             exec(code, exec_globals)
 
             # Detect and capture outputs
@@ -74,8 +68,10 @@ def show():
 
             st.session_state["run_success"] = True
             st.success("Code executed successfully!")
+        except ImportError as e:
+            st.error(f"Your code contains unsupported imports: {e}")
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"An error occurred while running your code: {e}")
             st.text_area("Error Details", traceback.format_exc(), height=200)
         finally:
             sys.stdout = old_stdout
