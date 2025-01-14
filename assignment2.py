@@ -1,16 +1,16 @@
 import streamlit as st
+from streamlit_folium import st_folium
+from io import StringIO
 import traceback
 import sys
-from io import StringIO
-from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
-import folium
 import pandas as pd
+import folium
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Section 1: Enter Student ID
+    # Section 1: Enter Your Student ID
     st.header("Section 1: Enter Your Student ID")
     with st.form("student_id_form"):
         student_id = st.text_input("Enter Your Student ID", key="student_id")
@@ -41,85 +41,67 @@ def show():
 
     code = st.text_area("Paste Your Python Code Here", height=300)
 
-    # Initialize session state for outputs
-    if "run_success" not in st.session_state:
-        st.session_state["run_success"] = False
-    if "captured_map" not in st.session_state:
-        st.session_state["captured_map"] = None
-    if "captured_bar_chart" not in st.session_state:
-        st.session_state["captured_bar_chart"] = None
-    if "captured_summary" not in st.session_state:
-        st.session_state["captured_summary"] = None
-
     if st.button("Run Code"):
         st.session_state["run_success"] = False
-        st.session_state["captured_map"] = None
-        st.session_state["captured_bar_chart"] = None
-        st.session_state["captured_summary"] = None
+        st.session_state["map_object"] = None
+        st.session_state["bar_chart"] = None
+        st.session_state["summary_text"] = None
 
-        # Redirect stdout to capture print output
+        # Capture stdout
         old_stdout = sys.stdout
-        sys.stdout = StringIO()
+        new_stdout = StringIO()
+        sys.stdout = new_stdout
 
         try:
-            # Define a local execution environment
+            # Execute the user's code
             exec_globals = {
                 "st": st,
-                "folium": folium,
                 "pd": pd,
                 "plt": plt,
+                "folium": folium,
             }
-
-            # Execute the user-provided code
             exec(code, exec_globals)
 
-            # Capture specific outputs if provided
-            st.session_state["captured_map"] = exec_globals.get("mymap", None)
-            st.session_state["captured_bar_chart"] = exec_globals.get("fig", None)
-            st.session_state["captured_summary"] = exec_globals.get("summary_df", None)
+            # Detect and capture outputs
+            st.session_state["map_object"] = next(
+                (obj for obj in exec_globals.values() if isinstance(obj, folium.Map)), None
+            )
+            st.session_state["bar_chart"] = plt.gcf() if plt.get_fignums() else None
+            st.session_state["summary_text"] = next(
+                (obj for obj in exec_globals.values() if isinstance(obj, pd.DataFrame)), None
+            )
 
             st.session_state["run_success"] = True
             st.success("Code executed successfully!")
         except Exception as e:
-            st.error("An error occurred during code execution:")
-            st.text(traceback.format_exc())
+            st.error(f"An error occurred: {e}")
+            st.text_area("Error Details", traceback.format_exc(), height=200)
         finally:
-            # Restore stdout
             sys.stdout = old_stdout
 
-    # Display Outputs
+    # Display outputs
+    st.markdown("### Outputs")
     if st.session_state.get("run_success"):
-        st.markdown("### Outputs")
+        if st.session_state.get("map_object"):
+            st.markdown("#### Map Output")
+            st_folium(st.session_state["map_object"], width=700, height=500)
 
-        # Display the map if available
-        if st.session_state["captured_map"]:
-            st.markdown("#### Interactive Map")
-            st_folium(st.session_state["captured_map"], width=700, height=500)
-        else:
-            st.warning("No map found. Ensure your script creates a map object named `mymap`.")
+        if st.session_state.get("bar_chart"):
+            st.markdown("#### Bar Chart Output")
+            st.pyplot(st.session_state["bar_chart"])
 
-        # Display the bar chart if available
-        if st.session_state["captured_bar_chart"]:
-            st.markdown("#### Bar Chart")
-            st.pyplot(st.session_state["captured_bar_chart"])
-        else:
-            st.warning("No bar chart found. Ensure your script creates a chart object named `fig`.")
-
-        # Display the text summary if available
-        if st.session_state["captured_summary"] is not None:
+        if st.session_state.get("summary_text") is not None:
             st.markdown("#### Text Summary")
-            st.dataframe(st.session_state["captured_summary"])
-        else:
-            st.warning("No summary found. Ensure your script creates a DataFrame object named `summary_df`.")
+            st.dataframe(st.session_state["summary_text"])
 
-    # Section 4: Submit Assignment
-    st.header("Section 4: Submit Your Assignment")
+    # Submit Code Button
+    st.header("Submit Your Code")
     if st.button("Submit Assignment"):
         if not st.session_state.get("run_success", False):
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Your code has been submitted successfully!")
-            # Add submission logic here (e.g., save to Google Sheets or database)
+            # Add code to save submission (e.g., Google Sheets or a database)
 
 
 if __name__ == "__main__":
