@@ -8,6 +8,7 @@ import traceback
 import sys
 import os
 
+
 def detect_outputs(local_context):
     """
     Detect and capture the main outputs (map, PNG bar chart, text summary)
@@ -19,13 +20,18 @@ def detect_outputs(local_context):
         "text_summary": None,
     }
 
-    # Detect Folium Map
-    detected_outputs["map"] = next(
-        (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
-    )
+    # Detect and load Folium Map saved as HTML
+    if os.path.exists("earthquake_map.html"):
+        detected_outputs["map"] = folium.Map(location=[0, 0], zoom_start=2)
+        with open("earthquake_map.html", "r") as f:
+            detected_outputs["map_html"] = f.read()
 
-    # Detect Matplotlib Figure (bar chart)
-    detected_outputs["bar_chart"] = plt.gcf() if plt.get_fignums() else None
+    # Detect Matplotlib Figure (bar chart saved as PNG)
+    if plt.get_fignums():
+        buffer = BytesIO()
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        detected_outputs["bar_chart"] = buffer
 
     # Detect Pandas DataFrame (text summary)
     detected_outputs["text_summary"] = next(
@@ -70,19 +76,16 @@ def show():
     detected_outputs = st.session_state.get("detected_outputs", {})
 
     # Display Folium Map
-    if detected_outputs.get("map"):
+    if detected_outputs.get("map_html"):
         st.subheader("Interactive Map")
-        st_folium(detected_outputs["map"], width=700, height=500)
+        st.components.v1.html(detected_outputs["map_html"], height=500)
     else:
         st.warning("No map detected in the provided script.")
 
     # Display Bar Chart
     if detected_outputs.get("bar_chart"):
         st.subheader("Bar Chart")
-        buffer = BytesIO()
-        detected_outputs["bar_chart"].savefig(buffer, format="png")
-        buffer.seek(0)
-        st.image(buffer, caption="Earthquake Frequency by Magnitude", use_column_width=True)
+        st.image(detected_outputs["bar_chart"], caption="Earthquake Frequency by Magnitude", use_column_width=True)
     else:
         st.warning("No bar chart detected in the provided script.")
 
