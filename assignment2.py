@@ -7,6 +7,8 @@ import re
 from io import StringIO
 import sys
 import traceback
+from folium.plugins import MarkerCluster
+import requests
 
 def validate_student_id(student_id: str) -> bool:
     """Validates the student ID format (8 digits)"""
@@ -67,36 +69,46 @@ def show():
         sys.stdout = stdout_capture
         
         try:
-            # Create a namespace for code execution
+            # Modify the student's code to capture outputs
+            modified_code = """
+# Import necessary modules
+import requests
+import pandas as pd
+import folium
+from folium.plugins import MarkerCluster
+import matplotlib.pyplot as plt
+
+# Override display function to capture outputs
+def display(obj):
+    if isinstance(obj, folium.Map):
+        st.session_state.map_created = obj
+    elif isinstance(obj, pd.DataFrame):
+        st.session_state.summary_text = obj
+    
+# Create a new figure for matplotlib
+plt.figure(figsize=(10, 6))
+
+# Execute the student's code
+""" + code + """
+
+# Capture the current figure if it exists
+if plt.get_fignums():
+    st.session_state.chart_created = plt.gcf()
+"""
+            
+            # Create namespace for execution
             namespace = {
                 'pd': pd,
                 'plt': plt,
                 'folium': folium,
                 'st': st,
-                'sys': sys,
-                'StringIO': StringIO,
-                'st.session_state': st.session_state
+                'requests': requests,
+                'MarkerCluster': MarkerCluster,
+                'display': lambda x: None  # Placeholder that will be overridden
             }
             
-            # Setup code with output capturing
-            setup_code = """
-# Create figure for matplotlib
-plt.figure(figsize=(10, 6))
-
-# Function to save map to session state
-def save_map(m):
-    st.session_state.map_created = m
-    return m
-"""
-            
-            # Execute the combined code
-            exec(setup_code + code, namespace)
-            
-            # Save the chart
-            st.session_state.chart_created = plt.gcf()
-            
-            # Save the printed output
-            st.session_state.summary_text = stdout_capture.getvalue()
+            # Execute the modified code
+            exec(modified_code, namespace)
             
             st.success("Code executed successfully!")
             
@@ -109,9 +121,15 @@ def save_map(m):
                 st.subheader("Magnitude Distribution")
                 st.pyplot(st.session_state.chart_created)
             
-            if st.session_state.summary_text:
+            if st.session_state.summary_text is not None:
                 st.subheader("Summary Statistics")
-                st.text(st.session_state.summary_text)
+                st.dataframe(st.session_state.summary_text)
+            
+            # Display any printed output
+            output = stdout_capture.getvalue()
+            if output.strip():
+                st.subheader("Additional Output")
+                st.text(output)
             
         except Exception as e:
             st.error(f"Error executing code: {str(e)}")
@@ -122,9 +140,13 @@ def save_map(m):
 
     # Submit Button
     if st.button("Submit Assignment"):
-        if not (hasattr(st.session_state, 'map_created') and 
-                hasattr(st.session_state, 'chart_created') and 
-                st.session_state.summary_text):
+        outputs_present = (
+            st.session_state.map_created is not None and 
+            st.session_state.chart_created is not None and 
+            st.session_state.summary_text is not None
+        )
+        
+        if not outputs_present:
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Assignment submitted successfully!")
