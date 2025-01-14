@@ -12,20 +12,16 @@ def validate_student_id(student_id: str) -> bool:
     """Validates the student ID format (8 digits)"""
     return bool(re.match(r'^\d{8}$', student_id))
 
-def extract_summary_stats(output_text: str) -> str:
-    """Extract the summary statistics from print outputs"""
-    # Look for common statistical patterns
-    summary = []
-    lines = output_text.split('\n')
-    for line in lines:
-        # Look for lines containing relevant statistical information
-        if any(keyword in line.lower() for keyword in 
-               ['total', 'average', 'maximum', 'minimum', 'earthquakes', 'magnitude']):
-            summary.append(line.strip())
-    return '\n'.join(summary)
-
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
+
+    # Initialize session state
+    if 'map_created' not in st.session_state:
+        st.session_state.map_created = None
+    if 'chart_created' not in st.session_state:
+        st.session_state.chart_created = None
+    if 'summary_text' not in st.session_state:
+        st.session_state.summary_text = None
 
     # Section 1: Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -60,19 +56,9 @@ def show():
     # Section 3: Code Submission and Output
     st.header("Step 3: Run and Submit Your Code")
     
-    # Initialize session state for outputs
-    if 'map_output' not in st.session_state:
-        st.session_state.map_output = None
-    if 'chart_output' not in st.session_state:
-        st.session_state.chart_output = None
-    if 'summary_output' not in st.session_state:
-        st.session_state.summary_output = ""
-
     code = st.text_area("Paste your Google Colab code here:", height=300)
     
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        run_button = st.button("Run Code")
+    run_button = st.button("Run Code")
     
     if run_button and code.strip():
         # Capture stdout for summary statistics
@@ -80,34 +66,56 @@ def show():
         sys.stdout = stdout_capture
         
         try:
-            # Create figure before executing code to capture matplotlib output
-            plt.figure()
-            
-            # Execute the code
+            # Create a namespace for code execution
             namespace = {
                 'pd': pd,
                 'plt': plt,
                 'folium': folium,
-                'st': st
+                'st': st,
+                'st.session_state': st.session_state
             }
-            exec(code, namespace)
             
-            # Capture folium map
-            for var in namespace.values():
-                if isinstance(var, folium.Map):
-                    st.session_state.map_output = var
+            # Add these lines to the beginning of the user's code
+            setup_code = """
+# Create figure for matplotlib
+plt.figure(figsize=(10, 6))
+
+# Function to save map to session state
+def save_map(m):
+    st.session_state.map_created = m
+    return m
+
+# Function to save chart to session state
+def save_chart():
+    st.session_state.chart_created = plt.gcf()
+"""
             
-            # Capture matplotlib figure
-            fig = plt.gcf()
-            if len(fig.axes) > 0:
-                st.session_state.chart_output = fig
+            # Add these lines to the end of the user's code
+            cleanup_code = """
+# Save the chart
+save_chart()
+
+# Save the printed output
+st.session_state.summary_text = sys.stdout.getvalue()
+"""
             
-            # Capture printed output for summary
-            sys.stdout = sys.__stdout__
-            output_text = stdout_capture.getvalue()
-            st.session_state.summary_output = extract_summary_stats(output_text)
+            # Execute the combined code
+            exec(setup_code + code + cleanup_code, namespace)
             
             st.success("Code executed successfully!")
+            
+            # Display outputs
+            if st.session_state.map_created is not None:
+                st.subheader("Earthquake Map")
+                st_folium(st.session_state.map_created, width=700, height=500)
+            
+            if st.session_state.chart_created is not None:
+                st.subheader("Magnitude Distribution")
+                st.pyplot(st.session_state.chart_created)
+            
+            if st.session_state.summary_text:
+                st.subheader("Summary Statistics")
+                st.text(st.session_state.summary_text)
             
         except Exception as e:
             st.error(f"Error executing code: {str(e)}")
@@ -116,28 +124,14 @@ def show():
             sys.stdout = sys.__stdout__
             plt.close('all')
 
-    # Display Outputs
-    if st.session_state.map_output:
-        st.subheader("Earthquake Map")
-        st_folium(st.session_state.map_output, width=700, height=500)
-
-    if st.session_state.chart_output:
-        st.subheader("Magnitude Distribution")
-        st.pyplot(st.session_state.chart_output)
-
-    if st.session_state.summary_output:
-        st.subheader("Summary Statistics")
-        st.text(st.session_state.summary_output)
-
     # Submit Button
     if st.button("Submit Assignment"):
-        if not (st.session_state.map_output and 
-                st.session_state.chart_output and 
-                st.session_state.summary_output):
+        if not (hasattr(st.session_state, 'map_created') and 
+                hasattr(st.session_state, 'chart_created') and 
+                hasattr(st.session_state, 'summary_text')):
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Assignment submitted successfully!")
-            # Add submission timestamp
             st.info(f"Submission recorded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
