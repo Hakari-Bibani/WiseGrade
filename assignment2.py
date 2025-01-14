@@ -1,11 +1,12 @@
 import streamlit as st
-import traceback
 import pandas as pd
 import matplotlib.pyplot as plt
 import folium
 from streamlit_folium import st_folium
 from io import StringIO
+import traceback
 import sys
+
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
@@ -38,10 +39,12 @@ def show():
     # Section 3: Run and Submit Your Code
     st.header("Section 3: Run and Submit Your Code")
     st.markdown("Paste your Python script below, then click **Run Code** to see your outputs.")
-    
+
+    # Code input box
     code = st.text_area("Paste Your Python Code Here", height=300)
 
     if st.button("Run Code"):
+        # Reset session state
         st.session_state["run_success"] = False
         st.session_state["map_object"] = None
         st.session_state["bar_chart"] = None
@@ -53,10 +56,6 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Modify code to ignore Colab-specific modules
-            safe_code = code.replace("import google.colab", "# Colab import removed")
-            safe_code = safe_code.replace("google.colab.files.download", "# Colab download removed")
-
             # Execute the user's code in a controlled environment
             exec_globals = {
                 "st": st,
@@ -64,9 +63,9 @@ def show():
                 "plt": plt,
                 "folium": folium,
             }
-            exec(safe_code, exec_globals)
+            exec(code, exec_globals)
 
-            # Detect and capture outputs
+            # Capture outputs
             st.session_state["map_object"] = next(
                 (obj for obj in exec_globals.values() if isinstance(obj, folium.Map)), None
             )
@@ -117,7 +116,7 @@ def show():
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Your code has been submitted successfully!")
-            # Add logic to save the submission (e.g., Google Sheets or database)
+            # Logic to save submission can be added here (e.g., Google Sheets or database)
 
 
 if __name__ == "__main__":
