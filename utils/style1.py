@@ -1,35 +1,25 @@
-# style1.py
 import streamlit as st
 
 def set_page_style():
-    """
-    Applies custom CSS to style the Streamlit page.
-    """
-    custom_css = """
+    st.markdown("""
     <style>
-    /* Style the text area for student code */
-    .stTextArea textarea {
-        background-color: #eaf7ff !important;  /* Light blue background */
-        font-family: "Courier New", monospace;
-    }
-
-    /* Style headers and titles */
-    h1, h2, h3 {
-        color: #004477;  /* Dark blue */
-    }
-
-    /* Style buttons */
-    .stButton button {
-        background-color: #005599;
-        color: white;
-        border-radius: 5px;
-    }
-
-    /* Style expanders */
-    .stExpander .streamlit-expanderHeader {
-        color: #005599;
-        font-weight: bold;
-    }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+        }
+        .stButton > button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .stButton > button:hover {
+            background-color: #45a049;
+        }
     </style>
-    """
-    st.markdown(custom_css, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
