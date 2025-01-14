@@ -80,19 +80,19 @@ def show():
             st.session_state["run_success"] = True
             st.session_state["captured_output"] = new_stdout.getvalue()
 
-            # Extract a Folium map if present
+            # Detect Folium map
             st.session_state["map_object"] = next(
                 (obj for obj in local_context.values() if isinstance(obj, folium.Map)),
                 None
             )
 
-            # Extract a DataFrame if present
+            # Detect a Pandas DataFrame
             st.session_state["dataframe_object"] = next(
                 (obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)),
                 None
             )
 
-            # Capture a matplotlib/seaborn figure
+            # Detect a matplotlib figure
             for obj in local_context.values():
                 if isinstance(obj, plt.Figure):
                     buffer = BytesIO()
@@ -113,22 +113,20 @@ def show():
     
     if st.session_state["run_success"]:
         if st.session_state["map_object"]:
-            st.markdown("### 🗺️ Map Output")
+            st.markdown("### 🗺️ Earthquake Map")
             st_folium(st.session_state["map_object"], width=700, height=500)
         else:
             st.warning("No map detected in your script.")
 
         if st.session_state["bar_chart"]:
-            st.markdown("### 📊 Bar Chart Output")
-            st.image(st.session_state["bar_chart"], caption="Earthquake Frequency by Magnitude")
+            st.markdown("### 📊 Earthquake Frequency by Magnitude")
+            st.image(st.session_state["bar_chart"], caption="Earthquake Frequency by Magnitude Range")
         else:
             st.warning("No bar chart detected in your script.")
 
         if st.session_state["dataframe_object"] is not None:
-            st.markdown("### 📋 Summary Data")
+            st.markdown("### 📋 Summary of Earthquake Data")
             st.dataframe(st.session_state["dataframe_object"])
-            st.markdown("### Text Summary")
-            st.text(st.session_state["dataframe_object"].to_string(index=False))
         else:
             st.warning("No summary data detected in your script.")
     else:
