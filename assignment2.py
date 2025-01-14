@@ -6,13 +6,11 @@ from streamlit_folium import st_folium
 from io import StringIO, BytesIO
 import traceback
 import sys
-import os
 
 
 def detect_outputs(local_context):
     """
-    Detect and capture the main outputs (map, PNG bar chart, text summary)
-    from the user's script.
+    Detect and capture outputs (map, PNG bar chart, text summary) from the user's script.
     """
     detected_outputs = {
         "map": None,
@@ -20,13 +18,12 @@ def detect_outputs(local_context):
         "text_summary": None,
     }
 
-    # Detect and load Folium Map saved as HTML
-    if os.path.exists("earthquake_map.html"):
-        detected_outputs["map"] = folium.Map(location=[0, 0], zoom_start=2)
-        with open("earthquake_map.html", "r") as f:
-            detected_outputs["map_html"] = f.read()
+    # Detect Folium Map
+    detected_outputs["map"] = next(
+        (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
+    )
 
-    # Detect Matplotlib Figure (bar chart saved as PNG)
+    # Detect Matplotlib Figure (bar chart)
     if plt.get_fignums():
         buffer = BytesIO()
         plt.savefig(buffer, format="png")
@@ -76,9 +73,9 @@ def show():
     detected_outputs = st.session_state.get("detected_outputs", {})
 
     # Display Folium Map
-    if detected_outputs.get("map_html"):
+    if detected_outputs.get("map"):
         st.subheader("Interactive Map")
-        st.components.v1.html(detected_outputs["map_html"], height=500)
+        st_folium(detected_outputs["map"], width=700, height=500)
     else:
         st.warning("No map detected in the provided script.")
 
