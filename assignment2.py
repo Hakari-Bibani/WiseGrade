@@ -4,35 +4,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import StringIO
 from streamlit_folium import st_folium
+from utils.style2 import set_page_style
+from Record.google_sheet import fetch_student_record, update_google_sheet
 import traceback
 import sys
 
 def show():
-    # Apply the custom page style
-    st.markdown(
-        """
-        <style>
-            body {
-                font-family: 'Arial', sans-serif;
-                background-color: #f9f9f9;
-                color: #333;
-            }
-            .stButton > button {
-                background-color: #4CAF50;
-                color: white;
-                font-size: 16px;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            .stButton > button:hover {
-                background-color: #45a049;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # Apply custom styles
+    set_page_style()
+
+    # Page Title
+    st.title("Assignment 2: Real-Time Earthquake Analysis and Visualization")
 
     # Initialize session state variables
     if "run_success" not in st.session_state:
@@ -46,92 +28,122 @@ def show():
     if "captured_output" not in st.session_state:
         st.session_state["captured_output"] = ""
 
-    st.title("Assignment 2: Earthquake Data Analysis")
-
-    # Section 1: Student ID Form
+    # Step 1: Student ID Validation
     st.header("Step 1: Enter Your Student ID")
     with st.form("student_id_form", clear_on_submit=False):
-        student_id = st.text_input("Enter Your Student ID", key="student_id")
-        submit_id_button = st.form_submit_button("Verify Student ID")
-
-        if submit_id_button:
-            if student_id:  # Verify student ID logic (placeholder)
-                st.success(f"Student ID {student_id} verified. You may proceed.")
+        student_id = st.text_input("Student ID")
+        validate_button = st.form_submit_button("Validate")
+        if validate_button:
+            record = fetch_student_record(student_id)
+            if record:
+                if record.get("assignment_2_completed", False):
+                    st.warning("You have already submitted Assignment 2.")
+                    st.stop()
+                st.success(f"Welcome back, {record['name']}! You may proceed.")
             else:
-                st.error("Please provide a valid Student ID.")
+                st.error("Invalid Student ID. Please check your ID and try again.")
+                st.stop()
 
-    # Section 2: Assignment and Grading Details
+    # Step 2: Assignment Details and Grading Criteria
     st.header("Step 2: Review Assignment Details")
-    tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+    tab1, tab2 = st.tabs(["Assignment Details", "Grading Criteria"])
 
     with tab1:
         st.markdown("""
-        ### Objective
-        Write a Python script that fetches real-time earthquake data from the USGS Earthquake API, filters earthquakes with a magnitude greater than 4.0, and visualizes the data on a map and as a bar chart.
-        
-        **Key Tasks:**
-        1. Fetch earthquake data from the USGS API for the date range January 2nd, 2025, to January 9th, 2025.
-        2. Filter earthquakes with a magnitude greater than 4.0.
-        3. Visualize locations on a map with markers color-coded by magnitude range.
-        4. Create a bar chart showing earthquake counts by magnitude ranges.
-        5. Provide a text summary of the results.
+        ### Task Overview
+        - Fetch earthquake data from the USGS Earthquake API for January 2nd to 9th, 2025.
+        - Filter earthquakes with a magnitude > 4.0.
+        - Visualize the filtered data on an interactive map.
+        - Create a bar chart showing earthquake frequencies by magnitude range.
+        - Provide a text summary in CSV format.
+        **Expected Outputs:**
+        - A map displaying earthquake locations with markers and popups.
+        - A bar chart of earthquake frequencies by magnitude range.
+        - A CSV summary of earthquake statistics.
         """)
 
     with tab2:
         st.markdown("""
-        ### Grading Criteria
-        - **Code Correctness (50%)**: The code should run without errors and produce the correct outputs.
-        - **Visualization Quality (30%)**: The map and bar chart should be clear and informative.
-        - **Code Quality (20%)**: The code should be well-structured, readable, and commented.
+        ### Grading Breakdown
+        - **API Integration (20 points):** Successfully fetch data from the USGS API.
+        - **Data Filtering (20 points):** Correctly filter earthquakes with a magnitude > 4.0.
+        - **Map Visualization (30 points):** Create a map with color-coded markers and popups.
+        - **Bar Chart (20 points):** Generate a bar chart of earthquake frequencies.
+        - **Summary Statistics (10 points):** Provide a CSV with accurate statistics.
         """)
 
-    # Section 3: Code Editor
-    st.header("Step 3: Write and Run Your Code")
-    code = st.text_area("Write your Python code here", height=300)
+    # Step 3: Code Submission and Output
+    st.header("Step 3: Submit and Run Your Code")
+    code_input = st.text_area("Paste Your Python Code Here", height=300)
+    run_button = st.button("Run Code", key="run_code_button")
+    submit_button = st.button("Submit Code", key="submit_code_button")
 
-    if st.button("Run Code"):
+    if run_button and code_input:
         st.session_state["run_success"] = False
-        st.session_state["map_object"] = None
-        st.session_state["dataframe_object"] = None
-        st.session_state["bar_chart"] = None
         st.session_state["captured_output"] = ""
-
-        # Capture stdout
-        old_stdout = sys.stdout
-        new_stdout = StringIO()
-        sys.stdout = new_stdout
-
         try:
-            exec(code)
+            # Redirect stdout to capture output
+            captured_output = StringIO()
+            sys.stdout = captured_output
+
+            # Pre-import required libraries and inject into execution context
+            exec_globals = {
+                "__builtins__": __builtins__,
+                "requests": __import__("requests"),
+                "pd": pd,
+                "folium": folium,
+                "plt": plt,
+                "StringIO": StringIO,
+            }
+
+            # Execute user code
+            exec(code_input, exec_globals)
+
+            # Restore stdout
+            sys.stdout = sys.__stdout__
+
+            # Process outputs
+            st.session_state["captured_output"] = captured_output.getvalue()
+            st.session_state["map_object"] = next(
+                (obj for obj in exec_globals.values() if isinstance(obj, folium.Map)), None)
+            st.session_state["dataframe_object"] = next(
+                (obj for obj in exec_globals.values() if isinstance(obj, pd.DataFrame)), None)
+            st.session_state["bar_chart"] = plt.gcf() if plt.get_fignums() else None
             st.session_state["run_success"] = True
-            st.session_state["captured_output"] = new_stdout.getvalue()
-            st.success("Code executed successfully!")
+
         except Exception as e:
-            st.error(f"An error occurred: {e}")
-            st.session_state["captured_output"] = traceback.format_exc()
-        finally:
-            sys.stdout = old_stdout
+            sys.stdout = sys.__stdout__
+            st.error(f"An error occurred while running your code: {e}")
+            st.error(traceback.format_exc())
 
-        # Display captured output
-        st.text_area("Code Output", st.session_state["captured_output"], height=200)
+    # Display Outputs
+    if st.session_state["run_success"]:
+        if st.session_state["captured_output"]:
+            st.markdown("### Captured Output")
+            st.text(st.session_state["captured_output"])
 
-    # Section 4: Visualize Outputs
-    st.header("Step 4: Visualize Your Outputs")
-    if st.session_state.get("map_object"):
-        st_folium(st.session_state["map_object"], width=700, height=500)
-    if st.session_state.get("dataframe_object") is not None:
-        st.dataframe(st.session_state["dataframe_object"])
-    if st.session_state.get("bar_chart"):
-        st.pyplot(st.session_state["bar_chart"])
+        if st.session_state["map_object"]:
+            st.markdown("### Map Output")
+            st_folium(st.session_state["map_object"], width=700, height=500)
 
-    # Section 5: Submit Assignment
-    st.header("Step 5: Submit Your Assignment")
-    submit_button = st.button("Submit Assignment")
+        if st.session_state["bar_chart"]:
+            st.markdown("### Bar Chart Output")
+            st.pyplot(st.session_state["bar_chart"])
 
+        if st.session_state["dataframe_object"] is not None:
+            st.markdown("### Data Summary")
+            st.dataframe(st.session_state["dataframe_object"])
+
+    # Submit Button
     if submit_button:
-        if st.session_state.get("run_success", False):
-            st.success("Code submitted successfully! Your outputs have been recorded.")
-            # Save submission logic here (e.g., Google Sheets or database)
+        if not code_input:
+            st.error("Please paste and run your code before submitting.")
+        elif st.session_state.get("run_success", False):
+            from grades.grade2 import grade_assignment
+            # Grade the assignment
+            grade = grade_assignment(code_input)
+            update_google_sheet(record["name"], record["email"], student_id, grade, "assignment_2")
+            st.success(f"Submission successful! Your grade: {grade}/100")
         else:
             st.error("Please run your code successfully before submitting.")
 
