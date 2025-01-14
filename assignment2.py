@@ -10,6 +10,7 @@ import base64
 from tempfile import NamedTemporaryFile
 import os
 import requests
+import re
 
 def show():
     # Apply the custom page style
@@ -112,49 +113,78 @@ def show():
             # Execute the user's code
             local_context = {}
 
-            # Define the scope for the user's code
+             # Define the scope for the user's code
             local_context['requests'] = requests
             local_context['pd'] = pd
             local_context['folium'] = folium
             local_context['plt'] = plt
-
+            
             exec(code, local_context, local_context)
-            st.session_state["run_success"] = True
+
+            # Capture execution output and errors
             st.session_state["captured_output"] = new_stdout.getvalue()
 
+            # Mandatory Step Check: Fetch Data and Filter (simplified)
+            if "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2025-01-02&endtime=2025-01-09" not in code:
+                st.error("The code doesn't seem to use the correct USGS API URL with the date range.")
+            elif "magnitude > 4.0" not in code:
+               st.error("The code does not filter earthquakes with magnitude > 4.0.")
+            else:
+                 # Attempt to extract map, chart, and summary
+                st.session_state["map_object"] = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
 
-            # Extract the folium map object
-            map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
-            st.session_state["map_object"] = map_object
+                bar_chart = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
+                if bar_chart:
+                        # Save the matplotlib figure to a temporary file
+                        with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+                            bar_chart.savefig(tmp_file.name)
+                            temp_file_name = tmp_file.name
 
-            # Extract the matplotlib figure and save as a png
-            bar_chart = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
-            if bar_chart:
-                # Save the matplotlib figure to a temporary file
-                with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-                    bar_chart.savefig(tmp_file.name)
-                    temp_file_name = tmp_file.name
+                        with open(temp_file_name, "rb") as img_file:
+                           st.session_state["bar_chart_png"] = base64.b64encode(img_file.read()).decode("utf-8")
+                        # Clean up the temporary file
+                        os.remove(temp_file_name)
 
-                with open(temp_file_name, "rb") as img_file:
-                   st.session_state["bar_chart_png"] = base64.b64encode(img_file.read()).decode("utf-8")
-                # Clean up the temporary file
-                os.remove(temp_file_name)
+                # Attempt to extract a text summary from the captured output
+                text_summary = st.session_state["captured_output"]
 
-            # Attempt to extract a text summary from the captured output
-            st.session_state["text_summary"] = st.session_state["captured_output"]
+                # Modify the text summary to include the required information
+                total_earthquakes_match = re.search(r"Total number of earthquakes with magnitude > 4\.0:\s*(\d+)", text_summary)
+                avg_magnitude_match = re.search(r"Average magnitude:\s*([\d.]+)", text_summary)
+                max_magnitude_match = re.search(r"Maximum magnitude:\s*([\d.]+)", text_summary)
+                min_magnitude_match = re.search(r"Minimum magnitude:\s*([\d.]+)", text_summary)
+                mag_range_4_5 = re.search(r"\*\s*4\.0-5\.0:\s*(\d+)", text_summary)
+                mag_range_5_6 = re.search(r"\*\s*5\.0-6\.0:\s*(\d+)", text_summary)
+                mag_range_6_plus = re.search(r"\*\s*6\.0\+:\s*(\d+)", text_summary)
 
-            st.success("Code executed successfully!")
+                if total_earthquakes_match and avg_magnitude_match and max_magnitude_match and min_magnitude_match and mag_range_4_5 and mag_range_5_6 and mag_range_6_plus:
+                       st.session_state["text_summary"] = f"""
+                       Text Summary:
+                       - Total number of earthquakes with magnitude > 4.0: {total_earthquakes_match.group(1)}
+                       - Average magnitude: {float(avg_magnitude_match.group(1)):.2f}
+                       - Maximum magnitude: {float(max_magnitude_match.group(1)):.2f}
+                       - Minimum magnitude: {float(min_magnitude_match.group(1)):.2f}
+                       - Number of earthquakes in each magnitude range:
+                        * 4.0-5.0: {mag_range_4_5.group(1)}
+                        * 5.0-6.0: {mag_range_5_6.group(1)}
+                        * 6.0+: {mag_range_6_plus.group(1)}
+                       """
+                else:
+                   st.session_state["text_summary"] = text_summary
+                   st.warning("The text summary format might be incorrect. Please check your code and print the expected values with the expected format.")
+
+
+                st.session_state["run_success"] = True
+                st.success("Code executed successfully!")
+
         except Exception as e:
             st.error(f"An error occurred: {e}")
             st.session_state["captured_output"] = traceback.format_exc()
         finally:
             sys.stdout = old_stdout
 
-
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
-
-
 
     # Section 4: Visualize Outputs
     st.header("Step 4: Visualize Your Outputs")
@@ -166,9 +196,8 @@ def show():
         st.image(f"data:image/png;base64,{st.session_state['bar_chart_png']}")
 
     if st.session_state.get("text_summary"):
-        st.markdown("### Text Summary Output")
-        st.text(st.session_state["text_summary"])
-
+         st.markdown("### Text Summary Output")
+         st.text(st.session_state["text_summary"])
 
 
     # Section 5: Submit Assignment
