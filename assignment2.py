@@ -155,6 +155,6 @@ def main():
     summary_df = generate_text_summary(earthquakes)
     st.dataframe(summary_df)
 
-# Run the Streamlit app
+# Entry point for Streamlit
 if __name__ == "__main__":
     main()
