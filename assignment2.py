@@ -9,6 +9,7 @@ import sys
 import base64
 from tempfile import NamedTemporaryFile
 import os
+import requests
 
 def show():
     # Apply the custom page style
@@ -49,6 +50,7 @@ def show():
     if "captured_output" not in st.session_state:
       st.session_state["captured_output"] = ""
 
+
     st.title("Assignment 2: Earthquake Data Analysis")
 
     # Section 1: Student ID Form
@@ -71,7 +73,7 @@ def show():
         st.markdown("""
         ### Objective
         Write a Python script that fetches real-time earthquake data from the USGS Earthquake API, filters earthquakes with a magnitude greater than 4.0, and visualizes the data on a map and as a bar chart.
-        
+
         **Key Tasks:**
         1. Fetch earthquake data from the USGS API for the date range January 2nd, 2025, to January 9th, 2025.
         2. Filter earthquakes with a magnitude greater than 4.0.
@@ -87,6 +89,7 @@ def show():
         - **Visualization Quality (30%)**: The map and bar chart should be clear and informative.
         - **Code Quality (20%)**: The code should be well-structured, readable, and commented.
         """)
+
 
     # Section 3: Code Editor
     st.header("Step 3: Paste Your Colab Code Here")
@@ -108,7 +111,14 @@ def show():
         try:
             # Execute the user's code
             local_context = {}
-            exec(code, {}, local_context)
+
+            # Define the scope for the user's code
+            local_context['requests'] = requests
+            local_context['pd'] = pd
+            local_context['folium'] = folium
+            local_context['plt'] = plt
+
+            exec(code, local_context, local_context)
             st.session_state["run_success"] = True
             st.session_state["captured_output"] = new_stdout.getvalue()
 
@@ -116,7 +126,7 @@ def show():
             # Extract the folium map object
             map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
             st.session_state["map_object"] = map_object
-            
+
             # Extract the matplotlib figure and save as a png
             bar_chart = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
             if bar_chart:
@@ -124,7 +134,7 @@ def show():
                 with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
                     bar_chart.savefig(tmp_file.name)
                     temp_file_name = tmp_file.name
-                
+
                 with open(temp_file_name, "rb") as img_file:
                    st.session_state["bar_chart_png"] = base64.b64encode(img_file.read()).decode("utf-8")
                 # Clean up the temporary file
@@ -154,10 +164,11 @@ def show():
     if st.session_state.get("bar_chart_png"):
         st.markdown("### Bar Chart Output")
         st.image(f"data:image/png;base64,{st.session_state['bar_chart_png']}")
-    
+
     if st.session_state.get("text_summary"):
         st.markdown("### Text Summary Output")
         st.text(st.session_state["text_summary"])
+
 
 
     # Section 5: Submit Assignment
@@ -170,6 +181,7 @@ def show():
             # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
+
 
 if __name__ == "__main__":
     show()
