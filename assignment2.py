@@ -50,20 +50,25 @@ def show():
         st.session_state["bar_chart"] = None
         st.session_state["summary_text"] = None
 
+        # Modify the user code to bypass unsupported imports
+        filtered_code = "\n".join(
+            line for line in code.split("\n") if "google.colab" not in line
+        )
+
         # Capture stdout
         old_stdout = sys.stdout
         new_stdout = StringIO()
         sys.stdout = new_stdout
 
         try:
-            # Execute the user's code in a controlled environment
+            # Execute the filtered user's code in a controlled environment
             exec_globals = {
                 "st": st,
                 "pd": pd,
                 "plt": plt,
                 "folium": folium,
             }
-            exec(code, exec_globals)
+            exec(filtered_code, exec_globals)
 
             # Capture outputs
             st.session_state["map_object"] = next(
