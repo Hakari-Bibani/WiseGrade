@@ -1,8 +1,6 @@
-import streamlit as st
-
 def set_page_style():
     """
-    Apply custom styles for the Streamlit page.
+    Apply custom styles for the Streamlit page, with additional adjustments for Assignment 2.
     """
     st.markdown(
         """
@@ -26,24 +24,23 @@ def set_page_style():
         .stButton > button:hover {
             background-color: #45a049;
         }
-        .stTextInput, .stTextArea {
-            background-color: #ffffff;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
+        /* Styling Tabs */
         .stTabs [role="tablist"] > button {
             color: #4CAF50;
             border-bottom: 2px solid transparent;
         }
         .stTabs [role="tablist"] > button[aria-selected="true"] {
-            border-bottom: 2px solid #4CAF50;
+            border-bottom: 3px solid #4CAF50;
         }
         .stMarkdown {
             padding: 15px;
             background-color: #ffffff;
             border-radius: 8px;
             border: 1px solid #eee;
+        }
+        /* Assignment 2 Specific */
+        h1.assignment-title {
+            color: #FF5722;
         }
         </style>
         """,
