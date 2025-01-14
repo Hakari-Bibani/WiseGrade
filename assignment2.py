@@ -1,126 +1,71 @@
 import streamlit as st
-import folium
 import pandas as pd
-import matplotlib.pyplot as plt
+import folium
 from streamlit_folium import st_folium
-from io import StringIO, BytesIO
+from io import BytesIO
+import base64
 import traceback
 import sys
+import matplotlib.pyplot as plt
 
 
-def execute_user_code(code):
+def display_html_map(map_html_file):
     """
-    Execute the user's code in a sandboxed environment and capture the outputs.
-    Specifically looks for:
-    - A folium.Map object
-    - A Matplotlib bar chart
-    - A pandas DataFrame
+    Reads an HTML file containing a Folium map and displays it in Streamlit.
     """
-    # Create a sandbox environment for the user code
-    sandbox = {
-        "folium": folium,
-        "pd": pd,
-        "plt": plt,
-    }
-
-    outputs = {
-        "map": None,
-        "bar_chart": None,
-        "text_summary": None,
-        "error": None,
-        "traceback": None,
-    }
-
     try:
-        # Capture stdout
-        old_stdout = sys.stdout
-        new_stdout = StringIO()
-        sys.stdout = new_stdout
-
-        # Execute user code
-        exec(code, sandbox)
-
-        # Restore stdout
-        sys.stdout = old_stdout
-        outputs["captured_output"] = new_stdout.getvalue()
-
-        # Look for the map
-        for obj in sandbox.values():
-            if isinstance(obj, folium.Map):
-                outputs["map"] = obj
-                break
-
-        # Look for Matplotlib bar chart
-        if plt.get_fignums():
-            buffer = BytesIO()
-            plt.savefig(buffer, format="png")
-            buffer.seek(0)
-            outputs["bar_chart"] = buffer
-            plt.close()
-
-        # Look for pandas DataFrame
-        for obj in sandbox.values():
-            if isinstance(obj, pd.DataFrame):
-                outputs["text_summary"] = obj
-                break
-
+        with open(map_html_file, 'r') as f:
+            map_html = f.read()
+        st.components.v1.html(map_html, width=800, height=500)
     except Exception as e:
-        # Handle exceptions and capture traceback
-        outputs["error"] = str(e)
-        outputs["traceback"] = traceback.format_exc()
+        st.error(f"Error displaying map: {e}")
 
-    return outputs
+
+def display_bar_chart_as_image(chart_file):
+    """
+    Reads a PNG bar chart file and displays it in Streamlit.
+    """
+    try:
+        with open(chart_file, "rb") as f:
+            chart_data = f.read()
+        st.image(chart_data, caption="Bar Chart", use_column_width=True)
+    except Exception as e:
+        st.error(f"Error displaying bar chart: {e}")
 
 
 def show():
-    st.title("Assignment 2: Earthquake Data Analysis")
+    st.title("Assignment 2: Display Outputs")
+    
+    st.header("Step 1: Upload Your Outputs")
+    map_file = st.file_uploader("Upload your map (HTML file):", type=["html"])
+    chart_file = st.file_uploader("Upload your bar chart (PNG file):", type=["png"])
+    summary_file = st.file_uploader("Upload your summary (CSV file):", type=["csv"])
 
-    st.header("Step 1: Paste Your Script")
-    code = st.text_area("Paste your Python script here", height=300)
-
-    if st.button("Run Code"):
-        st.session_state["outputs"] = execute_user_code(code)
-
-        outputs = st.session_state["outputs"]
-
-        if outputs.get("error"):
-            st.error(f"An error occurred: {outputs['error']}")
-            st.text_area("Error Details", outputs["traceback"], height=200)
+    if st.button("Display Outputs"):
+        if map_file:
+            st.subheader("Interactive Map")
+            map_path = f"/tmp/{map_file.name}"
+            with open(map_path, "wb") as f:
+                f.write(map_file.getbuffer())
+            display_html_map(map_path)
         else:
-            st.success("Code executed successfully!")
+            st.warning("No map uploaded.")
 
-    # Display outputs
-    st.header("Step 2: View Your Outputs")
-    outputs = st.session_state.get("outputs", {})
-
-    # Display Map
-    if outputs.get("map"):
-        st.subheader("Interactive Map")
-        st_folium(outputs["map"], width=700, height=500)
-    else:
-        st.warning("No map detected in the provided script.")
-
-    # Display Bar Chart
-    if outputs.get("bar_chart"):
-        st.subheader("Bar Chart")
-        st.image(outputs["bar_chart"], caption="Earthquake Frequency by Magnitude", use_column_width=True)
-    else:
-        st.warning("No bar chart detected in the provided script.")
-
-    # Display Text Summary
-    if outputs.get("text_summary") is not None:
-        st.subheader("Text Summary")
-        st.dataframe(outputs["text_summary"])
-    else:
-        st.warning("No text summary detected in the provided script.")
-
-    # Submission
-    st.header("Step 3: Submit Your Assignment")
-    if st.button("Submit Assignment"):
-        if not outputs.get("error"):
-            st.success("Assignment submitted successfully! Your outputs have been recorded.")
+        if chart_file:
+            st.subheader("Bar Chart")
+            display_bar_chart_as_image(chart_file)
         else:
-            st.error("Please fix the errors in your script before submitting.")
+            st.warning("No bar chart uploaded.")
+
+        if summary_file:
+            st.subheader("Summary Data")
+            try:
+                summary_df = pd.read_csv(summary_file)
+                st.dataframe(summary_df)
+            except Exception as e:
+                st.error(f"Error reading summary file: {e}")
+        else:
+            st.warning("No summary uploaded.")
 
 
 if __name__ == "__main__":
