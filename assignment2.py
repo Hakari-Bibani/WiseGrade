@@ -1,12 +1,11 @@
 import streamlit as st
+import traceback
+import pandas as pd
+import matplotlib.pyplot as plt
+import folium
 from streamlit_folium import st_folium
 from io import StringIO
-import traceback
 import sys
-import matplotlib.pyplot as plt
-import pandas as pd
-import folium
-
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
@@ -39,7 +38,7 @@ def show():
     # Section 3: Run and Submit Your Code
     st.header("Section 3: Run and Submit Your Code")
     st.markdown("Paste your Python script below, then click **Run Code** to see your outputs.")
-
+    
     code = st.text_area("Paste Your Python Code Here", height=300)
 
     if st.button("Run Code"):
@@ -54,30 +53,22 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Use a safer exec environment to ignore unsupported imports
+            # Execute the user's code in a controlled environment
             exec_globals = {
                 "st": st,
                 "pd": pd,
                 "plt": plt,
                 "folium": folium,
-                "__builtins__": __builtins__,
             }
-
-            # Wrap the user's code in a try-except to catch import errors
-            safe_code = f"""
-try:
-    {code}
-except ImportError as e:
-    print(f"Unsupported import ignored: {{e}}")
-"""
-
-            exec(safe_code, exec_globals)
+            exec(code, exec_globals)
 
             # Detect and capture outputs
             st.session_state["map_object"] = next(
                 (obj for obj in exec_globals.values() if isinstance(obj, folium.Map)), None
             )
-            st.session_state["bar_chart"] = plt.gcf() if plt.get_fignums() else None
+            st.session_state["bar_chart"] = next(
+                (obj for obj in exec_globals.values() if isinstance(obj, plt.Figure)), None
+            )
             st.session_state["summary_text"] = next(
                 (obj for obj in exec_globals.values() if isinstance(obj, pd.DataFrame)), None
             )
@@ -85,34 +76,44 @@ except ImportError as e:
             st.session_state["run_success"] = True
             st.success("Code executed successfully!")
         except Exception as e:
-            st.error(f"An error occurred while running your code: {e}")
+            st.error("An error occurred while executing your code.")
             st.text_area("Error Details", traceback.format_exc(), height=200)
         finally:
             sys.stdout = old_stdout
 
-    # Display outputs
-    st.markdown("### Outputs")
+    # Display Outputs
     if st.session_state.get("run_success"):
+        st.markdown("### Outputs")
+
+        # Display Map
         if st.session_state.get("map_object"):
-            st.markdown("#### Map Output")
+            st.markdown("#### Interactive Map")
             st_folium(st.session_state["map_object"], width=700, height=500)
+        else:
+            st.warning("No map object detected in your code.")
 
+        # Display Bar Chart
         if st.session_state.get("bar_chart"):
-            st.markdown("#### Bar Chart Output")
+            st.markdown("#### Bar Chart")
             st.pyplot(st.session_state["bar_chart"])
+        else:
+            st.warning("No bar chart detected in your code.")
 
+        # Display Text Summary
         if st.session_state.get("summary_text") is not None:
             st.markdown("#### Text Summary")
             st.dataframe(st.session_state["summary_text"])
+        else:
+            st.warning("No text summary detected in your code.")
 
-    # Submit Code Button
-    st.header("Submit Your Code")
+    # Section 4: Submit Assignment
+    st.header("Section 4: Submit Your Assignment")
     if st.button("Submit Assignment"):
         if not st.session_state.get("run_success", False):
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Your code has been submitted successfully!")
-            # Add code to save submission (e.g., Google Sheets or a database)
+            # Add logic to save the submission (e.g., Google Sheets or database)
 
 
 if __name__ == "__main__":
