@@ -1,15 +1,15 @@
- import streamlit as st
+import streamlit as st
+import traceback
+import sys
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
 from io import StringIO
 from streamlit_folium import st_folium
-import traceback
-import sys
 
 
 def show():
-    # Apply the custom page style
+    # Apply custom page style
     st.markdown(
         """
         <style>
@@ -32,7 +32,7 @@ def show():
             }
         </style>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     # Initialize session state variables
@@ -49,47 +49,39 @@ def show():
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Section 1: Student ID Form
+    # Step 1: Enter Student ID
     st.header("Step 1: Enter Your Student ID")
     with st.form("student_id_form", clear_on_submit=False):
         student_id = st.text_input("Enter Your Student ID", key="student_id")
         submit_id_button = st.form_submit_button("Verify Student ID")
 
         if submit_id_button:
-            if student_id:  # Verify student ID logic (placeholder)
+            if student_id:
                 st.success(f"Student ID {student_id} verified. You may proceed.")
             else:
                 st.error("Please provide a valid Student ID.")
 
-    # Section 2: Assignment and Grading Details
+    # Step 2: Assignment Instructions
     st.header("Step 2: Review Assignment Details")
-    tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+    st.markdown("""
+    ### Objective
+    Write a Python script that:
+    - Fetches real-time earthquake data from the USGS Earthquake API for January 2-9, 2025.
+    - Filters earthquakes with a magnitude greater than 4.0.
+    - Visualizes the data on a map and as a bar chart.
+    - Provides a CSV summary of key metrics.
 
-    with tab1:
-        st.markdown("""
-        ### Objective
-        Write a Python script that fetches real-time earthquake data from the USGS Earthquake API, filters earthquakes with a magnitude greater than 4.0, and visualizes the data on a map and as a bar chart.
-        
-        **Key Tasks:**
-        1. Fetch earthquake data from the USGS API for the date range January 2nd, 2025, to January 9th, 2025.
-        2. Filter earthquakes with a magnitude greater than 4.0.
-        3. Visualize locations on a map with markers color-coded by magnitude range.
-        4. Create a bar chart showing earthquake counts by magnitude ranges.
-        5. Provide a text summary of the results.
-        """)
+    ### Output Requirements
+    1. A map of earthquake locations (color-coded markers).
+    2. A bar chart of earthquake counts by magnitude range.
+    3. A CSV summary with total count, average, min, and max magnitudes.
+    """)
 
-    with tab2:
-        st.markdown("""
-        ### Grading Criteria
-        - **Code Correctness (50%)**: The code should run without errors and produce the correct outputs.
-        - **Visualization Quality (30%)**: The map and bar chart should be clear and informative.
-        - **Code Quality (20%)**: The code should be well-structured, readable, and commented.
-        """)
-
-    # Section 3: Code Editor
+    # Step 3: Code Editor
     st.header("Step 3: Write and Run Your Code")
-    code = st.text_area("Write your Python code here", height=300)
+    code = st.text_area("Paste your Python code here", height=300)
 
+    # Run Code Button
     if st.button("Run Code"):
         st.session_state["run_success"] = False
         st.session_state["map_object"] = None
@@ -103,40 +95,58 @@ def show():
         sys.stdout = new_stdout
 
         try:
+            # Define a controlled environment to execute the user code
+            user_namespace = {}
+
             # Execute the user's code
-            exec(code)
+            exec(code, {"folium": folium, "pd": pd, "plt": plt, "st": st}, user_namespace)
+
+            # Capture results from user-defined variables
             st.session_state["run_success"] = True
             st.session_state["captured_output"] = new_stdout.getvalue()
+
+            # Look for specific objects in user namespace
+            if "map_object" in user_namespace:
+                st.session_state["map_object"] = user_namespace["map_object"]
+            if "dataframe_object" in user_namespace:
+                st.session_state["dataframe_object"] = user_namespace["dataframe_object"]
+            if "bar_chart" in user_namespace:
+                st.session_state["bar_chart"] = user_namespace["bar_chart"]
+
             st.success("Code executed successfully!")
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error("An error occurred during execution. Please review your code.")
             st.session_state["captured_output"] = traceback.format_exc()
         finally:
             sys.stdout = old_stdout
 
-        # Display captured output
-        st.text_area("Code Output", st.session_state["captured_output"], height=200)
-
-    # Section 4: Visualize Outputs
+    # Display Outputs
     st.header("Step 4: Visualize Your Outputs")
+
+    # Text Output
+    st.markdown("### Text Output")
+    st.text_area("Captured Output", st.session_state["captured_output"], height=150)
+
+    # Map Output
     if st.session_state.get("map_object"):
+        st.markdown("### Interactive Map")
         st_folium(st.session_state["map_object"], width=700, height=500)
+
+    # DataFrame Output
     if st.session_state.get("dataframe_object") is not None:
+        st.markdown("### Data Summary (DataFrame)")
         st.dataframe(st.session_state["dataframe_object"])
+
+    # Bar Chart Output
     if st.session_state.get("bar_chart"):
+        st.markdown("### Bar Chart Visualization")
         st.pyplot(st.session_state["bar_chart"])
 
-    # Section 5: Submit Assignment
+    # Step 5: Submit Assignment
     st.header("Step 5: Submit Your Assignment")
-    submit_button = st.button("Submit Assignment")
-
-    if submit_button:
+    if st.button("Submit Assignment"):
         if st.session_state.get("run_success", False):
-            st.success("Code submitted successfully! Your outputs have been recorded.")
-            # Save submission logic here (e.g., Google Sheets or database)
+            st.success("Assignment submitted successfully!")
+            # Placeholder for submission logic
         else:
             st.error("Please run your code successfully before submitting.")
-
-
-if __name__ == "__main__":
-    show()
