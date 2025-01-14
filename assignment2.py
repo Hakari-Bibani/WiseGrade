@@ -28,7 +28,6 @@ def show():
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    st.title("Assignment 2: Earthquake Data Analysis")
     # Section 1: Student ID Form
     st.header("Step 1: Enter Your Student ID")
     valid_student_id = False
@@ -94,8 +93,6 @@ def show():
 
             # Pre-import required libraries and inject into execution context
             exec_globals = {
-                "__builtins__": __builtins__,
-                "requests": __import__("requests"),
                 "pd": pd,
                 "folium": folium,
                 "plt": plt,
@@ -143,16 +140,22 @@ def show():
 
     if submit_button:
         if st.session_state.get("run_success", False) and valid_student_id:
-            # Grade the code
-            grade = grade_assignment2(code_input)
+            try:
+                # Grade the code
+                grade = grade_assignment2(code_input)
 
-            # Update Google Sheet
-            update_google_sheet(
-                student_id=student_id,
-                grade=grade,
-                assignment="assignment_2"
-            )
+                # Update Google Sheet
+                update_google_sheet(
+                    student_id=student_id,
+                    grade=grade,
+                    assignment="assignment_2"
+                )
 
-            st.success(f"Code submitted successfully! Your grade: {grade}/100.")
+                st.success(f"Code submitted successfully! Your grade: {grade}/100.")
+            except Exception as e:
+                st.error(f"An error occurred while submitting your code: {e}")
         else:
             st.error("Please ensure your Student ID is verified and the code runs successfully before submitting.")
+
+if __name__ == "__main__":
+    show()
