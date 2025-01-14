@@ -1,7 +1,9 @@
+# app.py
 import streamlit as st
 from streamlit_option_menu import option_menu
 import home
 import style
+import assignment2  # Import the new assignment2 module
 import importlib
 
 # Apply custom styles from style.py
@@ -15,7 +17,8 @@ with st.sidebar:
     menu_options = {
         "Home": "home",
         "Assignments": {
-            f"Assignment {i}": f"assignment{i}" for i in range(1, 5)
+            "Assignment 1": "assignment1",
+            "Assignment 2": "assignment2"  # Add Assignment 2 to the menu
         },
         "Quizzes": {
             f"Quiz {i}": f"quiz{i}" for i in range(1, 5)
@@ -56,9 +59,7 @@ try:
         home.show()  # Display the Home page
     else:
         module = importlib.import_module(selected)
-        if hasattr(module, "assignment1"):  # Check for assignment function
-            getattr(module, "assignment1")()  # Call the function
-        elif hasattr(module, "show"):
+        if hasattr(module, "show"):  # Check for the show function
             module.show()  # Call the show function
         else:
             st.error(f"The module '{selected}' does not have a valid entry point.")
