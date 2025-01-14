@@ -1,45 +1,50 @@
 import streamlit as st
 import pandas as pd
 import folium
+from streamlit_folium import st_folium
 from io import StringIO
 from streamlit_folium import st_folium
-import os
 from utils.style2 import set_page_style
 from Record.google_sheet import fetch_student_record, update_google_sheet
 
 def show():
-    # Apply custom styles
+    # Apply custom page style
+    # Apply the custom page style
     set_page_style()
 
-    # Page Title
     st.title("Assignment 2: Real-Time Earthquake Analysis and Visualization")
 
-    # Step 1: Student ID Validation
+    # Section 1: Validate Student ID
+    # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     with st.form("student_id_form", clear_on_submit=False):
+        student_id = st.text_input("Student ID")
         student_id = st.text_input("Enter Student ID")
         validate_button = st.form_submit_button("Validate")
 
         if validate_button:
-            record = fetch_student_record(student_id)
-            if record:
-                st.session_state["record"] = record  # Store record in session state
-                st.success(f"Welcome back, {record['name']}! You may proceed.")
-                if record.get("assignment_2_completed", False):
-                    st.warning("You have already submitted Assignment 2.")
-                    st.stop()
-            else:
+@@ -26,95 +27,97 @@ def show():
                 st.error("Invalid Student ID. Please check your ID and try again.")
                 st.stop()
 
-    # Step 2: Assignment Details and Grading Criteria
+    # Section 2: Assignment and Grading Details
+    # Step 2: Assignment and Grading Details
     st.header("Step 2: Review Assignment Details")
-    tab1, tab2 = st.tabs(["Assignment Details", "Grading Criteria"])
+    tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
     with tab1:
         st.markdown("""
         ### Objective
+        In this assignment, you will analyze real-time earthquake data using the USGS Earthquake API and produce visualizations and summaries.
+        
+        **Tasks:**
+        - Fetch earthquake data for the date range January 2nd, 2025, to January 9th, 2025.
+        - Filter data for earthquakes with a magnitude greater than 4.0.
+        - Visualize the filtered data on a map with markers and popups.
+        - Create a bar chart of earthquake frequencies by magnitude range.
+        - Generate a summary CSV with key statistics.
         In this assignment, you will fetch and analyze earthquake data using the USGS Earthquake API, filter the data, and create visualizations.
+        Use libraries: `folium`, `matplotlib`, `pandas`, and `requests`.
         **Tasks:**
         1. Fetch earthquake data for January 2nd, 2025, to January 9th, 2025.
         2. Filter earthquakes with a magnitude > 4.0.
@@ -50,91 +55,103 @@ def show():
            - Average, max, and min magnitudes.
            - Count of earthquakes in magnitude ranges.
         **Expected Outputs:**
-        - A map displaying earthquake locations with markers and popups.
-        - A bar chart of earthquake frequencies by magnitude range.
-        - A CSV summary of earthquake statistics.
+        - A map showing earthquake locations.
+        - A bar chart (`.png`) visualizing earthquake frequency by magnitude range.
+        - A CSV text summary of key statistics.
+        - A map with earthquake locations.
+        - A bar chart (`.png`) visualizing earthquake frequencies.
+        - A CSV text summary of statistics.
         """)
 
     with tab2:
         st.markdown("""
+        ### Grading Details
+        Your grade will be based on the following criteria:
         ### Grading Breakdown
         Your grade will be based on the following:
-        - **API Integration (20 points):** Successfully fetch data from the USGS API.
-        - **Data Filtering (20 points):** Correctly filter earthquakes with a magnitude > 4.0.
-        - **Map Visualization (30 points):** Create a map with color-coded markers and popups.
-        - **Bar Chart (20 points):** Generate a bar chart of earthquake frequencies.
-        - **Summary Statistics (10 points):** Provide a CSV with accurate statistics.
+        - **API Integration (20 points)**: Successfully fetch data from the USGS API.
+        - **Data Filtering (20 points)**: Correctly filter earthquakes with a magnitude > 4.0.
+        - **Map Visualization (30 points)**: Create a map with colored markers and popups for additional info.
+        - **Bar Chart (20 points)**: Generate a bar chart visualizing earthquake frequencies.
+        - **Summary Statistics (10 points)**: Produce an accurate CSV summary.
+        - **Map Visualization (30 points)**: Create a map with markers, color-coded by magnitude, and popups.
+        - **Bar Chart (20 points)**: Generate a bar chart of earthquake frequencies.
+        - **Summary Statistics (10 points)**: Produce an accurate CSV with statistics.
         """)
 
-    # Step 3: Code Submission and Output
+    # Section 3: Submit and Run Code
+    # Step 3: Submit and Run Code
     st.header("Step 3: Submit and Run Your Code")
+    code_input = st.text_area("📝 Paste Your Python Code Here", height=300)
     code_input = st.text_area("Paste Your Python Code Here", height=300)
 
-    if st.button("Run Code"):
-        from io import StringIO
-        import sys
-
-        # Capture stdout
-        captured_output = StringIO()
-        sys.stdout = captured_output
-
+    # Run Code Button
+    run_button = st.button("Run Code")
+    run_button = st.button("Run Code", key="run_code")
+    if run_button and code_input:
         try:
-            # Execute the user code
+            # Redirect stdout
+            # Redirect stdout to capture print statements
+            captured_output = StringIO()
+            import sys
+            sys.stdout = captured_output
+
+            # Execute code
+            # Execute user-provided code in a controlled environment
             local_context = {}
             exec(code_input, {}, local_context)
 
             # Restore stdout
             sys.stdout = sys.__stdout__
 
-            # Display Captured Outputs
+            # Capture outputs
             st.markdown("### Outputs:")
-            if captured_output.getvalue():
-                st.text(captured_output.getvalue())
-            else:
-                st.write("No console output was captured.")
+            # Display captured outputs
+            st.markdown("### Outputs")
+            st.text(captured_output.getvalue())
 
-            # Display Map Output
+            # Map Output
+            map_object = next((v for v in local_context.values() if isinstance(v, folium.Map)), None)
+            # Display Map
             map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
             if map_object:
                 st.markdown("#### Map Output:")
+                st.markdown("#### Map Output")
                 st_folium(map_object, width=700, height=500)
 
-            # Display Bar Chart Output
-            if "earthquake_chart.png" in local_context and os.path.exists("earthquake_chart.png"):
+            # Bar Chart Output
+            # Display Bar Chart
+            if "earthquake_chart.png" in local_context:
                 st.markdown("#### Bar Chart Output:")
+                st.markdown("#### Bar Chart Output")
                 st.image("earthquake_chart.png")
-            else:
-                st.warning("No bar chart file found. Ensure your code saves the chart as 'earthquake_chart.png'.")
 
-            # Display Summary Statistics
+            # CSV Output
+            # Display CSV Summary
             summary_csv = local_context.get("summary_csv")
             if summary_csv:
-                try:
-                    df = pd.read_csv(StringIO(summary_csv))
-                    st.markdown("#### Summary Statistics:")
-                    st.dataframe(df)
-                except Exception as e:
-                    st.error(f"Invalid CSV format: {e}")
+                st.markdown("#### Summary Statistics:")
+                st.markdown("#### Summary Statistics")
+                st.dataframe(pd.read_csv(StringIO(summary_csv)))
 
         except Exception as e:
-            st.error(f"Error while running your code: {e}")
+            st.error(f"An error occurred: {e}")
+            st.error(f"Error occurred while running your code: {e}")
 
+    # Submit Code Button
+    submit_button = st.button("Submit Assignment")
     # Submit Button
     submit_button = st.button("Submit Assignment", key="submit_assignment")
     if submit_button:
         if not code_input:
             st.error("Please paste your code and run it before submitting.")
-        elif "record" in st.session_state:
-            record = st.session_state["record"]
-            try:
-                from grades.grade2 import grade_assignment
-                grade = grade_assignment(code_input)
-                update_google_sheet(record["name"], record["email"], student_id, grade, "assignment_2")
-                st.success(f"Submission successful! Your grade: {grade}/100")
-            except Exception as e:
-                st.error(f"An error occurred while grading your assignment: {e}")
+        elif record:
+            from grades.grade2 import grade_assignment
+
+            # Grade the assignment
+            grade = grade_assignment(code_input)
+            update_google_sheet(record['name'], record['email'], student_id, grade, "assignment_2")
+            update_google_sheet(record["name"], record["email"], student_id, grade, "assignment_2")
+            st.success(f"Submission successful! Your grade: {grade}/100")
         else:
             st.error("Unable to validate your submission. Please try again.")
-
-if __name__ == "__main__":
-    show()
