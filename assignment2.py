@@ -63,6 +63,7 @@ def show():
     if run_button and code.strip():
         # Capture stdout for summary statistics
         stdout_capture = StringIO()
+        original_stdout = sys.stdout
         sys.stdout = stdout_capture
         
         try:
@@ -72,10 +73,12 @@ def show():
                 'plt': plt,
                 'folium': folium,
                 'st': st,
+                'sys': sys,
+                'StringIO': StringIO,
                 'st.session_state': st.session_state
             }
             
-            # Add these lines to the beginning of the user's code
+            # Setup code with output capturing
             setup_code = """
 # Create figure for matplotlib
 plt.figure(figsize=(10, 6))
@@ -84,23 +87,16 @@ plt.figure(figsize=(10, 6))
 def save_map(m):
     st.session_state.map_created = m
     return m
-
-# Function to save chart to session state
-def save_chart():
-    st.session_state.chart_created = plt.gcf()
-"""
-            
-            # Add these lines to the end of the user's code
-            cleanup_code = """
-# Save the chart
-save_chart()
-
-# Save the printed output
-st.session_state.summary_text = sys.stdout.getvalue()
 """
             
             # Execute the combined code
-            exec(setup_code + code + cleanup_code, namespace)
+            exec(setup_code + code, namespace)
+            
+            # Save the chart
+            st.session_state.chart_created = plt.gcf()
+            
+            # Save the printed output
+            st.session_state.summary_text = stdout_capture.getvalue()
             
             st.success("Code executed successfully!")
             
@@ -121,14 +117,14 @@ st.session_state.summary_text = sys.stdout.getvalue()
             st.error(f"Error executing code: {str(e)}")
             st.code(traceback.format_exc())
         finally:
-            sys.stdout = sys.__stdout__
+            sys.stdout = original_stdout
             plt.close('all')
 
     # Submit Button
     if st.button("Submit Assignment"):
         if not (hasattr(st.session_state, 'map_created') and 
                 hasattr(st.session_state, 'chart_created') and 
-                hasattr(st.session_state, 'summary_text')):
+                st.session_state.summary_text):
             st.error("Please run your code successfully before submitting.")
         else:
             st.success("Assignment submitted successfully!")
