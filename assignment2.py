@@ -1,105 +1,53 @@
-import streamlit as st
-import traceback
+import requests
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
-from streamlit_folium import st_folium
-from io import StringIO
-import sys
-import os
 
-def show():
-    st.title("Assignment 2: Earthquake Data Analysis Viewer")
-    st.markdown("""
-    Upload your Python script here, and this application will automatically run it to display the key outputs:
-    1. An interactive HTML map using `folium`.
-    2. A PNG bar chart created with `matplotlib` or `seaborn`.
-    3. A text summary using `pandas`.
-    """)
+# Fetch earthquake data
+url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2025-01-02&endtime=2025-01-09"
+response = requests.get(url)
+data = response.json()
 
-    # File Upload
-    uploaded_file = st.file_uploader("Upload your Python script", type=["py"])
+# Filter earthquakes with magnitude > 4.0
+earthquakes = [feature for feature in data['features'] if feature['properties']['mag'] > 4.0]
 
-    if uploaded_file:
-        # Save the uploaded script
-        script_path = os.path.join("uploaded_script.py")
-        with open(script_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+# Create a map
+m = folium.Map(location=[0, 0], zoom_start=2)
 
-        st.success("Script uploaded successfully!")
-        run_button = st.button("Run Script")
+# Add markers to the map
+for eq in earthquakes:
+    lat = eq['geometry']['coordinates'][1]
+    lon = eq['geometry']['coordinates'][0]
+    mag = eq['properties']['mag']
+    time = pd.to_datetime(eq['properties']['time'], unit='ms').strftime('%Y-%m-%d %H:%M:%S')
+    color = 'green' if 4 <= mag < 5 else 'yellow' if 5 <= mag < 5.5 else 'red'
+    folium.Marker(
+        location=[lat, lon],
+        popup=f"Magnitude: {mag}<br>Time: {time}",
+        icon=folium.Icon(color=color)
+    ).add_to(m)
 
-        if run_button:
-            st.session_state["run_success"] = False
-            st.session_state["captured_output"] = ""
-            st.session_state["map_object"] = None
-            st.session_state["bar_chart"] = None
-            st.session_state["text_summary"] = None
+# Generate bar chart
+magnitudes = [eq['properties']['mag'] for eq in earthquakes]
+ranges = ['4.0-4.5', '4.5-5.0', '5.0+']
+counts = [
+    len([m for m in magnitudes if 4.0 <= m < 4.5]),
+    len([m for m in magnitudes if 4.5 <= m < 5.0]),
+    len([m for m in magnitudes if m >= 5.0])
+]
+fig, ax = plt.subplots()
+ax.bar(ranges, counts)
+ax.set_title("Earthquake Frequency by Magnitude Range")
 
-            # Redirect stdout to capture print output
-            old_stdout = sys.stdout
-            captured_output = StringIO()
-            sys.stdout = captured_output
+# Text summary
+summary = pd.DataFrame({
+    "Total Earthquakes": [len(earthquakes)],
+    "Average Magnitude": [sum(magnitudes) / len(magnitudes)],
+    "Max Magnitude": [max(magnitudes)],
+    "Min Magnitude": [min(magnitudes)]
+})
 
-            try:
-                # Execute the script
-                local_context = {}
-                exec(open(script_path).read(), {}, local_context)
-
-                # Restore stdout
-                sys.stdout = old_stdout
-                st.session_state["run_success"] = True
-                st.session_state["captured_output"] = captured_output.getvalue()
-
-                # Extract outputs
-                map_object = next((v for v in local_context.values() if isinstance(v, folium.Map)), None)
-                bar_chart_path = next((v for v in local_context.values() if isinstance(v, str) and v.endswith(".png")), None)
-                text_summary = next((v for v in local_context.values() if isinstance(v, pd.DataFrame)), None)
-
-                st.session_state["map_object"] = map_object
-                st.session_state["bar_chart"] = bar_chart_path
-                st.session_state["text_summary"] = text_summary
-
-            except Exception as e:
-                sys.stdout = old_stdout
-                st.error(f"An error occurred while running your script:\n{traceback.format_exc()}")
-
-            # Display Outputs
-            if st.session_state.get("run_success"):
-                st.markdown("### Outputs")
-                
-                # Map
-                if st.session_state.get("map_object"):
-                    st.markdown("#### Interactive Map")
-                    st_folium(st.session_state["map_object"], width=700, height=500)
-                else:
-                    st.warning("No map object found in your script.")
-
-                # Bar Chart
-                if st.session_state.get("bar_chart"):
-                    st.markdown("#### Bar Chart")
-                    try:
-                        image_path = st.session_state["bar_chart"]
-                        if os.path.exists(image_path):
-                            st.image(image_path, use_column_width=True)
-                        else:
-                            st.warning(f"Bar chart file '{image_path}' not found.")
-                    except Exception as e:
-                        st.error(f"Error displaying the bar chart: {e}")
-                else:
-                    st.warning("No bar chart file found in your script.")
-
-                # Text Summary
-                if st.session_state.get("text_summary") is not None:
-                    st.markdown("#### Text Summary")
-                    st.dataframe(st.session_state["text_summary"])
-                else:
-                    st.warning("No text summary found in your script.")
-
-            # Display Captured Output
-            if st.session_state.get("captured_output"):
-                st.markdown("### Captured Output")
-                st.text(st.session_state["captured_output"])
-
-if __name__ == "__main__":
-    show()
+# Display outputs
+print(summary)
+m
+fig
