@@ -1,130 +1,153 @@
 import streamlit as st
-import requests
-import pandas as pd
 import folium
-from folium.plugins import MarkerCluster
+import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
+from io import StringIO
+import traceback
+import sys
 
-# Fetch earthquake data from the USGS API
-def fetch_earthquake_data(start_time, end_time):
-    url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={start_time}&endtime={end_time}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Failed to fetch data: {response.status_code}")
-        return None
-
-# Filter earthquakes with magnitude > 4.0
-def filter_earthquakes(data):
-    features = data['features']
-    earthquakes = []
-    for feature in features:
-        properties = feature['properties']
-        geometry = feature['geometry']
-        magnitude = properties['mag']
-        if magnitude > 4.0:
-            earthquake = {
-                'time': pd.to_datetime(properties['time'], unit='ms'),
-                'latitude': geometry['coordinates'][1],
-                'longitude': geometry['coordinates'][0],
-                'magnitude': magnitude
+def show():
+    # Apply the custom page style
+    st.markdown(
+        """
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background-color: #f9f9f9;
+                color: #333;
             }
-            earthquakes.append(earthquake)
-    return pd.DataFrame(earthquakes)
+            .stButton > button {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            .stButton > button:hover {
+                background-color: #45a049;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-# Create an interactive map
-def create_earthquake_map(earthquakes):
-    earthquake_map = folium.Map(location=[0, 0], zoom_start=2)
-    marker_cluster = MarkerCluster().add_to(earthquake_map)
+    # Initialize session state variables
+    if "run_success" not in st.session_state:
+        st.session_state["run_success"] = False
+    if "map_object" not in st.session_state:
+        st.session_state["map_object"] = None
+    if "bar_chart" not in st.session_state:
+        st.session_state["bar_chart"] = None
+    if "summary" not in st.session_state:
+        st.session_state["summary"] = ""
+    if "captured_output" not in st.session_state:
+        st.session_state["captured_output"] = ""
 
-    for _, row in earthquakes.iterrows():
-        magnitude = row['magnitude']
-        if 4.0 <= magnitude < 5.0:
-            color = 'green'
-        elif 5.0 <= magnitude < 5.5:
-            color = 'yellow'
+    st.title("Assignment 2: Earthquake Data Analysis")
+
+    # Section 1: Enter Student ID
+    st.header("Step 1: Enter Your Student ID")
+    with st.form("student_id_form", clear_on_submit=False):
+        student_id = st.text_input("Enter Your Student ID", key="student_id")
+        submit_id_button = st.form_submit_button("Verify Student ID")
+
+        if submit_id_button:
+            if student_id:
+                st.success(f"Student ID {student_id} verified. You may proceed.")
+            else:
+                st.error("Please provide a valid Student ID.")
+
+    # Section 2: Assignment Details
+    st.header("Step 2: Review Assignment Details")
+    st.markdown("""
+    ### Objective
+    - Fetch earthquake data using the USGS Earthquake API.
+    - Filter earthquakes with a magnitude greater than 4.0.
+    - Visualize locations on a map with markers color-coded by magnitude range.
+    - Create a bar chart showing earthquake counts by magnitude ranges.
+    - Provide a text summary of the results.
+    """)
+
+    # Section 3: Run and Submit Code
+    st.header("Step 3: Run and Submit Your Code")
+    code_input = st.text_area("Paste your Python code here", height=300)
+
+    run_button = st.button("Run Code")
+    if run_button:
+        st.session_state["run_success"] = False
+        st.session_state["map_object"] = None
+        st.session_state["bar_chart"] = None
+        st.session_state["summary"] = ""
+        st.session_state["captured_output"] = ""
+
+        # Redirect stdout
+        old_stdout = sys.stdout
+        new_stdout = StringIO()
+        sys.stdout = new_stdout
+
+        try:
+            # Execute the user's code
+            local_context = {}
+            exec(code_input, {}, local_context)
+
+            # Capture outputs
+            st.session_state["captured_output"] = new_stdout.getvalue()
+
+            # Check for map object
+            st.session_state["map_object"] = next(
+                (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
+            )
+
+            # Check for bar chart
+            st.session_state["bar_chart"] = next(
+                (obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None
+            )
+
+            # Check for text summary (e.g., DataFrame or print outputs)
+            summary = ""
+            for obj in local_context.values():
+                if isinstance(obj, pd.DataFrame):
+                    summary += obj.to_csv(index=False, float_format="%.2f")
+            st.session_state["summary"] = summary
+
+            st.session_state["run_success"] = True
+            st.success("Code executed successfully!")
+
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+            st.session_state["captured_output"] = traceback.format_exc()
+        finally:
+            sys.stdout = old_stdout
+
+    # Display Outputs
+    if st.session_state.get("run_success"):
+        st.header("Outputs")
+        if st.session_state.get("map_object"):
+            st.markdown("### Map Output")
+            st_folium(st.session_state["map_object"], width=700, height=500)
+
+        if st.session_state.get("bar_chart"):
+            st.markdown("### Bar Chart Output")
+            st.pyplot(st.session_state["bar_chart"])
+
+        if st.session_state.get("summary"):
+            st.markdown("### Text Summary")
+            st.text(st.session_state["summary"])
+
+    # Submit Assignment
+    st.header("Step 4: Submit Your Assignment")
+    submit_button = st.button("Submit Assignment")
+
+    if submit_button:
+        if st.session_state.get("run_success"):
+            st.success("Code submitted successfully!")
+            # Logic to save submission (e.g., update Google Sheets)
         else:
-            color = 'red'
+            st.error("Please run your code successfully before submitting.")
 
-        popup = folium.Popup(
-            f"Magnitude: {magnitude}<br>"
-            f"Location: ({row['latitude']}, {row['longitude']})<br>"
-            f"Time: {row['time']}"
-        )
-        folium.Marker(
-            location=[row['latitude'], row['longitude']],
-            popup=popup,
-            icon=folium.Icon(color=color)
-        ).add_to(marker_cluster)
-
-    return earthquake_map
-
-# Create a bar chart
-def create_bar_chart(earthquakes):
-    bins = [4.0, 4.5, 5.0, float('inf')]
-    labels = ['4.0-4.5', '4.5-5.0', '5.0+']
-    earthquakes['magnitude_range'] = pd.cut(earthquakes['magnitude'], bins=bins, labels=labels, right=False)
-    magnitude_counts = earthquakes['magnitude_range'].value_counts().sort_index()
-
-    fig, ax = plt.subplots(figsize=(8, 5))
-    magnitude_counts.plot(kind='bar', color='skyblue', ax=ax)
-    ax.set_title('Earthquake Frequency by Magnitude Range')
-    ax.set_xlabel('Magnitude Range')
-    ax.set_ylabel('Frequency')
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=0)
-    return fig
-
-# Generate a text summary
-def generate_text_summary(earthquakes):
-    total_earthquakes = len(earthquakes)
-    avg_magnitude = earthquakes['magnitude'].mean()
-    max_magnitude = earthquakes['magnitude'].max()
-    min_magnitude = earthquakes['magnitude'].min()
-
-    bins = [4.0, 4.5, 5.0, float('inf')]
-    labels = ['4.0-4.5', '4.5-5.0', '5.0+']
-    earthquakes['magnitude_range'] = pd.cut(earthquakes['magnitude'], bins=bins, labels=labels, right=False)
-    magnitude_counts = earthquakes['magnitude_range'].value_counts().sort_index()
-
-    summary = {
-        'Total Earthquakes': total_earthquakes,
-        'Average Magnitude': round(avg_magnitude, 2),
-        'Maximum Magnitude': round(max_magnitude, 2),
-        'Minimum Magnitude': round(min_magnitude, 2),
-        'Earthquakes in 4.0-4.5': magnitude_counts.get('4.0-4.5', 0),
-        'Earthquakes in 4.5-5.0': magnitude_counts.get('4.5-5.0', 0),
-        'Earthquakes in 5.0+': magnitude_counts.get('5.0+', 0)
-    }
-
-    return pd.DataFrame(list(summary.items()), columns=['Metric', 'Value'])
-
-# Main function
-def main():
-    st.title("Earthquake Data Analysis")
-    st.markdown("This app fetches earthquake data from the USGS API and provides visualizations and summaries.")
-
-    start_time = st.text_input("Start Date (YYYY-MM-DD)", "2025-01-02")
-    end_time = st.text_input("End Date (YYYY-MM-DD)", "2025-01-09")
-
-    if st.button("Fetch and Analyze Data"):
-        data = fetch_earthquake_data(start_time, end_time)
-        if data:
-            earthquakes = filter_earthquakes(data)
-
-            st.subheader("Interactive Map")
-            earthquake_map = create_earthquake_map(earthquakes)
-            st_folium(earthquake_map, width=700, height=500)
-
-            st.subheader("Magnitude Distribution")
-            bar_chart = create_bar_chart(earthquakes)
-            st.pyplot(bar_chart)
-
-            st.subheader("Summary Statistics")
-            summary_df = generate_text_summary(earthquakes)
-            st.dataframe(summary_df)
 
 if __name__ == "__main__":
-    main()
+    show()
