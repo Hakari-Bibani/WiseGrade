@@ -1,4 +1,5 @@
 import streamlit as st
+import folium  # Import folium here
 import traceback
 import sys
 from io import StringIO
@@ -7,6 +8,7 @@ from streamlit_folium import st_folium
 
 def extract_main_points(local_context):
     """Extract main points (map, bar chart, text summary) from the executed script."""
+    # Ensure folium is accessible to identify map objects
     map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
     bar_chart = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
     text_summary = next((obj for obj in local_context.values() if isinstance(obj, str) and len(obj) < 1000), None)
