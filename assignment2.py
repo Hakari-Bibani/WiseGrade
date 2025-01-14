@@ -6,6 +6,18 @@ from io import StringIO
 import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
 
+def preprocess_code(user_code):
+    """
+    Preprocess the user-provided code to remove unsupported commands like `!pip install`.
+    """
+    filtered_lines = []
+    for line in user_code.splitlines():
+        # Skip lines that start with '!' or contain invalid shell commands
+        if line.strip().startswith("!") or line.strip().startswith("%"):
+            continue
+        filtered_lines.append(line)
+    return "\n".join(filtered_lines)
+
 def extract_main_points(local_context):
     """Extract main points (map, bar chart, text summary) from the executed script."""
     map_object = next((obj for obj in local_context.values() if isinstance(obj, folium.Map)), None)
@@ -62,15 +74,18 @@ def show():
         st.session_state["bar_chart"] = None
         st.session_state["text_summary"] = None
 
+        # Preprocess the user code to remove invalid commands
+        processed_code = preprocess_code(code)
+
         # Redirect stdout to capture print statements
         old_stdout = sys.stdout
         captured_output = StringIO()
         sys.stdout = captured_output
 
         try:
-            # Execute the user's code
+            # Execute the preprocessed code
             local_context = {}
-            exec(code, {}, local_context)
+            exec(processed_code, {}, local_context)
 
             # Extract main points
             map_object, bar_chart, text_summary = extract_main_points(local_context)
