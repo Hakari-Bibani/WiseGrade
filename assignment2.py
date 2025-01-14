@@ -3,6 +3,7 @@ import traceback
 import sys
 from io import StringIO
 
+
 def convert_colab_to_streamlit(script_code):
     """
     Converts a Google Colab script into a Streamlit-compatible script.
@@ -10,11 +11,13 @@ def convert_colab_to_streamlit(script_code):
     # Define replacements for key components
     replacements = {
         # Replace folium.Map with Streamlit rendering
-        "map_object.save(": "st.components.v1.html(",
+        ".save(": "._repr_html_()",
+        "folium.Map": "st.components.v1.html",
         # Replace matplotlib/seaborn chart saving with Streamlit rendering
         "plt.savefig(": "st.pyplot(",
         # Replace pandas DataFrame display with Streamlit display
-        "print(df)": "st.dataframe(df)",
+        "print(": "st.text(",
+        "display(": "st.dataframe(",
     }
 
     # Apply replacements dynamically
@@ -25,20 +28,24 @@ def convert_colab_to_streamlit(script_code):
 
 
 def show():
-    st.title("Assignment 2: Convert and Display Colab Script in Streamlit")
+    st.title("Assignment 2: Convert and Display Colab Code in Streamlit")
 
-    # Upload the Colab script
-    uploaded_script = st.file_uploader("Upload your Python script (.py)", type="py")
+    # Step 1: Paste Code
+    st.header("Step 1: Paste Your Code Below")
+    pasted_code = st.text_area(
+        "Paste your Python script here",
+        height=300,
+        placeholder="Paste your Google Colab script here...",
+    )
 
-    if uploaded_script:
-        # Read and display the original script
-        original_script = uploaded_script.read().decode("utf-8")
+    if pasted_code:
+        # Display the original script
         st.subheader("Original Colab Script")
-        st.code(original_script, language="python")
+        st.code(pasted_code, language="python")
 
         # Convert the script to Streamlit-compatible format
         try:
-            modified_script = convert_colab_to_streamlit(original_script)
+            modified_script = convert_colab_to_streamlit(pasted_code)
             st.subheader("Modified Streamlit-Compatible Script")
             st.code(modified_script, language="python")
 
@@ -53,10 +60,40 @@ def show():
 
             # Display the captured outputs
             st.subheader("Captured Outputs")
-            st.text(new_stdout.getvalue())
+            captured_output = new_stdout.getvalue()
+            if captured_output:
+                st.text(captured_output)
+
+            # Display folium map
+            map_object = next(
+                (obj for obj in local_context.values() if "folium.Map" in str(type(obj))),
+                None,
+            )
+            if map_object:
+                st.subheader("Interactive Map")
+                map_html = map_object._repr_html_()
+                st.components.v1.html(map_html, height=500)
+
+            # Display matplotlib figure
+            plt_figure = next(
+                (obj for obj in local_context.values() if "matplotlib.figure" in str(type(obj))),
+                None,
+            )
+            if plt_figure:
+                st.subheader("Bar Chart")
+                st.pyplot(plt_figure)
+
+            # Display pandas DataFrame
+            dataframe_object = next(
+                (obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)),
+                None,
+            )
+            if dataframe_object is not None:
+                st.subheader("Text Summary")
+                st.dataframe(dataframe_object)
 
         except Exception as e:
-            st.error(f"An error occurred while processing the script: {e}")
+            st.error("An error occurred while processing the code:")
             st.text(traceback.format_exc())
 
         finally:
