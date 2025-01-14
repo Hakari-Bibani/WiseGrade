@@ -1,8 +1,8 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-import importlib
 import home
 import style
+import importlib
 
 # Apply custom styles from style.py
 style.apply_custom_styles()
@@ -52,19 +52,18 @@ with st.sidebar:
 
 # Main content area
 try:
-    st.write(f"Attempting to load module: {selected}")  # Debug statement
-    module = importlib.import_module(selected)
-
-    if hasattr(module, "show"):
-        st.write(f"Loaded module: {selected}")  # Debug statement
-        module.show()  # Call the `show()` function of the selected module
+    if selected == "home":
+        home.show()  # Display the Home page
     else:
-        st.error(f"The module '{selected}' does not have a valid entry point. Please define a `show()` function.")
-except ImportError as e:
-    st.error(f"Module '{selected}' not found. Ensure it exists in the correct directory.")
-    st.error(f"Error details: {str(e)}")
-except Exception as e:
-    st.error(f"An unexpected error occurred while loading the module '{selected}': {str(e)}")
+        module = importlib.import_module(selected)
+        if hasattr(module, "assignment1"):  # Check for assignment function
+            getattr(module, "assignment1")()  # Call the function
+        elif hasattr(module, "show"):
+            module.show()  # Call the show function
+        else:
+            st.error(f"The module '{selected}' does not have a valid entry point.")
+except ImportError:
+    st.error(f"Module '{selected}' not found.")
 
 # Footer
 st.markdown("""
