@@ -7,6 +7,34 @@ from streamlit_folium import st_folium
 import traceback
 import sys
 
+
+def detect_outputs(local_context):
+    """
+    Detect and capture the main outputs (map, PNG bar chart, text summary) 
+    from the user's script.
+    """
+    detected_outputs = {
+        "map": None,
+        "bar_chart": None,
+        "text_summary": None,
+    }
+
+    # Detect Folium Map
+    detected_outputs["map"] = next(
+        (obj for obj in local_context.values() if isinstance(obj, folium.Map)), None
+    )
+
+    # Detect Pandas DataFrame (assumed for text summary)
+    detected_outputs["text_summary"] = next(
+        (obj for obj in local_context.values() if isinstance(obj, pd.DataFrame)), None
+    )
+
+    # Detect Matplotlib Figure (bar chart)
+    detected_outputs["bar_chart"] = plt.gcf() if plt.get_fignums() else None
+
+    return detected_outputs
+
+
 def show():
     st.markdown(
         """
@@ -30,20 +58,16 @@ def show():
             }
         </style>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     # Initialize session state variables
     if "run_success" not in st.session_state:
         st.session_state["run_success"] = False
-    if "map_html" not in st.session_state:
-        st.session_state["map_html"] = None
-    if "bar_chart" not in st.session_state:
-        st.session_state["bar_chart"] = None
-    if "text_summary" not in st.session_state:
-        st.session_state["text_summary"] = None
     if "captured_output" not in st.session_state:
         st.session_state["captured_output"] = ""
+    if "detected_outputs" not in st.session_state:
+        st.session_state["detected_outputs"] = {}
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -54,32 +78,19 @@ def show():
         submit_id_button = st.form_submit_button("Verify Student ID")
 
         if submit_id_button:
-            if student_id:
+            if student_id:  # Placeholder for verifying student ID
                 st.success(f"Student ID {student_id} verified. You may proceed.")
             else:
                 st.error("Please provide a valid Student ID.")
 
-    # Section 2: Assignment Details
-    st.header("Step 2: Assignment Details")
-    st.markdown("""
-    ### Objective
-    - Fetch real-time earthquake data using the USGS Earthquake API.
-    - Filter and visualize the data:
-      - Interactive map with earthquake locations.
-      - Bar chart of earthquake counts by magnitude range.
-    - Provide a text summary of the results.
-    """)
-
-    # Section 3: Code Submission
-    st.header("Step 3: Submit and Run Your Code")
-    code = st.text_area("Paste your Python code here", height=300)
+    # Section 2: Code Editor
+    st.header("Step 2: Paste Your Script")
+    code = st.text_area("Paste your Python script here", height=300)
 
     if st.button("Run Code"):
         st.session_state["run_success"] = False
-        st.session_state["map_html"] = None
-        st.session_state["bar_chart"] = None
-        st.session_state["text_summary"] = None
         st.session_state["captured_output"] = ""
+        st.session_state["detected_outputs"] = {}
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -90,26 +101,11 @@ def show():
             # Execute the user's code
             local_context = {}
             exec(code, {}, local_context)
-
+            st.session_state["run_success"] = True
             st.session_state["captured_output"] = new_stdout.getvalue()
 
-            # Extract main outputs
-            # 1. Detect saved HTML map
-            if "earthquake_map.html" in local_context.get("earthquake_map", ""):
-                with open("earthquake_map.html", "r") as file:
-                    st.session_state["map_html"] = file.read()
-
-            # 2. Detect bar chart saved as PNG
-            buf = BytesIO()
-            plt.savefig(buf, format="png")
-            buf.seek(0)
-            st.session_state["bar_chart"] = buf
-
-            # 3. Detect text summary (CSV output)
-            if "earthquake_summary.csv" in local_context.get("summary_df", ""):
-                st.session_state["text_summary"] = local_context["summary_df"]
-
-            st.session_state["run_success"] = True
+            # Detect main outputs
+            st.session_state["detected_outputs"] = detect_outputs(local_context)
             st.success("Code executed successfully!")
         except Exception as e:
             st.error(f"An error occurred: {e}")
@@ -117,35 +113,42 @@ def show():
         finally:
             sys.stdout = old_stdout
 
+        # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
 
-    # Section 4: Display Outputs
-    st.header("Step 4: Visualize Your Outputs")
+    # Section 3: Display Outputs
+    st.header("Step 3: View Your Outputs")
 
-    if st.session_state.get("map_html"):
-        st.markdown("### Interactive Map")
-        st.components.v1.html(st.session_state["map_html"], height=500)
+    detected_outputs = st.session_state.get("detected_outputs", {})
 
-    if st.session_state.get("bar_chart"):
-        st.markdown("### Bar Chart")
-        st.image(st.session_state["bar_chart"])
+    # Display Folium Map
+    if detected_outputs.get("map"):
+        st.subheader("Interactive Map")
+        st_folium(detected_outputs["map"], width=700, height=500)
+    else:
+        st.warning("No map detected in the provided script.")
 
-    if st.session_state.get("text_summary") is not None:
-        st.markdown("### Text Summary (CSV)")
-        st.download_button(
-            label="Download Summary CSV",
-            data=st.session_state["text_summary"].to_csv(index=False),
-            file_name="earthquake_summary.csv",
-            mime="text/csv"
-        )
+    # Display Bar Chart
+    if detected_outputs.get("bar_chart"):
+        st.subheader("Bar Chart (PNG)")
+        buffer = BytesIO()
+        detected_outputs["bar_chart"].savefig(buffer, format="png")
+        st.image(buffer, caption="Earthquake Frequency by Magnitude", use_column_width=True)
+    else:
+        st.warning("No bar chart detected in the provided script.")
 
-    # Section 5: Submit Assignment
-    st.header("Step 5: Submit Your Assignment")
-    submit_button = st.button("Submit Assignment")
+    # Display Text Summary
+    if detected_outputs.get("text_summary") is not None:
+        st.subheader("Text Summary (DataFrame)")
+        st.dataframe(detected_outputs["text_summary"])
+    else:
+        st.warning("No text summary detected in the provided script.")
 
-    if submit_button:
+    # Section 4: Submit Assignment
+    st.header("Step 4: Submit Your Assignment")
+    if st.button("Submit Assignment"):
         if st.session_state.get("run_success", False):
-            st.success("Code submitted successfully! Your outputs have been recorded.")
+            st.success("Assignment submitted successfully! Your outputs have been recorded.")
             # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
