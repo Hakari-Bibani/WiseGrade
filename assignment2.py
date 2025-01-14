@@ -53,6 +53,10 @@ def show():
         sys.stdout = new_stdout
 
         try:
+            # Modify code to ignore Colab-specific modules
+            safe_code = code.replace("import google.colab", "# Colab import removed")
+            safe_code = safe_code.replace("google.colab.files.download", "# Colab download removed")
+
             # Execute the user's code in a controlled environment
             exec_globals = {
                 "st": st,
@@ -60,7 +64,7 @@ def show():
                 "plt": plt,
                 "folium": folium,
             }
-            exec(code, exec_globals)
+            exec(safe_code, exec_globals)
 
             # Detect and capture outputs
             st.session_state["map_object"] = next(
