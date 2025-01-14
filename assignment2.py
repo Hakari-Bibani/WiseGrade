@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import folium
 
+
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
