@@ -111,7 +111,29 @@ def show():
         try:
             # Execute the user's code
             local_context = {}
-            exec(code, {}, local_context)
+
+             # Capture the code output and map and chart objects in a way that allows us to show them
+
+            modified_code = f"""
+def run_user_code():
+    global map_object
+    global chart_object
+    {code}
+
+    try:
+        map_object = earthquake_map
+    except:
+        pass
+    try:
+        chart_object = plt.gcf()
+    except:
+        pass
+
+
+run_user_code()
+            """
+            exec(modified_code, {}, local_context)
+
 
             # Restore stdout
             sys.stdout = sys.__stdout__
@@ -122,6 +144,7 @@ def show():
             # Extract the folium map object
             map_object = find_map(local_context)
             st.session_state["map_object"] = map_object
+
 
             # Extract the matplotlib figure and save as a png
             bar_chart_png = find_and_save_chart(local_context)
@@ -139,6 +162,7 @@ def show():
             st.session_state["captured_output"] = traceback.format_exc()
         finally:
            sys.stdout = old_stdout
+
 
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
