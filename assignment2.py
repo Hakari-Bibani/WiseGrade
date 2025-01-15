@@ -1,94 +1,80 @@
 import streamlit as st
 import pandas as pd
 from io import StringIO
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 from grades.grade2 import grade_assignment
-import os
+from Record.google_sheet import verify_student_id, update_google_sheet
+import traceback
 
-# Google Sheets API Setup
-def get_google_sheet_data(sheet_id, range_name, creds_file="path_to_service_account.json"):
-    """Fetch data from Google Sheets."""
-    credentials = service_account.Credentials.from_service_account_file(creds_file, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
-    service = build("sheets", "v4", credentials=credentials)
-    sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=sheet_id, range=range_name).execute()
-    return result.get("values", [])
 
-def save_to_google_sheet(sheet_id, range_name, values, creds_file="path_to_service_account.json"):
-    """Save data to Google Sheets."""
-    credentials = service_account.Credentials.from_service_account_file(creds_file, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    service = build("sheets", "v4", credentials=credentials)
-    sheet = service.spreadsheets()
-    body = {"values": values}
-    sheet.values().append(spreadsheetId=sheet_id, range=range_name, valueInputOption="USER_ENTERED", body=body).execute()
-
-# Streamlit App
 def show():
-    # Google Sheets Configuration
-    GOOGLE_SHEET_ID = "your_google_sheet_id"
-    ASSIGNMENT_1_RANGE = "assignment_1!A:C"
-    ASSIGNMENT_2_RANGE = "assignment_2!A:E"
-
-    # Fetch valid Student IDs
-    assignment_1_data = get_google_sheet_data(GOOGLE_SHEET_ID, ASSIGNMENT_1_RANGE)
-    valid_student_ids = [row[2] for row in assignment_1_data]  # Assuming column C contains Student IDs
-
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Step 1: Validate Student ID
+    # Section 1: Verify Student ID
     st.header("Step 1: Enter Your Student ID")
-    student_id = st.text_input("Enter your Student ID")
-    if student_id not in valid_student_ids:
-        st.error("Invalid Student ID. Please enter a valid ID.")
-        return  # Exit the app if the ID is invalid
+    student_id = st.text_input("Enter Your Student ID")
 
-    # Step 2: Code Cell
-    st.header("Step 2: Paste Your Code")
+    if st.button("Verify Student ID"):
+        if verify_student_id(student_id):  # Verifies if the ID exists in Google Sheets
+            st.success(f"Student ID {student_id} verified. You may proceed.")
+            st.session_state["id_verified"] = True
+        else:
+            st.error("Invalid Student ID. Please enter a valid ID.")
+
+    if not st.session_state.get("id_verified", False):
+        st.warning("You need to verify your Student ID to proceed.")
+        st.stop()
+
+    # Section 2: Code Editor
+    st.header("Step 2: Write and Run Your Code")
     code = st.text_area("Paste your Python code here", height=300)
 
-    # Step 3: File Uploads
+    # Section 3: Upload Files
     st.header("Step 3: Upload Your Outputs")
-    uploaded_html = st.file_uploader("Upload your HTML Map File", type="html")
-    uploaded_png = st.file_uploader("Upload your PNG Bar Chart", type="png")
-    uploaded_csv = st.file_uploader("Upload your CSV Summary", type="csv")
+    uploaded_html = st.file_uploader("Upload your Map (HTML file)", type="html")
+    uploaded_png = st.file_uploader("Upload your Bar Chart (PNG file)", type="png")
+    uploaded_csv = st.file_uploader("Upload your Summary (CSV file)", type="csv")
 
-    # Check if all files are uploaded
-    if st.button("Check Files"):
-        if not all([uploaded_html, uploaded_png, uploaded_csv]):
-            st.error("Please upload all required files before proceeding.")
+    if st.button("Check Uploads"):
+        if uploaded_html and uploaded_png and uploaded_csv:
+            st.success("All required files have been uploaded. You may proceed to submission.")
+            st.session_state["files_uploaded"] = True
         else:
-            st.success("All required files uploaded successfully.")
+            st.error("Please upload all required files: HTML, PNG, and CSV.")
 
-    # Step 4: Submit and Grade
+    # Section 4: Submit Assignment
+    st.header("Step 4: Submit Your Assignment")
     if st.button("Submit Assignment"):
-        if not all([uploaded_html, uploaded_png, uploaded_csv]):
-            st.error("Please upload all required files before submission.")
-            return
+        if not st.session_state.get("files_uploaded", False):
+            st.error("You must upload all required files before submitting.")
+        else:
+            try:
+                # Save uploaded files temporarily
+                with open("temp_student_map.html", "wb") as f:
+                    f.write(uploaded_html.read())
+                with open("temp_student_chart.png", "wb") as f:
+                    f.write(uploaded_png.read())
+                with open("temp_student_summary.csv", "wb") as f:
+                    f.write(uploaded_csv.read())
 
-        # Save uploaded files temporarily
-        uploaded_html_path = os.path.join("grades", "uploaded_map.html")
-        uploaded_png_path = os.path.join("grades", "uploaded_chart.png")
-        uploaded_csv_path = os.path.join("grades", "uploaded_summary.csv")
+                # Grade the assignment using grade2.py
+                grade = grade_assignment(
+                    code,
+                    "temp_student_map.html",
+                    "temp_student_chart.png",
+                    "temp_student_summary.csv"
+                )
 
-        with open(uploaded_html_path, "wb") as f:
-            f.write(uploaded_html.read())
-        with open(uploaded_png_path, "wb") as f:
-            f.write(uploaded_png.read())
-        with open(uploaded_csv_path, "wb") as f:
-            f.write(uploaded_csv.read())
+                # Display the grade
+                st.success(f"Your grade: {grade}/100")
 
-        # Grade the assignment
-        grade = grade_assignment(code, uploaded_html_path, uploaded_png_path, uploaded_csv_path)
+                # Save grade to Google Sheets
+                update_google_sheet(student_id, grade, "assignment_2")
+                st.success("Your grade has been successfully saved.")
 
-        # Display grade and save to Google Sheets
-        st.success(f"Your grade: {grade}/100")
-        save_to_google_sheet(
-            GOOGLE_SHEET_ID,
-            ASSIGNMENT_2_RANGE,
-            [[student_id, grade]],
-        )
-        st.info("Your grade has been recorded in Google Sheets.")
+            except Exception as e:
+                st.error("An error occurred during grading. Please check your submission.")
+                st.text_area("Error Details", traceback.format_exc(), height=200)
+
 
 if __name__ == "__main__":
     show()
