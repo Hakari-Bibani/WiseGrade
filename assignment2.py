@@ -4,6 +4,7 @@ import traceback
 from grade2 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
+
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -11,7 +12,6 @@ def show():
     st.header("Step 1: Verify Your Student ID")
     student_id = st.text_input("Enter Your Student ID", key="student_id")
     
-    # Check if the student ID is valid (exists in Google Sheet for Assignment 1)
     student_verified = False
     if st.button("Verify Student ID"):
         try:
@@ -84,24 +84,12 @@ def show():
     bar_chart_file = st.file_uploader("Upload PNG Bar Chart", type=["png"])
     summary_file = st.file_uploader("Upload CSV Summary", type=["csv"])
 
-    # Check Button
-    st.subheader("3. Check Submission")
-    if st.button("Check"):
-        if not code_input:
-            st.error("Code cell is empty. Please paste your Python code.")
-        if not html_file:
-            st.error("HTML file is missing. Please upload the HTML file.")
-        if not bar_chart_file:
-            st.error("Bar chart PNG is missing. Please upload the PNG file.")
-        if not summary_file:
-            st.error("CSV summary file is missing. Please upload the CSV file.")
-        if code_input and html_file and bar_chart_file and summary_file:
-            st.success("All required files and code are provided. You may proceed to submit.")
-
     # Submit Button
-    st.subheader("4. Submit Your Assignment")
+    st.subheader("3. Submit Your Assignment")
     if st.button("Submit"):
-        if not code_input or not html_file or not bar_chart_file or not summary_file:
+        if not student_id or not student_verified:
+            st.error("You must verify your Student ID before submitting.")
+        elif not code_input or not html_file or not bar_chart_file or not summary_file:
             st.error("Please ensure all required files and code are provided before submission.")
         else:
             try:
