@@ -133,6 +133,7 @@ def run_user_code():
     except:
         pass
 
+
 run_user_code()
             """
             exec(modified_code, global_context)
@@ -143,11 +144,9 @@ run_user_code()
             # Capture printed output
             st.session_state["captured_output"] = new_stdout.getvalue()
 
-            # Capture the map and chart from the global scope where it was created
-
+             # Capture the map and chart from the global scope where it was created
             map_object = global_context.get("map_object")
             chart_object = global_context.get("chart_object")
-
 
             # Extract the folium map object
             map_object = find_map(map_object)
@@ -199,7 +198,7 @@ run_user_code()
 
 def find_map(map_object: Any) -> folium.Map | None:
     """Attempts to find and return a folium map object from the local context."""
-    if isinstance(map_object,folium.Map):
+    if isinstance(map_object, folium.Map):
         return map_object
     return None
 
