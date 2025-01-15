@@ -10,3 +10,10 @@ IPython
 matplotlib
 requests
 seaborn
+beautifulsoup4
+opencv-python-headless
+scikit-image
+numpy
+streamlit-folium
+flake8
+python-dotenv
