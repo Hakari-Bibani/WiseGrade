@@ -1,6 +1,6 @@
 import streamlit as st
-import traceback
 import os
+import traceback
 from grade2 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
@@ -10,20 +10,19 @@ def show():
     # Section 1: Verify Student ID
     st.header("Step 1: Verify Your Student ID")
     student_id = st.text_input("Enter Your Student ID", key="student_id")
-    verify_button = st.button("Verify Student ID")
-
+    
+    # Check if the student ID is valid (exists in Google Sheet for Assignment 1)
     student_verified = False
-    if verify_button:
+    if st.button("Verify Student ID"):
         try:
-            # Load Google Sheets credentials
+            # Connect to Google Sheets
+            import gspread
+            from oauth2client.service_account import ServiceAccountCredentials
+
             google_sheets_secrets = st.secrets.get("google_sheets", None)
             if not google_sheets_secrets:
                 st.error("Google Sheets credentials are missing in Streamlit secrets.")
                 return
-
-            # Connect to the Google Sheet
-            import gspread
-            from oauth2client.service_account import ServiceAccountCredentials
 
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
@@ -31,8 +30,8 @@ def show():
             spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
             worksheet = spreadsheet.sheet1
 
-            # Check if the Student ID exists
-            student_row = worksheet.find(student_id).row
+            # Check if the student ID exists
+            cell = worksheet.find(student_id)
             student_verified = True
             st.success(f"Student ID {student_id} verified. You may proceed.")
         except gspread.exceptions.CellNotFound:
@@ -41,7 +40,7 @@ def show():
             st.error(f"An error occurred during verification: {e}")
 
     if not student_verified:
-        return  # Stop here if student is not verified
+        return  # Stop further execution if student is not verified
 
     # Section 2: Assignment Details
     st.header("Step 2: Review Assignment Details")
@@ -50,7 +49,7 @@ def show():
     with tab1:
         st.markdown("""
         ### Objective
-        Analyze earthquake data using the USGS API, and visualize the results.
+        Analyze earthquake data using the USGS API and visualize the results.
         
         **Key Tasks**:
         - Fetch earthquake data (Jan 2 - Jan 9, 2025).
@@ -74,7 +73,7 @@ def show():
 
     # Section 3: Submission
     st.header("Step 3: Submit Your Code and Outputs")
-    
+
     # Code Cell
     st.subheader("1. Paste Your Code")
     code_input = st.text_area("Paste your Python code here", height=300)
@@ -85,13 +84,25 @@ def show():
     bar_chart_file = st.file_uploader("Upload PNG Bar Chart", type=["png"])
     summary_file = st.file_uploader("Upload CSV Summary", type=["csv"])
 
-    # Analyze Button
-    st.subheader("3. Analyze Your Submission")
-    analyze_button = st.button("Analyze Submission")
+    # Check Button
+    st.subheader("3. Check Submission")
+    if st.button("Check"):
+        if not code_input:
+            st.error("Code cell is empty. Please paste your Python code.")
+        if not html_file:
+            st.error("HTML file is missing. Please upload the HTML file.")
+        if not bar_chart_file:
+            st.error("Bar chart PNG is missing. Please upload the PNG file.")
+        if not summary_file:
+            st.error("CSV summary file is missing. Please upload the CSV file.")
+        if code_input and html_file and bar_chart_file and summary_file:
+            st.success("All required files and code are provided. You may proceed to submit.")
 
-    if analyze_button:
+    # Submit Button
+    st.subheader("4. Submit Your Assignment")
+    if st.button("Submit"):
         if not code_input or not html_file or not bar_chart_file or not summary_file:
-            st.error("Please provide all required files (HTML, PNG, CSV) and your code.")
+            st.error("Please ensure all required files and code are provided before submission.")
         else:
             try:
                 # Save uploaded files temporarily
@@ -106,27 +117,16 @@ def show():
                 with open(summary_path, "wb") as f:
                     f.write(summary_file.read())
 
-                # Run the grading function
+                # Grade the assignment
                 grade = grade_assignment(code_input, html_path, bar_chart_path, summary_path)
                 st.success(f"Your grade is: {grade}/100")
 
-            except Exception as e:
-                st.error(f"An error occurred during analysis: {e}")
-                st.text(traceback.format_exc())
-
-    # Submission Button
-    st.subheader("4. Submit Your Assignment")
-    submit_button = st.button("Submit Assignment")
-
-    if submit_button:
-        if student_verified and code_input and html_file and bar_chart_file and summary_file:
-            try:
-                # Call the Google Sheets update function
-                full_name = "Student Full Name"  # Replace with actual retrieval logic if needed
-                email = "student_email@example.com"  # Replace with actual retrieval logic if needed
+                # Save the grade to Google Sheets
+                full_name = "Student Full Name"  # Replace with actual retrieval logic
+                email = "student_email@example.com"  # Replace with actual retrieval logic
                 update_google_sheet(full_name, email, student_id, grade, "assignment_2")
+
                 st.success(f"Assignment 2 submitted successfully! Your grade: {grade}/100")
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-        else:
-            st.error("Please verify your Student ID and ensure all files are uploaded before submission.")
+                st.text(traceback.format_exc())
