@@ -6,16 +6,22 @@ from PIL import Image
 import numpy as np
 import os
 
+
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
-    # Define paths for reference files in the same folder as this script
+    """
+    Grade Assignment 2 by comparing the student's submission with reference files.
+    """
+
+    # Define the directory where the correct reference files are located
     base_dir = os.path.dirname(__file__)
     correct_html = os.path.join(base_dir, "correct_map.html")
     correct_png = os.path.join(base_dir, "correct_chart.png")
     correct_csv = os.path.join(base_dir, "correct_summary.csv")
 
-    # Verify reference files exist
-    if not all(os.path.exists(f) for f in [correct_html, correct_png, correct_csv]):
-        raise FileNotFoundError("Reference files (correct_map.html, correct_chart.png, correct_summary.csv) are missing.")
+    # Verify that all reference files exist
+    missing_files = [file for file in [correct_html, correct_png, correct_csv] if not os.path.exists(file)]
+    if missing_files:
+        raise FileNotFoundError(f"Reference files ({', '.join(missing_files)}) are missing.")
 
     grade = 0
 
@@ -62,7 +68,7 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     if uploaded_markers >= correct_markers:
         grade += 10
 
-    # Verify marker colors and popup data (add logic as necessary)
+    # Verify marker colors and popup data (placeholder logic)
     grade += 10  # Placeholder for successful verification
 
     # 6. Bar Chart (15 Points)
@@ -81,8 +87,8 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     uploaded_summary = pd.read_csv(uploaded_csv)
     correct_summary = pd.read_csv(correct_csv)
 
-    # Compare earthquake counts
     try:
+        # Compare total earthquakes
         if len(uploaded_summary) == len(correct_summary):
             grade += 5
 
