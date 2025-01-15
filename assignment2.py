@@ -137,18 +137,24 @@ run_user_code()
             """
             exec(modified_code, {}, local_context)
 
+
             # Restore stdout
             sys.stdout = sys.__stdout__
 
             # Capture printed output
             st.session_state["captured_output"] = new_stdout.getvalue()
 
+            # Capture the map and chart from the global scope where it was created
+            map_object = local_context.get("map_object")
+            chart_object = local_context.get("chart_object")
+
+
             # Extract the folium map object
-            map_object = find_map(local_context)
+            map_object = find_map(local_context,map_object)
             st.session_state["map_object"] = map_object
 
             # Extract the matplotlib figure and save as a png
-            bar_chart_png = find_and_save_chart(local_context)
+            bar_chart_png = find_and_save_chart(local_context, chart_object)
             st.session_state["bar_chart_png"] = bar_chart_png
 
             # Attempt to extract a text summary from the captured output
@@ -163,9 +169,9 @@ run_user_code()
         finally:
             sys.stdout = old_stdout
 
+
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
-
 
     # Section 4: Visualize Outputs
     st.header("Step 4: Visualize Your Outputs")
@@ -191,17 +197,26 @@ run_user_code()
         else:
             st.error("Please run your code successfully before submitting.")
 
-
-def find_map(local_context: Dict[str, Any]) -> folium.Map | None:
+def find_map(local_context: Dict[str, Any],map_object: Any) -> folium.Map | None:
     """Attempts to find and return a folium map object from the local context."""
+    if isinstance(map_object,folium.Map):
+       return map_object
     for var_name, var_value in local_context.items():
         if isinstance(var_value, folium.Map):
             return var_value
     return None
 
 
-def find_and_save_chart(local_context: Dict[str, Any]) -> str | None:
+def find_and_save_chart(local_context: Dict[str, Any],chart_object: Any) -> str | None:
     """Attempts to find and save a matplotlib chart as a base64 encoded png"""
+    if isinstance(chart_object, plt.Figure):
+        with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+            chart_object.savefig(tmp_file.name)
+            temp_file_name = tmp_file.name
+        with open(temp_file_name, "rb") as img_file:
+            base64_png = base64.b64encode(img_file.read()).decode("utf-8")
+        os.remove(temp_file_name)
+        return base64_png
     for var_name, var_value in local_context.items():
         if isinstance(var_value, plt.Figure):
             with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
