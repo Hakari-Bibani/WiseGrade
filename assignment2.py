@@ -48,13 +48,11 @@ def show():
     if "streamlit_output" not in st.session_state:
         st.session_state["streamlit_output"] = None
     if "captured_output" not in st.session_state:
-      st.session_state["captured_output"] = ""
+        st.session_state["captured_output"] = ""
     if "user_code_function" not in st.session_state:
-      st.session_state["user_code_function"] = None
+        st.session_state["user_code_function"] = None
     if "user_code_has_errors" not in st.session_state:
-      st.session_state["user_code_has_errors"] = False
-
-
+        st.session_state["user_code_has_errors"] = False
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -116,7 +114,6 @@ def show():
             user_code_function = create_streamlit_app(code)
             st.session_state["user_code_function"] = user_code_function
 
-
             if user_code_function:
                 # Execute the user's function within Streamlit's context
                 st.session_state["streamlit_output"] = user_code_function()
@@ -129,27 +126,24 @@ def show():
 
 
         except Exception as e:
-             st.session_state["user_code_has_errors"] = True
-             st.error(f"An error occurred: {e}")
-             st.session_state["captured_output"] = traceback.format_exc()
+            st.session_state["user_code_has_errors"] = True
+            st.error(f"An error occurred: {e}")
+            st.session_state["captured_output"] = traceback.format_exc()
         finally:
             sys.stdout = old_stdout
 
-
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
-
 
     # Section 4: Visualize Outputs
     st.header("Step 4: Visualize Your Outputs")
 
     if st.session_state["run_success"] and st.session_state["user_code_function"] and st.session_state["user_code_has_errors"] is False:
-         # Show the streamlit app created from the user's code.
+        # Show the streamlit app created from the user's code.
         if st.session_state["streamlit_output"]:
-           st.session_state["streamlit_output"]()
+            st.session_state["streamlit_output"]()
         else:
-           st.write("No output generated from the user's code.")
-
+            st.write("No output generated from the user's code.")
 
     # Section 5: Submit Assignment
     st.header("Step 5: Submit Your Assignment")
@@ -162,12 +156,13 @@ def show():
         else:
             st.error("Please run your code successfully before submitting.")
 
+
 def create_streamlit_app(user_code: str):
     """Transforms the user's code into a Streamlit app and returns the entry function for that app."""
     try:
 
-       # Define the scope for the user's code
-       local_context: Dict[str, Any] = {
+        # Define the scope for the user's code
+        local_context: Dict[str, Any] = {
             'st': st,
             'folium': folium,
             'pd': pd,
@@ -175,7 +170,7 @@ def create_streamlit_app(user_code: str):
             'requests': requests,
         }
 
-        user_code_function_definition =  f"""
+        user_code_function_definition = f"""
 def streamlit_user_code_app():
     {user_code}
 """
@@ -184,9 +179,9 @@ def streamlit_user_code_app():
 
         return user_function
     except Exception as e:
-         st.session_state["user_code_has_errors"] = True
-         print(f"Error creating user code function {e}")
-         return None
+        st.session_state["user_code_has_errors"] = True
+        print(f"Error creating user code function {e}")
+        return None
 
 if __name__ == "__main__":
     show()
