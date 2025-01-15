@@ -1,107 +1,132 @@
 import streamlit as st
 import traceback
-from io import StringIO
-from streamlit_folium import st_folium
-import pandas as pd
-import matplotlib.pyplot as plt
-from bs4 import BeautifulSoup
+import os
+from grade2 import grade_assignment
+from Record.google_sheet import update_google_sheet
 
 def show():
     st.title("Assignment 2: Earthquake Data Analysis")
 
-    # Section 1: Student ID Input
-    st.header("Step 1: Enter Your Student ID")
-    with st.form("student_id_form", clear_on_submit=False):
-        student_id = st.text_input("Enter Your Student ID", key="student_id")
-        submit_id_button = st.form_submit_button("Verify Student ID")
-        if submit_id_button:
-            if student_id:  # Verify student ID logic (placeholder)
-                st.success(f"Student ID {student_id} verified. You may proceed.")
-            else:
-                st.error("Please provide a valid Student ID.")
+    # Section 1: Verify Student ID
+    st.header("Step 1: Verify Your Student ID")
+    student_id = st.text_input("Enter Your Student ID", key="student_id")
+    verify_button = st.button("Verify Student ID")
 
-    # Section 2: Paste Code
-    st.header("Step 2: Paste Your Code")
-    code = st.text_area("Paste your Python code here", height=300, key="code_cell")
+    student_verified = False
+    if verify_button:
+        try:
+            # Load Google Sheets credentials
+            google_sheets_secrets = st.secrets.get("google_sheets", None)
+            if not google_sheets_secrets:
+                st.error("Google Sheets credentials are missing in Streamlit secrets.")
+                return
 
-    # Section 3: Upload Files
-    st.header("Step 3: Upload Your Outputs")
-    uploaded_html = st.file_uploader("Upload the HTML map file", type=["html"], key="html_upload")
-    uploaded_png = st.file_uploader("Upload the PNG bar chart", type=["png"], key="png_upload")
-    uploaded_csv = st.file_uploader("Upload the CSV summary", type=["csv"], key="csv_upload")
+            # Connect to the Google Sheet
+            import gspread
+            from oauth2client.service_account import ServiceAccountCredentials
 
-    # Section 4: Check Submission
-    if st.button("Check Submission"):
-        st.header("Submission Results")
-        results = []
+            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+            credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
+            client = gspread.authorize(credentials)
+            spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
+            worksheet = spreadsheet.sheet1
 
-        # Process uploaded HTML
-        if uploaded_html:
-            try:
-                html_content = uploaded_html.getvalue().decode("utf-8")
-                soup = BeautifulSoup(html_content, "html.parser")
-                markers = soup.find_all("marker")
-                if markers:
-                    results.append("✅ Map contains markers for earthquakes.")
-                else:
-                    results.append("❌ Map does not contain any markers.")
-                # Additional checks for color coding and popups could go here
-            except Exception as e:
-                results.append(f"❌ Error processing HTML file: {e}")
+            # Check if the Student ID exists
+            student_row = worksheet.find(student_id).row
+            student_verified = True
+            st.success(f"Student ID {student_id} verified. You may proceed.")
+        except gspread.exceptions.CellNotFound:
+            st.error("Student ID not found. Please make sure you submitted Assignment 1.")
+        except Exception as e:
+            st.error(f"An error occurred during verification: {e}")
+
+    if not student_verified:
+        return  # Stop here if student is not verified
+
+    # Section 2: Assignment Details
+    st.header("Step 2: Review Assignment Details")
+    tab1, tab2 = st.tabs(["Assignment Details", "Grading Criteria"])
+
+    with tab1:
+        st.markdown("""
+        ### Objective
+        Analyze earthquake data using the USGS API, and visualize the results.
+        
+        **Key Tasks**:
+        - Fetch earthquake data (Jan 2 - Jan 9, 2025).
+        - Filter earthquakes with magnitude > 4.0.
+        - Create a map with color-coded markers for magnitude ranges.
+        - Create a bar chart showing earthquake counts by magnitude ranges.
+        - Provide a text summary with detailed statistics.
+        """)
+
+    with tab2:
+        st.markdown("""
+        ### Grading Criteria
+        - **Library Imports (10%)**
+        - **Code Quality (20%)**
+        - **Data Retrieval (10%)**
+        - **Data Filtering (10%)**
+        - **Map Visualization (20%)**
+        - **Bar Chart Comparison (15%)**
+        - **Text Summary Accuracy (15%)**
+        """)
+
+    # Section 3: Submission
+    st.header("Step 3: Submit Your Code and Outputs")
+    
+    # Code Cell
+    st.subheader("1. Paste Your Code")
+    code_input = st.text_area("Paste your Python code here", height=300)
+
+    # File Uploads
+    st.subheader("2. Upload Your Outputs")
+    html_file = st.file_uploader("Upload HTML Map File", type=["html"])
+    bar_chart_file = st.file_uploader("Upload PNG Bar Chart", type=["png"])
+    summary_file = st.file_uploader("Upload CSV Summary", type=["csv"])
+
+    # Analyze Button
+    st.subheader("3. Analyze Your Submission")
+    analyze_button = st.button("Analyze Submission")
+
+    if analyze_button:
+        if not code_input or not html_file or not bar_chart_file or not summary_file:
+            st.error("Please provide all required files (HTML, PNG, CSV) and your code.")
         else:
-            results.append("❌ No HTML map file uploaded.")
-
-        # Process uploaded PNG
-        if uploaded_png:
             try:
-                # Placeholder for bar chart comparison logic
-                # Compare uploaded chart with reference chart here
-                results.append("✅ PNG bar chart uploaded successfully.")
+                # Save uploaded files temporarily
+                html_path = os.path.join("temp", "map.html")
+                bar_chart_path = os.path.join("temp", "bar_chart.png")
+                summary_path = os.path.join("temp", "summary.csv")
+
+                with open(html_path, "wb") as f:
+                    f.write(html_file.read())
+                with open(bar_chart_path, "wb") as f:
+                    f.write(bar_chart_file.read())
+                with open(summary_path, "wb") as f:
+                    f.write(summary_file.read())
+
+                # Run the grading function
+                grade = grade_assignment(code_input, html_path, bar_chart_path, summary_path)
+                st.success(f"Your grade is: {grade}/100")
+
             except Exception as e:
-                results.append(f"❌ Error processing PNG bar chart: {e}")
-        else:
-            results.append("❌ No PNG bar chart uploaded.")
+                st.error(f"An error occurred during analysis: {e}")
+                st.text(traceback.format_exc())
 
-        # Process uploaded CSV
-        if uploaded_csv:
-            try:
-                summary_df = pd.read_csv(uploaded_csv)
-                # Placeholder for CSV validation logic
-                results.append("✅ CSV summary uploaded successfully.")
-            except Exception as e:
-                results.append(f"❌ Error processing CSV summary: {e}")
-        else:
-            results.append("❌ No CSV summary uploaded.")
-
-        # Display results
-        for result in results:
-            st.write(result)
-
-    # Section 5: Run and Grade Code
-    st.header("Step 4: Run Your Code")
-    if st.button("Run Code"):
-        if not code:
-            st.error("Please paste your code before running.")
-        else:
-            st.session_state["captured_output"] = ""
-            old_stdout = StringIO()
-            try:
-                exec(code, {})
-                st.success("Code executed successfully!")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.session_state["captured_output"] = traceback.format_exc()
-            finally:
-                st.text_area("Captured Output", st.session_state["captured_output"], height=200)
-
-    # Section 6: Submit Assignment
-    st.header("Step 5: Submit Your Assignment")
+    # Submission Button
+    st.subheader("4. Submit Your Assignment")
     submit_button = st.button("Submit Assignment")
-    if submit_button:
-        if not code or not uploaded_html or not uploaded_png or not uploaded_csv:
-            st.error("Please ensure all fields are completed (code, HTML, PNG, CSV) before submission.")
-        else:
-            st.success("Assignment submitted successfully! Your outputs will be graded.")
 
-if __name__ == "__main__":
-    show()
+    if submit_button:
+        if student_verified and code_input and html_file and bar_chart_file and summary_file:
+            try:
+                # Call the Google Sheets update function
+                full_name = "Student Full Name"  # Replace with actual retrieval logic if needed
+                email = "student_email@example.com"  # Replace with actual retrieval logic if needed
+                update_google_sheet(full_name, email, student_id, grade, "assignment_2")
+                st.success(f"Assignment 2 submitted successfully! Your grade: {grade}/100")
+            except Exception as e:
+                st.error(f"An error occurred during submission: {e}")
+        else:
+            st.error("Please verify your Student ID and ensure all files are uploaded before submission.")
