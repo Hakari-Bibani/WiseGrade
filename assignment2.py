@@ -10,8 +10,8 @@ import base64
 from tempfile import NamedTemporaryFile
 import os
 import requests
-import re
 from typing import Any, Dict
+import inspect
 
 
 def show():
@@ -44,14 +44,14 @@ def show():
     # Initialize session state variables
     if "run_success" not in st.session_state:
         st.session_state["run_success"] = False
-    if "map_object" not in st.session_state:
-        st.session_state["map_object"] = None
-    if "bar_chart_png" not in st.session_state:
-        st.session_state["bar_chart_png"] = None
-    if "text_summary" not in st.session_state:
-        st.session_state["text_summary"] = ""
+    if "streamlit_output" not in st.session_state:
+        st.session_state["streamlit_output"] = None
     if "captured_output" not in st.session_state:
         st.session_state["captured_output"] = ""
+    if "user_code_function" not in st.session_state:
+        st.session_state["user_code_function"] = None
+    if "user_code_has_errors" not in st.session_state:
+        st.session_state["user_code_has_errors"] = False
 
     st.title("Assignment 2: Earthquake Data Analysis")
 
@@ -98,10 +98,10 @@ def show():
 
     if st.button("Run Code"):
         st.session_state["run_success"] = False
-        st.session_state["map_object"] = None
-        st.session_state["bar_chart_png"] = None
-        st.session_state["text_summary"] = ""
+        st.session_state["streamlit_output"] = None
         st.session_state["captured_output"] = ""
+        st.session_state["user_code_function"] = None
+        st.session_state["user_code_has_errors"] = False
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -109,85 +109,91 @@ def show():
         sys.stdout = new_stdout
 
         try:
-            # Execute the user's code
-            local_context = {}
-            exec(code, {}, local_context)
+            # Convert user code to a function that returns the required outputs
+            user_code_function = create_streamlit_app(code)
+            st.session_state["user_code_function"] = user_code_function
 
-            # Restore stdout
-            sys.stdout = sys.__stdout__
+            if user_code_function:
+                # Execute the user's function within Streamlit's context
+                st.session_state["streamlit_output"] = user_code_function()
 
-            # Capture printed output
-            st.session_state["captured_output"] = new_stdout.getvalue()
-
-            # Extract the folium map object
-            map_object = find_map(local_context)
-            st.session_state["map_object"] = map_object
-
-            # Extract the matplotlib figure and save as a png
-            bar_chart_png = find_and_save_chart(local_context)
-            st.session_state["bar_chart_png"] = bar_chart_png
-
-            # Attempt to extract a text summary from the captured output
-            st.session_state["text_summary"] = st.session_state["captured_output"]
 
             st.session_state["run_success"] = True
-            st.success("Code executed successfully!")
+            st.session_state["captured_output"] = new_stdout.getvalue()
+
+            if st.session_state["user_code_has_errors"] is False:
+                st.success("Code executed successfully!")
+
+
         except Exception as e:
-            sys.stdout = sys.__stdout__
+            st.session_state["user_code_has_errors"] = True
             st.error(f"An error occurred: {e}")
             st.session_state["captured_output"] = traceback.format_exc()
         finally:
-           sys.stdout = old_stdout
-
+            sys.stdout = old_stdout
 
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
 
+
     # Section 4: Visualize Outputs
     st.header("Step 4: Visualize Your Outputs")
-    if st.session_state.get("map_object"):
-        st_folium(st.session_state["map_object"], width=700, height=500)
+    if st.session_state["run_success"] and st.session_state["user_code_function"] and st.session_state["user_code_has_errors"] is False:
+        # Show the streamlit app created from the user's code.
+        if st.session_state["streamlit_output"]:
+            st.session_state["streamlit_output"]()
+        else:
+            st.write("No output generated from the user's code.")
 
-    if st.session_state.get("bar_chart_png"):
-        st.markdown("### Bar Chart Output")
-        st.image(f"data:image/png;base64,{st.session_state['bar_chart_png']}")
-
-    if st.session_state.get("text_summary"):
-        st.markdown("### Text Summary Output")
-        st.text(st.session_state["text_summary"])
 
     # Section 5: Submit Assignment
     st.header("Step 5: Submit Your Assignment")
     submit_button = st.button("Submit Assignment")
 
     if submit_button:
-        if st.session_state.get("run_success", False):
+        if st.session_state.get("run_success", False) and st.session_state["user_code_has_errors"] is False:
             st.success("Code submitted successfully! Your outputs have been recorded.")
             # Save submission logic here (e.g., Google Sheets or database)
         else:
             st.error("Please run your code successfully before submitting.")
 
+def create_streamlit_app(user_code: str):
+    """Transforms the user's code into a Streamlit app and returns the entry function for that app."""
+    try:
 
-def find_map(local_context: Dict[str, Any]) -> folium.Map | None:
-  """Attempts to find and return a folium map object from the local context."""
-  for var_name, var_value in local_context.items():
-    if isinstance(var_value, folium.Map):
-      return var_value
-  return None
+        # Define the scope for the user's code
+        local_context: Dict[str, Any] = {
+            'st': st,
+            'folium': folium,
+            'pd': pd,
+            'plt': plt,
+            'requests': requests,
+        }
 
-def find_and_save_chart(local_context: Dict[str, Any]) -> str | None:
-  """Attempts to find and save a matplotlib chart as a base64 encoded png"""
-  for var_name, var_value in local_context.items():
-      if isinstance(var_value, plt.Figure):
-        with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-            var_value.savefig(tmp_file.name)
-            temp_file_name = tmp_file.name
-        with open(temp_file_name, "rb") as img_file:
-            base64_png = base64.b64encode(img_file.read()).decode("utf-8")
-        os.remove(temp_file_name)
-        return base64_png
-  return None
+        # Modify user code to display using streamlit
+        modified_code =  f"""
+def streamlit_user_code_app():
+    {user_code}
+"""
+        exec(modified_code, local_context)
+        user_function = local_context['streamlit_user_code_app']
 
+
+        # The logic below runs within the local_context
+
+        def display_streamlit_output():
+             try:
+                user_function()
+             except Exception as e:
+                st.error(f"Error display user output: {e}")
+
+
+        return display_streamlit_output
+
+    except Exception as e:
+        st.session_state["user_code_has_errors"] = True
+        print(f"Error creating user code function {e}")
+        return None
 
 if __name__ == "__main__":
     show()
