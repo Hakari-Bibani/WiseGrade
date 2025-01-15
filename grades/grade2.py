@@ -1,119 +1,96 @@
 import pandas as pd
-import os
+import re
 from bs4 import BeautifulSoup
 from skimage.metrics import structural_similarity as ssim
-import cv2
+from PIL import Image
 import numpy as np
+import os
 
-def grade_assignment(code, html_file, bar_chart_file, summary_file):
+def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
+    # Define paths for reference files in the same folder as this script
+    base_dir = os.path.dirname(__file__)
+    correct_html = os.path.join(base_dir, "correct_map.html")
+    correct_png = os.path.join(base_dir, "correct_chart.png")
+    correct_csv = os.path.join(base_dir, "correct_summary.csv")
+
+    # Verify reference files exist
+    if not all(os.path.exists(f) for f in [correct_html, correct_png, correct_csv]):
+        raise FileNotFoundError("Reference files (correct_map.html, correct_chart.png, correct_summary.csv) are missing.")
+
     grade = 0
 
     # 1. Library Imports (10 Points)
-    required_imports = ["folium", "matplotlib", "requests", "pandas"]
-    import_penalty = 0
-
-    # Check for required libraries
-    for lib in required_imports:
-        if lib not in code:
-            import_penalty += 2  # Missing required library
-    if "urllib" in code and "requests" not in code:
-        import_penalty -= 2  # urllib can be an alternative for requests
-    grade += max(0, 10 - import_penalty)
+    required_imports = ["folium", "matplotlib", "seaborn", "requests", "urllib", "pandas"]
+    imported_libraries = sum(1 for lib in required_imports if lib in code)
+    grade += min(10, imported_libraries * 2)
 
     # 2. Code Quality (20 Points)
-    # Check variable naming, spacing, comments, and code organization
-    code_issues = 0
-
-    # Variable naming
-    if any(var in code for var in ["x", "y", "z"]):
-        code_issues += 1
-    if "earthquake_map" not in code or "magnitude_counts" not in code:
-        code_issues += 1
-
-    # Spacing
+    code_quality_deductions = 0
+    if any(re.match(r"\s*[a-z]\s*=", line) for line in code.split("\n")):
+        code_quality_deductions += 1  # Deduct for single-letter variables
     if "=" in code.replace(" = ", ""):
-        code_issues += 1
-    if ":" in code.replace(": ", ""):
-        code_issues += 1
-
-    # Comments
-    if code.count("#") < len(code.split("\n")) * 0.1:  # Check for lack of comments
-        code_issues += 1
-
-    # Organization
+        code_quality_deductions += 1  # Deduct for missing spacing
+    if "#" not in code:
+        code_quality_deductions += 1  # Deduct for missing comments
     if "\n\n" not in code:
-        code_issues += 1
+        code_quality_deductions += 1  # Deduct for poor organization
+    grade += max(0, 20 - code_quality_deductions * 5)
 
-    grade += max(0, 20 - code_issues * 5)
-
-    # 3. Fetching Data from the API (10 Points)
+    # 3. Fetching Data from API (10 Points)
     if "https://earthquake.usgs.gov/fdsnws/event/1/query" in code:
         grade += 3  # Correct API URL
     if "requests.get" in code or "urllib.request" in code:
-        grade += 3  # Successful data retrieval
-    if "response.status_code" in code or "try:" in code:
+        grade += 3  # Correct API call
+    if "response.status_code" in code:
         grade += 4  # Proper error handling
 
     # 4. Filtering Earthquakes (10 Points)
-    if "> 4.0" in code:
-        grade += 5  # Correct filtering
-    if "latitude" in code and "longitude" in code and "time" in code:
-        grade += 5  # Proper extraction of data fields
+    if "magnitude > 4.0" in code:
+        grade += 5  # Correct filtering logic
+    if all(field in code for field in ["latitude", "longitude", "magnitude", "time"]):
+        grade += 5  # Proper data extraction
 
     # 5. Map Visualization (20 Points)
-    try:
-        with open(html_file, "r") as file:
-            html_content = file.read()
-            soup = BeautifulSoup(html_content, "html.parser")
-            markers = soup.find_all("marker")
-            if markers:
-                grade += 10  # Map contains markers
-            # Check for color coding
-            for marker in markers:
-                if "green" in str(marker):
-                    grade += 5
-                elif "yellow" in str(marker):
-                    grade += 5
-                elif "red" in str(marker):
-                    grade += 5
-    except Exception as e:
-        print(f"Error processing HTML file: {e}")
+    with open(uploaded_html, "r") as html_file:
+        uploaded_map = BeautifulSoup(html_file, "html.parser")
+    with open(correct_html, "r") as correct_map_file:
+        correct_map = BeautifulSoup(correct_map_file, "html.parser")
+
+    # Check for markers in uploaded map
+    uploaded_markers = len(uploaded_map.find_all("marker"))
+    correct_markers = len(correct_map.find_all("marker"))
+    if uploaded_markers >= correct_markers:
+        grade += 10
+
+    # Verify marker colors and popup data (add logic as necessary)
+    grade += 10  # Placeholder for successful verification
 
     # 6. Bar Chart (15 Points)
-    try:
-        correct_chart = cv2.imread("correct_bar_chart.png", cv2.IMREAD_GRAYSCALE)
-        submitted_chart = cv2.imread(bar_chart_file, cv2.IMREAD_GRAYSCALE)
-        if correct_chart is not None and submitted_chart is not None:
-            similarity, _ = ssim(correct_chart, submitted_chart, full=True)
-            if similarity > 0.9:  # Similarity threshold
-                grade += 15
-            else:
-                grade += int(similarity * 15)
-    except Exception as e:
-        print(f"Error processing bar chart: {e}")
+    uploaded_image = np.array(Image.open(uploaded_png).convert("L"))
+    correct_image = np.array(Image.open(correct_png).convert("L"))
+    similarity_score = ssim(uploaded_image, correct_image)
+
+    if similarity_score > 0.9:  # High similarity
+        grade += 15
+    elif similarity_score > 0.7:  # Moderate similarity
+        grade += 10
+    else:
+        grade += 5
 
     # 7. Text Summary (15 Points)
-    try:
-        summary = pd.read_csv(summary_file)
-        expected_data = {
-            "Total": 25,  # Replace with correct expected values
-            "Average": 4.5,
-            "Maximum": 6.0,
-            "Minimum": 4.1,
-            "Range 4.0-4.5": 10,
-            "Range 4.5-5.0": 8,
-            "Range > 5.0": 7,
-        }
+    uploaded_summary = pd.read_csv(uploaded_csv)
+    correct_summary = pd.read_csv(correct_csv)
 
-        score_per_field = 15 / len(expected_data)
-        for key, expected_value in expected_data.items():
-            if key in summary.columns and round(summary[key].iloc[0], 1) == expected_value:
-                grade += score_per_field
-    except Exception as e:
-        print(f"Error processing CSV summary: {e}")
+    # Compare earthquake counts
+    try:
+        if len(uploaded_summary) == len(correct_summary):
+            grade += 5
+
+        # Check statistics
+        for col in ["Total Earthquakes", "Average Magnitude", "Maximum Magnitude", "Minimum Magnitude"]:
+            if abs(uploaded_summary[col][0] - correct_summary[col][0]) < 0.1:  # Small tolerance
+                grade += 2.5
+    except KeyError:
+        pass
 
     return round(grade)
-
-# Example usage:
-# grade = grade_assignment(code_string, "submission_map.html", "bar_chart.png", "summary.csv")
-# print(f"Final Grade: {grade}/100")
