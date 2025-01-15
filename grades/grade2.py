@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 import numpy as np
-import os
+import pytesseract
 
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
@@ -63,40 +63,55 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
         correct_map = BeautifulSoup(correct_map_file, "html.parser")
 
     # Check for markers in uploaded map
-    uploaded_markers = len(uploaded_map.find_all("marker"))
-    correct_markers = len(correct_map.find_all("marker"))
+    uploaded_markers = len(uploaded_map.find_all("circlemarker"))
+    correct_markers = len(correct_map.find_all("circlemarker"))
     if uploaded_markers >= correct_markers:
         grade += 10
 
     # Verify marker colors and popup data (placeholder logic)
     grade += 10  # Placeholder for successful verification
 
-    # 6. Bar Chart (15 Points)
-    uploaded_image = np.array(Image.open(uploaded_png).convert("L"))
-    correct_image = np.array(Image.open(correct_png).convert("L"))
-    similarity_score = ssim(uploaded_image, correct_image)
-
-    if similarity_score > 0.9:  # High similarity
-        grade += 15
-    elif similarity_score > 0.7:  # Moderate similarity
-        grade += 10
-    else:
-        grade += 5
-
-    # 7. Text Summary (15 Points)
-    uploaded_summary = pd.read_csv(uploaded_csv)
-    correct_summary = pd.read_csv(correct_csv)
-
+    # 6. Bar Chart Grading (15 Points)
     try:
-        # Compare total earthquakes
-        if len(uploaded_summary) == len(correct_summary):
+        # Compare chart structure using grayscale SSIM
+        uploaded_image = np.array(Image.open(uploaded_png).convert("L"))
+        correct_image = np.array(Image.open(correct_png).convert("L"))
+        similarity_score = ssim(uploaded_image, correct_image)
+
+        if similarity_score > 0.9:  # High similarity
+            grade += 10
+        elif similarity_score > 0.7:  # Moderate similarity
+            grade += 7
+        else:
             grade += 5
 
-        # Check statistics
-        for col in ["Total Earthquakes", "Average Magnitude", "Maximum Magnitude", "Minimum Magnitude"]:
-            if abs(uploaded_summary[col][0] - correct_summary[col][0]) < 0.1:  # Small tolerance
-                grade += 2.5
-    except KeyError:
-        pass
+        # Validate bar chart labels using OCR
+        uploaded_text = pytesseract.image_to_string(uploaded_png)
+        required_labels = ["4.0-4.5", "4.5-5.0", ">5.0"]
+        if all(label in uploaded_text for label in required_labels):
+            grade += 5
+        else:
+            grade += 3  # Partial points if some labels are missing
+    except Exception as e:
+        print(f"Error grading bar chart: {e}")
+        grade += 0  # No points if the bar chart fails
+
+    # 7. Text Summary Grading (15 Points)
+    try:
+        # Load the uploaded and correct CSV files
+        uploaded_summary = pd.read_csv(uploaded_csv)
+        correct_summary = pd.read_csv(correct_csv)
+
+        # Compare numerical values regardless of column names
+        uploaded_values = uploaded_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
+        correct_values = correct_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
+
+        # Check for small tolerance in values
+        tolerance = 0.01
+        matching_values = sum(abs(u - c) <= tolerance for u, c in zip(uploaded_values, correct_values))
+        grade += (15 * matching_values / len(correct_values))  # Scale points by percentage match
+    except Exception as e:
+        print(f"Error grading CSV: {e}")
+        grade += 0  # No points if the CSV comparison fails
 
     return round(grade)
