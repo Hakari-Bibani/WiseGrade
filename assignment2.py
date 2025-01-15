@@ -109,16 +109,19 @@ def show():
         sys.stdout = new_stdout
 
         try:
+            # Remove any shell commands
+            cleaned_code = remove_shell_commands(code)
+
             # Execute the user's code
             local_context = {}
 
-             # Capture the code output and map and chart objects in a way that allows us to show them
+            # Capture the code output and map and chart objects in a way that allows us to show them
 
             modified_code = f"""
 def run_user_code():
     global map_object
     global chart_object
-    {code}
+    {cleaned_code}
 
     try:
         map_object = earthquake_map
@@ -134,7 +137,6 @@ run_user_code()
             """
             exec(modified_code, {}, local_context)
 
-
             # Restore stdout
             sys.stdout = sys.__stdout__
 
@@ -145,11 +147,9 @@ run_user_code()
             map_object = find_map(local_context)
             st.session_state["map_object"] = map_object
 
-
             # Extract the matplotlib figure and save as a png
             bar_chart_png = find_and_save_chart(local_context)
             st.session_state["bar_chart_png"] = bar_chart_png
-
 
             # Attempt to extract a text summary from the captured output
             st.session_state["text_summary"] = st.session_state["captured_output"]
@@ -161,8 +161,7 @@ run_user_code()
             st.error(f"An error occurred: {e}")
             st.session_state["captured_output"] = traceback.format_exc()
         finally:
-           sys.stdout = old_stdout
-
+            sys.stdout = old_stdout
 
         # Display captured output
         st.text_area("Code Output", st.session_state["captured_output"], height=200)
@@ -194,24 +193,31 @@ run_user_code()
 
 
 def find_map(local_context: Dict[str, Any]) -> folium.Map | None:
-  """Attempts to find and return a folium map object from the local context."""
-  for var_name, var_value in local_context.items():
-    if isinstance(var_value, folium.Map):
-      return var_value
-  return None
+    """Attempts to find and return a folium map object from the local context."""
+    for var_name, var_value in local_context.items():
+        if isinstance(var_value, folium.Map):
+            return var_value
+    return None
+
 
 def find_and_save_chart(local_context: Dict[str, Any]) -> str | None:
-  """Attempts to find and save a matplotlib chart as a base64 encoded png"""
-  for var_name, var_value in local_context.items():
-      if isinstance(var_value, plt.Figure):
-        with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-            var_value.savefig(tmp_file.name)
-            temp_file_name = tmp_file.name
-        with open(temp_file_name, "rb") as img_file:
-            base64_png = base64.b64encode(img_file.read()).decode("utf-8")
-        os.remove(temp_file_name)
-        return base64_png
-  return None
+    """Attempts to find and save a matplotlib chart as a base64 encoded png"""
+    for var_name, var_value in local_context.items():
+        if isinstance(var_value, plt.Figure):
+            with NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+                var_value.savefig(tmp_file.name)
+                temp_file_name = tmp_file.name
+            with open(temp_file_name, "rb") as img_file:
+                base64_png = base64.b64encode(img_file.read()).decode("utf-8")
+            os.remove(temp_file_name)
+            return base64_png
+    return None
+
+def remove_shell_commands(code: str) -> str:
+    """Removes shell commands like '!pip install' from the code."""
+    lines = code.splitlines()
+    cleaned_lines = [line for line in lines if not line.strip().startswith("!")]
+    return "\n".join(cleaned_lines)
 
 
 if __name__ == "__main__":
