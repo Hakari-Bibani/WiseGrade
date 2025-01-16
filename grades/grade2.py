@@ -1,3 +1,10 @@
+import pandas as pd
+import re  # Import re module for regular expressions
+from bs4 import BeautifulSoup
+from PIL import Image
+import os
+
+
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
     Grade Assignment 2 based on the uploaded files and provided criteria.
