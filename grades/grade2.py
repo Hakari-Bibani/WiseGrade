@@ -1,99 +1,80 @@
 import pandas as pd
-import re  # Import re module for regular expressions
+import re
 from bs4 import BeautifulSoup
-from PIL import Image
-import os
-
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
-    """
-    Grade Assignment 2 based on the uploaded files and provided criteria.
-    """
     grade = 0
 
-    # 1. Library Imports (10 Points)
-    required_imports = ["folium", "matplotlib", "seaborn", "requests", "urllib", "pandas"]
-    imported_libraries = sum(1 for lib in required_imports if lib in code)
-    grade += min(10, imported_libraries * 2)
+    # 1. Library Imports (20 Points)
+    required_imports = {
+        'folium': 5,
+        'matplotlib|seaborn': 5,
+        'requests|urllib': 5,
+        'pandas': 5
+    }
+    code_imports = [line for line in code.split('\n') if line.startswith('import') or line.startswith('from')]
+    import_grade = 0
+    for lib, points in required_imports.items():
+        pattern = f"({'|'.join(lib.split('|'))})"
+        if re.search(pattern, '\n'.join(code_imports)):
+            import_grade += points
+    grade += min(20, import_grade)
 
-    # 2. Code Quality (20 Points)
-    code_quality_deductions = 0
-    if any(re.match(r"\s*[a-z]\s*=", line) for line in code.split("\n")):
-        code_quality_deductions += 1  # Deduct for single-letter variables
-    if "=" in code.replace(" = ", ""):
-        code_quality_deductions += 1  # Deduct for missing spacing
-    if "#" not in code:
-        code_quality_deductions += 1  # Deduct for missing comments
-    if "\n\n" not in code:
-        code_quality_deductions += 1  # Deduct for poor organization
-    grade += max(0, 20 - code_quality_deductions * 5)
+    # 2. Code Quality (10 Points)
+    code_quality = 10
+    # Variable Naming: Check for single-letter variables
+    if re.search(r'\b[a-zA-Z]\b *=', code):
+        code_quality -= 2
+    # Spacing: Check for improper spacing around operators
+    if re.search(r'[\w=><!]+=[\w=><!]+', code):
+        code_quality -= 2
+    # Comments: Check for presence of comments
+    if re.search(r'#', code) is None:
+        code_quality -= 2
+    # Code Organization: Check for blank lines
+    lines = code.split('\n')
+    if sum(1 for i in range(1, len(lines)) if lines[i-1].strip() and lines[i].strip()) / len(lines) > 0.9:
+        code_quality -= 2
+    grade += max(0, code_quality)
 
     # 3. Fetching Data from API (10 Points)
-    if "https://earthquake.usgs.gov/fdsnws/event/1/query" in code:
-        grade += 3  # Correct API URL
-    if "requests.get" in code or "urllib.request" in code:
-        grade += 3  # Correct API call
-    if "response.status_code" in code:
-        grade += 4  # Proper error handling
+    api_grade = 0
+    if 'https://earthquake.usgs.gov/fdsnws/event/1/query?' in code:
+        api_grade += 5
+    if re.search(r'response\.status_code', code):
+        api_grade += 5
+    grade += min(10, api_grade)
 
     # 4. Filtering Earthquakes (10 Points)
-    if "magnitude > 4.0" in code:
-        grade += 5  # Correct filtering logic
-    if all(field in code for field in ["latitude", "longitude", "magnitude", "time"]):
-        grade += 5  # Proper data extraction
+    filter_grade = 0
+    if re.search(r'magnitude\s*>\s*4\.0', code):
+        filter_grade += 5
+    if all(field in code for field in ['latitude', 'longitude', 'magnitude', 'time']):
+        filter_grade += 5
+    grade += min(10, filter_grade)
 
     # 5. Map Visualization (20 Points)
-    try:
-        if uploaded_html is not None:
-            from bs4 import BeautifulSoup
-            uploaded_map = BeautifulSoup(uploaded_html, "html.parser")
-
-            # Check for markers with correct colors
-            green_markers = len(uploaded_map.find_all("marker", {"class": "green"}))
-            yellow_markers = len(uploaded_map.find_all("marker", {"class": "yellow"}))
-            red_markers = len(uploaded_map.find_all("marker", {"class": "red"}))
-            total_markers = green_markers + yellow_markers + red_markers
-
-            # Check popups
-            popups = uploaded_map.find_all("popup")
-            if total_markers > 0 and len(popups) >= total_markers:
-                grade += 20
-    except Exception as e:
-        print(f"Error checking HTML file: {e}")
+    if uploaded_html:
+        soup = BeautifulSoup(uploaded_html, 'html.parser')
+        markers = soup.find_all('marker')
+        has_colors = all(marker.get('class') in ['green', 'yellow', 'red'] for marker in markers)
+        has_popups = all(marker.find('popup') for marker in markers)
+        if has_colors and has_popups:
+            grade += 20
 
     # 6. Bar Chart (15 Points)
-    try:
-        if uploaded_png is not None:
-            grade += 12  # Assign 12 points if PNG is uploaded
-    except Exception as e:
-        print(f"Error checking PNG file: {e}")
+    if uploaded_png:
+        grade += 12
 
     # 7. Text Summary (15 Points)
-    try:
-        if uploaded_csv is not None:
-            uploaded_summary = pd.read_csv(uploaded_csv)
-
-            # Check for matching values
-            correct_csv_values = {
-                "Total Earthquakes": 210.0,
-                "Average Magnitude": 4.64,
-                "Maximum Magnitude": 7.1,
-                "Minimum Magnitude": 4.1,
-                "4.0-4.5": 109.0,
-                "4.5-5.0": 76.0,
-                ">5.0": 25.0,
-            }
-
-            matches = 0
-            for key, correct_value in correct_csv_values.items():
-                if key in uploaded_summary.columns:
-                    uploaded_value = uploaded_summary[key].iloc[0]
-                    if abs(uploaded_value - correct_value) < 0.1:  # Allow small tolerance
-                        matches += 1
-
-            if matches == len(correct_csv_values):
+    if uploaded_csv:
+        try:
+            summary = pd.read_csv(uploaded_csv, header=None)
+            correct_values = [210.0, 4.64, 7.1, 4.1, 109.0, 76.0, 25.0]
+            uploaded_values = summary.iloc[:, -1].tolist()
+            if all(abs(a - b) < 0.1 for a, b in zip(uploaded_values, correct_values)):
                 grade += 15
-    except Exception as e:
-        print(f"Error checking CSV file: {e}")
+        except:
+            pass
 
     return round(grade)
