@@ -1,160 +1,184 @@
-import pandas as pd
-import re
 import os
-import json
+import pandas as pd
 import requests
-from io import StringIO
-from PIL import Image
+from bs4 import BeautifulSoup
 import numpy as np
+from PIL import Image
+import re
 from skimage.metrics import structural_similarity as ssim
-import cv2
-import pytesseract
-from Levenshtein import ratio
+import io
+import matplotlib.pyplot as plt
+import logging
+
+# Setup basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def grade_assignment(code, html_path, png_path, csv_path):
     grade = 0
-    # --- Evaluate Code (50 points) ---
-    grade += evaluate_code(code)
 
-    # --- Evaluate Uploaded Files (50 points) ---
-    grade += evaluate_uploaded_files(html_path, png_path, csv_path)
+    # 1. Library Imports (10 points)
+    grade += check_library_imports(code)
 
-    return round(grade)
+    # 2. Code Quality (20 points)
+    grade += check_code_quality(code)
 
+    # 3. Fetching Data from API (10 points)
+    grade += check_api_fetching(code)
 
-def evaluate_code(code):
-    code_grade = 0
+    # 4. Filtering Earthquakes (10 points)
+    grade += check_earthquake_filtering(code)
 
-    # 1. Library Imports (20 Points)
-    required_imports = ["folium", "matplotlib", "requests", "pandas", "seaborn", "urllib"]
-    imported_libraries = [lib for lib in required_imports if lib in code]
-    code_grade += min(10, len(imported_libraries)*2)
+    # 5. Map Visualization (20 points)
+    grade += check_map_visualization(html_path)
+    grade += check_map_visualization(code, html_path)
 
-    if "import" in code:
-      code_grade += 2 #proper import organization and no unused
+    # 6. Bar Chart (15 points)
+    grade += check_bar_chart(png_path)
+    grade += check_bar_chart(code, png_path)
 
-    # 2. Code Quality (20 Points)
-    #   Variable Naming (5 Points)
-    if re.search(r'(earthquake_map|magnitude_counts)', code):
-       code_grade += 5
-    #   Spacing (5 Points)
-    if re.search(r'=\s', code) and re.search(r'>\s', code) and re.search(r'<\s', code) :
-       code_grade += 5
+    # 7. Text Summary (15 points)
+    grade += check_text_summary(csv_path)
+@@ -102,80 +102,75 @@
+     logging.info(f"Earthquake Filtering Grade: {grade}")
+     return grade
 
-    # 3. Fetching Data from the API (10 Points)
-    api_url_pattern = r'https://earthquake\.usgs\.gov/fdsnws/event/1/query\?format=geojson&starttime=\d{4}-\d{2}-\d{2}&endtime=\d{4}-\d{2}-\d{2}'
-    if re.search(api_url_pattern, code):
-         code_grade += 5
-
-    if "response.status_code" in code:
-        code_grade += 5
-
-    # 4. Filtering Earthquakes (10 Points)
-    if re.search(r'magnitude\s*>\s*4\.0', code):
-       code_grade += 5
-    if re.search(r'(latitude|longitude|magnitude|time)', code, re.IGNORECASE):
-        code_grade += 5
-
-    return code_grade
-
-
-def evaluate_uploaded_files(html_path, png_path, csv_path):
-    file_grade = 0
-
-    # 5. Map Visualization (20 Points)
-    file_grade += evaluate_map(html_path)
-
-    # 6. Bar Chart (15 Points)
-    file_grade += evaluate_chart(png_path)
-
-    # 7. Text Summary (15 Points)
-    file_grade += evaluate_summary(csv_path)
-
-    return file_grade
-
-
-def evaluate_map(html_path):
-    map_grade = 0
+def check_map_visualization(html_path):
+def check_map_visualization(code, html_path):
+    grade = 0
     try:
-        with open(html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
+        with open(html_path, "r", encoding="utf-8") as f:
+            student_html = f.read()
+        with open(os.path.join("grades", "correct_map.html"), "r", encoding="utf-8") as f:
+            correct_html = f.read()
+        # save the read html files for debugging purposes
+        with open("grades/student_map.html", "w", encoding="utf-8") as f:
+            f.write(student_html)
+        with open("grades/correct_map.html", "w", encoding="utf-8") as f:
+            f.write(correct_html)
 
-        # Check for marker colors (green, yellow, red)
-        if '"color": "green"' in html_content:
-            map_grade += 3
-        if '"color": "yellow"' in html_content:
-            map_grade += 3
-        if '"color": "red"' in html_content:
-             map_grade += 3
-         # Check for popups
-        if re.search(r'popup=\s*".*magnitude.*"', html_content, re.IGNORECASE):
-           map_grade += 3
-        if re.search(r'popup=\s*".*latitude.*longitude.*"', html_content, re.IGNORECASE):
-            map_grade += 4
-        if re.search(r'popup=\s*".*time.*"', html_content, re.IGNORECASE):
-           map_grade += 4
+        student_soup = BeautifulSoup(student_html, "html.parser")
+        correct_soup = BeautifulSoup(correct_html, "html.parser")
+
+        student_markers = student_soup.find_all("div", class_="leaflet-marker-icon")
+        correct_markers = correct_soup.find_all("div", class_="leaflet-marker-icon")
+
+        # Check if any markers exist.
+        if not student_markers:
+            logging.info("No markers found in student map, failing map visualization check")
+            return 0  # No markers found, fail the map visualization check
+
+        # Markers count
+        if len(student_markers) == len(correct_markers):
+           grade += 5
+        else:
+           logging.info(f"Incorrect marker counts, student: {len(student_markers)}, correct: {len(correct_markers)}")
+        
+        # Colors check
+        # Correct Colors check
+        correct_colors = ['green', 'yellow', 'red']
+        student_colors = [marker.find('img').get('src') for marker in student_markers]
+        # Check if colors of the student marker are in correct colors set
+        if any(color not in str(student_colors) for color in correct_colors):
+            logging.info(f"Incorrect colors found in student map: {student_colors}")
+            return 0 # fail color check
+        else:
+            grade += 10
+            
+           grade += 10
+        # popup text check: the text includes the time magnitude location
+        student_popups = student_soup.find_all("div", class_="leaflet-popup-content")
+        if all(any(keyword in str(popup) for keyword in ["magnitude", "location","time"]) for popup in student_popups):
+            grade += 5
+             grade += 10
+        else:
+            logging.info(f"Incorrect popups found in student map: {student_popups}")
+        
+        logging.info(f"Map Visualization Grade: {grade}")
+             logging.info(f"Incorrect popups found in student map: {student_popups}")
+       
 
     except Exception as e:
-        print(f"Error evaluating map: {e}")
+        logging.error(f"Error comparing HTML files: {e}")
+        return 0
 
-    return map_grade
+    logging.info(f"Map Visualization Grade: {grade}")
+    return grade
 
-def evaluate_chart(png_path):
-  chart_grade = 0
-  try:
-    # Load images
-    uploaded_image = cv2.imread(png_path)
-    expected_image = cv2.imread('utils/expected_chart.png') # expected chart
-
-    if uploaded_image is None or expected_image is None:
-        return 0  # Return 0 points if images can't be loaded
-
-    # Convert images to grayscale
-    uploaded_gray = cv2.cvtColor(uploaded_image, cv2.COLOR_BGR2GRAY)
-    expected_gray = cv2.cvtColor(expected_image, cv2.COLOR_BGR2GRAY)
-
-    # Apply Canny edge detector
-    uploaded_edges = cv2.Canny(uploaded_gray, 100, 200)
-    expected_edges = cv2.Canny(expected_gray, 100, 200)
-
-    # Structural Similarity Comparison
-    if uploaded_edges.size == expected_edges.size and uploaded_edges.shape == expected_edges.shape:
-      similarity_score = ssim(uploaded_edges, expected_edges)
-      chart_grade += max(0, min(10, similarity_score * 10))  # Map similarity score to points
-
-    # Text Extraction and Comparison (OCR)
+def check_bar_chart(png_path):
+def check_bar_chart(code, png_path):
+    grade = 0
     try:
-        uploaded_text = pytesseract.image_to_string(uploaded_gray).strip()
-        expected_text = pytesseract.image_to_string(expected_gray).strip()
-        text_similarity = ratio(uploaded_text, expected_text)
-        chart_grade += max(0, min(5, text_similarity * 5))
-    except Exception as e:
-        print(f"Error with OCR text extraction: {e}")
-
-  except Exception as e:
-    print(f"Error evaluating chart: {e}")
-  return chart_grade
-
-
-def evaluate_summary(csv_path):
-    summary_grade = 0
-    try:
-        uploaded_df = pd.read_csv(csv_path)
-        expected_df = pd.read_csv('utils/expected_summary.csv')  # expected csv
-
-        if uploaded_df.empty or expected_df.empty:
+        student_image = Image.open(png_path).convert("RGB")
+        correct_image = Image.open(os.path.join("grades", "correct_chart.png")).convert("RGB")
+         # Execute code to get the chart
+        local_context = {}
+        exec(code, {}, local_context)
+        bar_chart_figure = next((obj for obj in local_context.values() if isinstance(obj, plt.Figure)), None)
+        if not bar_chart_figure:
+            logging.info("No bar chart found when executing the student code.")
             return 0
 
-        uploaded_values = uploaded_df.values.flatten().astype(str)
-        expected_values = expected_df.values.flatten().astype(str)
+        student_array = np.array(student_image)
+        correct_array = np.array(correct_image)
+        if student_array.shape != correct_array.shape:
+            logging.info(f"Image shapes are different, student {student_array.shape}, correct {correct_array.shape}")
+            return 0 # fail if the shape of images are not the same
+        # Calculate the Bar Charts Properties
+        ax = bar_chart_figure.axes[0]
+        bar_heights = ax.patches
+        tick_labels = ax.get_xticklabels()
 
-        # Calculate similarity between value sets (ignoring order)
-        common_values = sum(1 for val in uploaded_values if val in expected_values)
-        total_values = max(len(uploaded_values), len(expected_values))
-        similarity_score = common_values / total_values if total_values > 0 else 0
-
-        summary_grade += max(0, min(15, similarity_score * 15))  # Scale score to 15 points
+        score = ssim(student_array, correct_array, channel_axis=2)
+        logging.info(f"SSIM score: {score}")
+        if score > 0.85:
+            grade += 15
+        # Check the tick labels
+        correct_labels = ["4.0-4.5", "4.5-5.0", "5.0+"]
+        if [label.get_text() for label in tick_labels] != correct_labels:
+              logging.info(f"Labels are not correct {tick_labels}")
+              return 0
+        
+        # Check the bar heights if they are greater or less than zero
+        if not all(height.get_height() > 0 for height in bar_heights):
+              logging.info(f"Bar heights are not correct {bar_heights}")
+              return 0
+        
+        grade += 15
 
     except Exception as e:
-         print(f"Error evaluating summary CSV: {e}")
-    return summary_grade
+        logging.error(f"Error comparing image files: {e}")
+@@ -188,19 +183,25 @@
+    try:
+        student_df = pd.read_csv(csv_path)
+        correct_df = pd.read_csv(os.path.join("grades", "correct_summary.csv"))
+        if student_df.equals(correct_df):
+           grade += 15
+        else:
+          logging.info("Dataframes are not equal, failing text summary check")
+          # Detailed comparison
+          diff_mask = (student_df != correct_df)
+          diff_loc = np.where(diff_mask)
+          if not diff_loc[0].size == 0:
+              logging.info(f"Differences at rows {diff_loc[0]}, cols {diff_loc[1]}")
+              for row, col in zip(*diff_loc):
+                  logging.info(f"Student Value: {student_df.iloc[row, col]}, Correct Value: {correct_df.iloc[row, col]}")
+        # Check that both dataframes have the same number of rows and columns
+        if student_df.shape != correct_df.shape:
+            logging.info(f"Dataframes shape not matching {student_df.shape} vs {correct_df.shape}")
+            return 0
+        
+        # Check each column one by one
+        for col in correct_df.columns:
+          if not col in student_df.columns:
+            logging.info(f"Column {col} is not in student dataframe")
+            return 0
+          if not student_df[col].equals(correct_df[col]):
+            logging.info(f"Column {col} is not equal in student dataframe vs correct dataframe")
+            return 0
+        
+        grade += 15
+    except Exception as e:
+        logging.error(f"Error comparing CSV files: {e}")
+        return 0
+    logging.info(f"Text Summary Grade: {grade}")
+    return grade
