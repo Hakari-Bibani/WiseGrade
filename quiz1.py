@@ -71,11 +71,10 @@ def show():
                 "ChatGPT can provide suggestions for improving your code, including optimization and error handling.",
                 "ChatGPT replaces the need for learning Python syntax and programming logic.",
             ],
-            [
+            [   "Sharing the Google Sheet with a service account email.",
+                "Using pandas to write data directly to the Google Sheet without authentication.",
                 "Both a and b.",
                 "Authenticating Colab with a personal Gmail account using gspread.",
-                "Sharing the Google Sheet with a service account email.",
-                "Using pandas to write data directly to the Google Sheet without authentication.",
             ],
             [
                 "Install the Google Sheets API client library and authenticate with an API key or service account credentials.",
