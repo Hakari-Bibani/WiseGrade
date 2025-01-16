@@ -21,10 +21,10 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     correct_html = os.path.join(base_dir, "correct_map.html")
     correct_png = os.path.join(base_dir, "correct_chart.png")
     correct_csv = os.path.join(base_dir, "correct_summary.csv")
-    correct_json = os.path.join(base_dir, "correct_data.json")
+
 
     # Verify that all reference files exist
-    missing_files = [file for file in [correct_html, correct_png, correct_csv, correct_json] if not os.path.exists(file)]
+    missing_files = [file for file in [correct_html, correct_png, correct_csv] if not os.path.exists(file)]
     if missing_files:
         raise FileNotFoundError(f"Reference files ({', '.join(missing_files)}) are missing.")
     
@@ -32,7 +32,6 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     print(f"HTML path: {correct_html}")
     print(f"PNG path: {correct_png}")
     print(f"CSV path: {correct_csv}")
-    print(f"JSON path: {correct_json}")
 
     grade = 0
     feedback = []  # List to store feedback messages
@@ -48,7 +47,7 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     feedback.extend(feedback_quality)
 
     # --- 3. API Data Fetching (15 Points) ---
-    grade_api, feedback_api = check_api_fetching(code, correct_json)
+    grade_api, feedback_api = check_api_fetching(code)
     grade += grade_api
     feedback.extend(feedback_api)
 
@@ -134,55 +133,32 @@ def check_code_quality(code):
     
 
 
-def check_api_fetching(code, correct_json):
-    """Checks API URL, request method, and basic data structure."""
+def check_api_fetching(code):
+    """Checks API URL, request method, and basic error handling."""
     grade = 0
     feedback_api = []
     correct_url = "https://earthquake.usgs.gov/fdsnws/event/1/query"
     try:
         # 1. Check for API URL
         if correct_url in code:
-          grade += 3
+          grade += 5
         else:
              feedback_api.append("Incorrect API URL")
 
         # 2. Check request method
         if "requests.get" in code:
-           grade += 3
+           grade += 5
         elif "urllib.request" in code:
-            grade += 3
+            grade += 5
         else:
            feedback_api.append("Missing API call")
 
         # 3. Check for error handling
         if "response.status_code" in code or "e.code" in code:
-           grade += 4
+           grade += 5
         else:
              feedback_api.append("Missing error handling")
 
-        # 4. Retrieve the data to verify the json
-        
-        if "requests.get" in code and correct_url in code:
-              response = requests.get(correct_url)
-              if response.status_code == 200:
-                    student_data = response.json()
-                    with open(correct_json, 'r') as correct_data:
-                        correct_data = json.load(correct_data)
-
-                        #Check if student data contains keys and items from correct data
-                        if correct_data.keys() <= student_data.keys():
-                             grade += 5 #Correct Structure
-                             if 'features' in student_data:
-                               if len(student_data['features']) > 0:
-                                    grade+= 0 #More thorough checks are missing
-                               else:
-                                    feedback_api.append("The student data has no earthquake features. Make sure the API is correctly used")
-                             else:
-                                feedback_api.append("The student data should contains a `features` key")
-                        else:
-                             feedback_api.append("The API return has an incorrect json structure")
-              else:
-                    feedback_api.append("There was a problem while fetching the API Data")
 
 
     except Exception as e:
