@@ -1,9 +1,7 @@
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
-from skimage.metrics import structural_similarity as ssim
 from PIL import Image
-import numpy as np
 import os
 
 
@@ -13,7 +11,6 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
 
     # Define the directory where the correct reference files are located
-    base_dir = os.path.dirname(__file__)
     correct_csv_values = {
         "Total Earthquakes": 210.0,
         "Average Magnitude": 4.64,
