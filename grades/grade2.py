@@ -1,4 +1,4 @@
-i have this tell me how it work: import pandas as pd
+import pandas as pd
 import re
 from bs4 import BeautifulSoup
 
