@@ -5,12 +5,12 @@ from bs4 import BeautifulSoup
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     grade = 0
 
-    # 1. Library Imports (20 Points)
+    # 1. Library Imports (25 Points)
     required_imports = {
-        'folium': 5,
-        'matplotlib|seaborn': 5,
-        'requests|urllib': 5,
-        'pandas': 5
+        'folium': 7,
+        'matplotlib|seaborn': 6,
+        'requests|urllib': 6,
+        'pandas': 6
     }
     code_imports = [line for line in code.split('\n') if line.startswith('import') or line.startswith('from')]
     import_grade = 0
@@ -18,7 +18,7 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
         pattern = f"({'|'.join(lib.split('|'))})"
         if re.search(pattern, '\n'.join(code_imports)):
             import_grade += points
-    grade += min(20, import_grade)
+    grade += min(25, import_grade)
 
     # 2. Code Quality (10 Points)
     code_quality = 10
@@ -29,7 +29,7 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     if re.search(r'[\w=><!]+=[\w=><!]+', code):
         code_quality -= 2
     # Comments: Check for presence of comments
-    if re.search(r'#', code) is None:
+    if not re.search(r'#', code):
         code_quality -= 2
     # Code Organization: Check for blank lines
     lines = code.split('\n')
@@ -53,26 +53,32 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
         filter_grade += 5
     grade += min(10, filter_grade)
 
-    # 5. Map Visualization (20 Points)
+    # 5. Map Visualization (15 Points)
     if uploaded_html:
         soup = BeautifulSoup(uploaded_html, 'html.parser')
         markers = soup.find_all('marker')
         has_colors = all(marker.get('class') in ['green', 'yellow', 'red'] for marker in markers)
         has_popups = all(marker.find('popup') for marker in markers)
         if has_colors and has_popups:
-            grade += 20
+            grade += 15
 
     # 6. Bar Chart (15 Points)
     if uploaded_png:
-        grade += 12
+        grade += 15
 
     # 7. Text Summary (15 Points)
     if uploaded_csv:
         try:
-            summary = pd.read_csv(uploaded_csv, header=None)
+            # Read CSV with both decimal separators
+            summary = pd.read_csv(uploaded_csv, decimal=',', header=None)
+            # If that fails, try with decimal point
+            if summary.isnull().all().all():
+                summary = pd.read_csv(uploaded_csv, decimal='.', header=None)
+            # Flatten the DataFrame and convert to float
+            uploaded_values = summary.values.flatten().astype(float)
             correct_values = [210.0, 4.64, 7.1, 4.1, 109.0, 76.0, 25.0]
-            uploaded_values = summary.iloc[:, -1].tolist()
-            if all(abs(a - b) < 0.1 for a, b in zip(uploaded_values, correct_values)):
+            # Check if all correct values are in uploaded values with tolerance
+            if all(abs((uploaded_values - val).min()) < 0.1 for val in correct_values):
                 grade += 15
         except:
             pass
