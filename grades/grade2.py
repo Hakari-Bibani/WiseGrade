@@ -7,7 +7,7 @@ from PIL import Image
 import re
 from skimage.metrics import structural_similarity as ssim
 import io
-
+import matplotlib.pyplot as plt
 
 def grade_assignment(code, html_path, png_path, csv_path):
     grade = 0
