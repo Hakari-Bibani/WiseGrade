@@ -120,20 +120,21 @@ def show():
             "- Click 'Submit Quiz' when you are ready."
         )
 
-        user_answers = [None] * len(questions)
-
+        user_answers = []
         for i, question in enumerate(questions):
             st.subheader(f"Question {i+1}")
-            user_answers[i] = st.radio(
-                question, options[i], key=f"q{i+1}"
+            # Set index=0 to pre-select the first option
+            answer = st.radio(
+                question,
+                options[i],
+                key=f"q{i+1}",
+                index=0
             )
+            user_answers.append(answer)
 
         if st.button("Submit Quiz"):
-            if None in user_answers:
-                st.warning("Please answer all questions before submitting.")
-            else:
-                score = sum([1 for i in range(len(answers)) if user_answers[i] == answers[i]]) * 10
-                st.success(f"You scored {score}/70.")
+            score = sum([1 for i in range(len(answers)) if user_answers[i] == answers[i]]) * 10
+            st.success(f"You scored {score}/70.")
 
 if __name__ == "__main__":
     show()
