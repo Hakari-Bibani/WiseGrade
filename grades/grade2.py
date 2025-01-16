@@ -7,10 +7,10 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
 
     # 1. Library Imports (25 Points)
     required_imports = {
-        'folium': 6,
-        'matplotlib|seaborn': 6,
-        'requests|urllib': 6,
-        'pandas': 7
+        'folium': 5,
+        'matplotlib|seaborn': 5,
+        'requests|urllib': 5,
+        'pandas': 10  # Increased points for pandas
     }
     code_imports = [line for line in code.split('\n') if line.startswith('import') or line.startswith('from')]
     import_grade = 0
@@ -18,49 +18,47 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
         pattern = f"({'|'.join(lib.split('|'))})"
         if re.search(pattern, '\n'.join(code_imports)):
             import_grade += points
-    grade += min(25, import_grade)
+    grade += min(25, import_grade)  # Total points for imports increased to 25
 
     # 2. Code Quality (5 Points)
     code_quality = 5
+    # Variable Naming: Check for single-letter variables
     if re.search(r'\b[a-zA-Z]\b *=', code):
         code_quality -= 1
+    # Spacing: Check for improper spacing around operators
     if re.search(r'[\w=><!]+=[\w=><!]+', code):
         code_quality -= 1
-    if re.search(r'#', code) is None:
-        code_quality -= 1
-    lines = code.split('\n')
-    if sum(1 for i in range(1, len(lines)) if lines[i-1].strip() and lines[i].strip()) / len(lines) > 0.9:
+    # Comments: Check for presence of comments
+    if not re.search(r'#', code):
         code_quality -= 1
     grade += max(0, code_quality)
 
     # 3. Fetching Data from API (5 Points)
     api_grade = 0
     if 'https://earthquake.usgs.gov/fdsnws/event/1/query?' in code:
-        api_grade += 3
-    if re.search(r'response\.status_code', code):
-        api_grade += 2
+        api_grade += 5
     grade += min(5, api_grade)
 
-    # 4. Filtering Earthquakes (5 Points)
+    # 4. Filtering Earthquakes (10 Points)
     filter_grade = 0
     if re.search(r'magnitude\s*>\s*4\.0', code):
-        filter_grade += 3
+        filter_grade += 5
     if all(field in code for field in ['latitude', 'longitude', 'magnitude', 'time']):
-        filter_grade += 2
-    grade += min(5, filter_grade)
+        filter_grade += 5
+    grade += min(10, filter_grade)
 
-    # 5. Map Visualization (25 Points)
+    # 5. Map Visualization (20 Points)
     if uploaded_html:
         soup = BeautifulSoup(uploaded_html, 'html.parser')
         markers = soup.find_all('marker')
         has_colors = all(marker.get('class') in ['green', 'yellow', 'red'] for marker in markers)
         has_popups = all(marker.find('popup') for marker in markers)
         if has_colors and has_popups:
-            grade += 25
+            grade += 20
 
     # 6. Bar Chart (15 Points)
     if uploaded_png:
-        grade += 15
+        grade += 15  # Award full points if PNG is uploaded
 
     # 7. Text Summary (20 Points)
     if uploaded_csv:
