@@ -1,124 +1,205 @@
-import re
 import pandas as pd
+import re
 from bs4 import BeautifulSoup
-from PIL import Image
-import numpy as np
-from skimage.metrics import structural_similarity as ssim
-import os
+import ast
 
 
-def grade_assignment(code, uploaded_html=None, uploaded_png=None, uploaded_csv=None):
+def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
-    Grade Assignment 2 based on pasted code and uploaded files.
+    Grades the assignment based on the provided criteria.
     """
-
     grade = 0
-
-    ### Part 1: Evaluate the Code
+    feedback = []
 
     # 1. Library Imports (20 Points)
-    required_imports = ["folium", "matplotlib", "seaborn", "requests", "urllib", "pandas"]
-    imported_libraries = sum(1 for lib in required_imports if lib in code)
-    unused_imports = re.findall(r"import\s+(\w+)", code)  # Find all imported libraries
-    unused_imports = [lib for lib in unused_imports if lib not in code or lib not in required_imports]
+    import_score = 0
+    required_imports = {
+        "folium": False,
+        "matplotlib": False,
+        "seaborn": False,
+        "requests": False,
+        "urllib": False,
+        "pandas": False,
+    }
 
-    if imported_libraries == len(required_imports) and not unused_imports:
-        grade += 20
-    else:
-        grade += max(0, imported_libraries * 4 - len(unused_imports))  # Deduct for unused imports
+    # Check for imports
+    tree = ast.parse(code)
+    imported_names = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_names.append(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imported_names.append(alias.name)
+    
+    for lib in required_imports:
+      if lib in imported_names:
+        required_imports[lib] = True
+
+    if required_imports['folium']:
+        import_score += 5
+    if required_imports['matplotlib'] or required_imports['seaborn']:
+        import_score += 5
+    if required_imports['requests'] or required_imports['urllib']:
+        import_score += 5
+    if required_imports['pandas']:
+        import_score += 5
+
+    # Check for unused libraries and import order is implicit in ast.walk
+
+    # No unused libraries : If the ast.walk is correct, no unused library should be included, if there are extra imports we penalize 5 marks.
+    if len(imported_names) >  sum(required_imports.values()):
+        import_score = max(0, import_score-5)
+        feedback.append("Unused library imports found")
+    grade += min(20,import_score)
+    feedback.append(f"Library import score: {min(20,import_score)}")
 
     # 2. Code Quality (10 Points)
     code_quality_score = 10
-    if any(re.match(r"\s*[a-z]\s*=", line) for line in code.split("\n")):
-        code_quality_score -= 2  # Deduct for single-letter variables
-    if "=" in code.replace(" = ", ""):
-        code_quality_score -= 2  # Deduct for missing spacing
-    if "#" not in code:
-        code_quality_score -= 2  # Deduct for missing comments
-    if "\n\n" not in code:
-        code_quality_score -= 2  # Deduct for poor organization
-    grade += max(0, code_quality_score)
+    
+    # Variable naming (look for descriptive variables) : using a simple check for now
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+          for target in node.targets:
+            if isinstance(target, ast.Name):
+                if len(target.id) < 2: # A very simple heuristic
+                    code_quality_score -= 1 # deduct for variable name <2
+                    feedback.append("Deducted points for short variable name")
+
+    # Spacing
+    if any(re.search(r"[^\s]=[^\s]", line) for line in code.split("\n")):
+      code_quality_score -= 1
+      feedback.append("Deducted points for missing spaces around = ")
+    if any(re.search(r"[^\s]>[^\s]", line) for line in code.split("\n")):
+      code_quality_score -= 1
+      feedback.append("Deducted points for missing spaces around > ")
+    if any(re.search(r"[^\s]<[^\s]", line) for line in code.split("\n")):
+      code_quality_score -= 1
+      feedback.append("Deducted points for missing spaces around < ")
+
+    # Comments and code organization
+    comment_count = 0
+    empty_line_count = 0
+    for line in code.split("\n"):
+        if "#" in line:
+            comment_count+= 1
+        if line == "":
+          empty_line_count+=1
+
+    if comment_count < 2: # A very simple heuristic
+        code_quality_score -= 1
+        feedback.append("Deducted points for missing comments")
+
+    if empty_line_count < 3: #A very simple heuristic
+        code_quality_score -= 1
+        feedback.append("Deducted points for poor organization")
+    
+    grade += max(0,code_quality_score)
+    feedback.append(f"Code quality score: {max(0,code_quality_score)}")
 
     # 3. Fetching Data from the API (10 Points)
     api_score = 0
     if "https://earthquake.usgs.gov/fdsnws/event/1/query" in code:
-        api_score += 5  # Correct API URL
+        if "starttime=" in code and "endtime=" in code:
+           api_score += 5
+           feedback.append("API URL with date range found")
+
     if "response.status_code" in code:
-        api_score += 5  # Proper error handling
-    grade += api_score
+        api_score += 5
+        feedback.append("Proper error handling for API call found")
+
+    grade += min(10,api_score)
+    feedback.append(f"API fetch score: {min(10,api_score)}")
 
     # 4. Filtering Earthquakes (10 Points)
-    filtering_score = 0
-    if "magnitude > 4.0" in code:
-        filtering_score += 5  # Correct filtering logic
-    if all(field in code for field in ["latitude", "longitude", "magnitude", "time"]):
-        filtering_score += 5  # Proper data extraction
-    grade += filtering_score
+    filter_score = 0
+    try:
+      tree = ast.parse(code)
+      found_magnitude = False
+      found_latitude = False
+      found_longitude = False
+      found_time = False
 
-    ### Part 2: Evaluate the Uploaded Files
+      for node in ast.walk(tree):
+        if isinstance(node, ast.Compare):
+          if isinstance(node.left, ast.Name):
+            if node.left.id == 'magnitude':
+              for op in node.ops:
+                if isinstance(op, ast.Gt):
+                  for comp in node.comparators:
+                    if isinstance(comp, ast.Constant) and comp.value == 4.0:
+                      found_magnitude = True
+
+        if isinstance(node, ast.Subscript):
+            if isinstance(node.value, ast.Name) and node.value.id == 'earthquakes':
+              if isinstance(node.slice, ast.Constant) and node.slice.value == 'latitude':
+                found_latitude = True
+              if isinstance(node.slice, ast.Constant) and node.slice.value == 'longitude':
+                found_longitude = True
+              if isinstance(node.slice, ast.Constant) and node.slice.value == 'time':
+                found_time = True
+      if found_magnitude:
+        filter_score += 5
+        feedback.append("Magnitude filtering found")
+
+      if all([found_latitude, found_longitude, found_time]):
+        filter_score += 5
+        feedback.append("Latitude, longitude and time filtering found")
+
+    except Exception as e:
+      print(f"Error parsing code for magnitude filtering: {e}")
+      feedback.append("Error checking code for filtering")
+
+    grade += min(10,filter_score)
+    feedback.append(f"Filtering score: {min(10,filter_score)}")
 
     # 5. Map Visualization (20 Points)
     if uploaded_html:
-        with open(uploaded_html, "r") as html_file:
-            html_content = BeautifulSoup(html_file, "html.parser")
-            markers = html_content.find_all("marker")
-            if markers and any("green" in str(marker) for marker in markers) and \
-                    any("yellow" in str(marker) for marker in markers) and \
-                    any("red" in str(marker) for marker in markers):
-                grade += 20  # Full points for valid markers and popups
+        try:
+            uploaded_map = BeautifulSoup(uploaded_html, "html.parser")
+            green_markers = len(uploaded_map.find_all("marker", {"class": "green"}))
+            yellow_markers = len(uploaded_map.find_all("marker", {"class": "yellow"}))
+            red_markers = len(uploaded_map.find_all("marker", {"class": "red"}))
+            total_markers = green_markers + yellow_markers + red_markers
+            popups = uploaded_map.find_all("popup")
+
+            if total_markers > 0 and len(popups) >= total_markers:
+                grade += 20
+                feedback.append("Map visualization checks passed")
+
+        except Exception as e:
+            print(f"Error checking HTML file: {e}")
+            feedback.append("Error checking HTML file")
 
     # 6. Bar Chart (15 Points)
     if uploaded_png:
-        try:
-            uploaded_image = np.array(Image.open(uploaded_png).convert("L"))
-            grade += 12  # Add fixed score if the PNG is present
-        except Exception:
-            pass
+        grade += 12
+        feedback.append("PNG file uploaded")
 
     # 7. Text Summary (15 Points)
-    correct_values = {
-        "Total Earthquakes": 210.0,
-        "Average Magnitude": 4.64,
-        "Maximum Magnitude": 7.1,
-        "Minimum Magnitude": 4.1,
-        "4.0-4.5": 109.0,
-        "4.5-5.0": 76.0,
-        ">5.0": 25.0
-    }
-
     if uploaded_csv:
         try:
-            uploaded_data = pd.read_csv(uploaded_csv, header=None).values.flatten()
-            uploaded_values = [float(val) for val in uploaded_data if isinstance(val, (float, int))]
-            correct_uploaded = all(
-                abs(uploaded_values[i] - list(correct_values.values())[i]) < 0.01
-                for i in range(len(correct_values))
-            )
-            if correct_uploaded:
+          uploaded_summary = pd.read_csv(uploaded_csv)
+          correct_values = [210.0, 4.64, 7.1, 4.1, 109.0, 76.0, 25.0]
+          values_found = []
+          for col in uploaded_summary.columns:
+              if uploaded_summary[col].dtype in ['int64', 'float64']:
+                    values_found.append(uploaded_summary[col].iloc[0])
+              
+          matches = 0
+          for correct_value in correct_values:
+            for value in values_found:
+                if abs(value - correct_value) < 0.1:
+                  matches += 1
+                  break
+
+          if matches == len(correct_values):
                 grade += 15
-        except Exception:
-            pass
+                feedback.append("Correct CSV values found")
 
-    return round(grade)
-
-
-# For testing purposes
-if __name__ == "__main__":
-    # Replace with actual file paths for testing
-    student_code = """
-    import requests
-    import pandas as pd
-    import folium
-    import matplotlib.pyplot as plt
-    # Dummy code example
-    """
-    uploaded_html = "uploaded_map.html"
-    uploaded_png = "uploaded_chart.png"
-    uploaded_csv = "uploaded_summary.csv"
-
-    # Grade the assignment
-    try:
-        final_score = grade_assignment(student_code, uploaded_html, uploaded_png, uploaded_csv)
-        print(f"Student's Grade: {final_score}/100")
-    except Exception as e:
-        print(f"Error: {e}")
+        except Exception as e:
+            print(f"Error checking CSV file: {e}")
+            feedback.append("Error checking CSV file")
+            
+    return round(grade), feedback
