@@ -17,3 +17,7 @@ numpy
 streamlit-folium
 flake8
 python-dotenv
+pytesseract
+oauth2client
+numpy
+
