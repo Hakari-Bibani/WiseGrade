@@ -71,10 +71,11 @@ def show():
                 "ChatGPT can provide suggestions for improving your code, including optimization and error handling.",
                 "ChatGPT replaces the need for learning Python syntax and programming logic.",
             ],
-            [   "Sharing the Google Sheet with a service account email.",
-                "Using pandas to write data directly to the Google Sheet without authentication.",
+            [
                 "Both a and b.",
                 "Authenticating Colab with a personal Gmail account using gspread.",
+                "Sharing the Google Sheet with a service account email.",
+                "Using pandas to write data directly to the Google Sheet without authentication.",
             ],
             [
                 "Install the Google Sheets API client library and authenticate with an API key or service account credentials.",
@@ -112,10 +113,30 @@ def show():
             "Check if the key exists in the dictionary and handle the error appropriately.",
         ]
 
-        user_answers = []
+        st.write("### Instructions")
+        st.write(
+            "- Answer all questions before submitting.\n"
+            "- Each correct answer is worth 10 points.\n"
+            "- Click 'Submit Quiz' when you are ready."
+        )
+
+        user_answers = [None] * len(questions)
+
         for i, question in enumerate(questions):
             st.subheader(f"Question {i+1}")
-            user_answers.append(st.radio(question, options[i], key=f"q{i+1}"))
+            user_answers[i] = st.radio(
+                question, options[i], key=f"q{i+1}", disabled=True
+            )
+
+        enable_quiz = st.button("Start Quiz")
+        if enable_quiz:
+            for i in range(len(user_answers)):
+                st.session_state[f"q{i+1}_enabled"] = True
+
+            for i, question in enumerate(questions):
+                user_answers[i] = st.radio(
+                    question, options[i], key=f"q{i+1}", disabled=False
+                )
 
         if st.button("Submit Quiz"):
             if None in user_answers:
