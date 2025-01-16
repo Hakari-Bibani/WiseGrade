@@ -5,6 +5,7 @@ from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 import numpy as np
 import pytesseract
+import os
 
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
