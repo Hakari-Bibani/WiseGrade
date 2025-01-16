@@ -20,4 +20,4 @@ python-dotenv
 pytesseract
 oauth2client
 numpy
-
+tesseract
