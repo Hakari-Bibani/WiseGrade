@@ -125,18 +125,8 @@ def show():
         for i, question in enumerate(questions):
             st.subheader(f"Question {i+1}")
             user_answers[i] = st.radio(
-                question, options[i], key=f"q{i+1}", disabled=True
+                question, options[i], key=f"q{i+1}"
             )
-
-        enable_quiz = st.button("Start Quiz")
-        if enable_quiz:
-            for i in range(len(user_answers)):
-                st.session_state[f"q{i+1}_enabled"] = True
-
-            for i, question in enumerate(questions):
-                user_answers[i] = st.radio(
-                    question, options[i], key=f"q{i+1}", disabled=False
-                )
 
         if st.button("Submit Quiz"):
             if None in user_answers:
