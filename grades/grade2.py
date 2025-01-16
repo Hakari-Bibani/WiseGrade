@@ -1,4 +1,3 @@
-import ast
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
@@ -6,279 +5,167 @@ from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 import numpy as np
 import pytesseract
-import os
-import json
-import requests
-from io import StringIO
+from difflib import SequenceMatcher
+import cv2
+
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
-    Grades the assignment based on specific criteria, providing feedback.
+    Grade Assignment 2 by evaluating the student's code and uploaded files.
     """
-
-    # --- Setup ---
-    base_dir = os.path.dirname(os.path.abspath(__file__)) #Important Change
-    correct_html = os.path.join(base_dir, "correct_map.html")
-    correct_png = os.path.join(base_dir, "correct_chart.png")
-    correct_csv = os.path.join(base_dir, "correct_summary.csv")
-
-
-    # Verify that all reference files exist
-    missing_files = [file for file in [correct_html, correct_png, correct_csv] if not os.path.exists(file)]
-    if missing_files:
-        raise FileNotFoundError(f"Reference files ({', '.join(missing_files)}) are missing.")
-    
-    print(f"Base directory: {base_dir}")
-    print(f"HTML path: {correct_html}")
-    print(f"PNG path: {correct_png}")
-    print(f"CSV path: {correct_csv}")
-
     grade = 0
-    feedback = []  # List to store feedback messages
 
-    # --- 1. Library Imports (10 Points) ---
-    grade_imports, feedback_imports = check_imports(code)
-    grade += grade_imports
-    feedback.extend(feedback_imports)
+    # **Grading the Script**
 
-    # --- 2. Code Quality (10 Points) ---
-    grade_quality, feedback_quality = check_code_quality(code)
-    grade += grade_quality
-    feedback.extend(feedback_quality)
+    # 1. Library Imports (10 Points)
+    required_imports = ["folium", "matplotlib", "requests", "pandas"]
+    library_score = 10
+    used_libraries = re.findall(r"import\s+(\w+)", code)
+    for lib in required_imports:
+        if lib not in used_libraries:
+            library_score -= 2  # Deduct 2 points for missing library
 
-    # --- 3. API Data Fetching (15 Points) ---
-    grade_api, feedback_api = check_api_fetching(code)
-    grade += grade_api
-    feedback.extend(feedback_api)
+    unused_libraries = [lib for lib in used_libraries if lib not in required_imports]
+    library_score -= len(unused_libraries)  # Deduct 1 point per unused library
+    grade += max(0, library_score)
 
-    # --- 4. Data Filtering (10 Points) ---
-    grade_filtering, feedback_filtering = check_earthquake_filtering(code)
-    grade += grade_filtering
-    feedback.extend(feedback_filtering)
-
-    # --- 5. Map Generation (20 Points) ---
-    grade_map, feedback_map = check_map_visualization(uploaded_html, correct_html)
-    grade += grade_map
-    feedback.extend(feedback_map)
-
-    # --- 6. Chart Generation (15 Points) ---
-    grade_chart, feedback_chart = check_bar_chart(uploaded_png, correct_png)
-    grade += grade_chart
-    feedback.extend(feedback_chart)
-
-    # --- 7. CSV Summary Generation (20 Points) ---
-    grade_csv, feedback_csv = check_csv_summary(uploaded_csv, correct_csv)
-    grade += grade_csv
-    feedback.extend(feedback_csv)
-
-    return round(grade), feedback
-
-def check_imports(code):
-        """Checks for required library imports using AST parsing"""
-        required_imports = ["folium", "matplotlib", "seaborn", "requests", "urllib", "pandas"]
-        feedback_imports = []
-        grade = 0
-        try:
-            tree = ast.parse(code)
-            imported_names = {
-                alias.name for node in tree.body if isinstance(node, ast.Import) for alias in node.names
-            } | {
-                name.id for node in tree.body if isinstance(node, ast.ImportFrom) for name in node.names
-            }
-            
-            imported_libs = [lib for lib in required_imports if lib in imported_names]
-            grade = min(10, len(imported_libs) * 2)
-            if not imported_libs:
-                 feedback_imports.append("No imports found")
-            else:
-                 missing_imports = [lib for lib in required_imports if lib not in imported_libs]
-                 if missing_imports:
-                      feedback_imports.append(f"Missing imports: {', '.join(missing_imports)}")
-            
-        except SyntaxError:
-             feedback_imports.append("Invalid Python Syntax. Unable to check Imports")
-        return grade , feedback_imports
-
-
-
-def check_code_quality(code):
-    """ Checks for code quality violations """
-    feedback_quality = []
-    grade = 10 #Full Points
-    deductions = 0
-    #Checking for single-letter variables
+    # 2. Code Quality (20 Points)
+    # Variable Naming (5 Points)
+    variable_score = 5
     if any(re.match(r"\s*[a-z]\s*=", line) for line in code.split("\n")):
-         deductions += 1  
-         feedback_quality.append("Deducted points for single-letter variables.")
-    
-    #Check for spacing
+        variable_score -= 1  # Deduct for single-letter variables
+    if any(len(var) < 3 for var in re.findall(r"\b\w+\b", code)):
+        variable_score -= 1  # Deduct for non-descriptive variable names
+
+    # Spacing (5 Points)
+    spacing_score = 5
     if "=" in code.replace(" = ", ""):
-         deductions += 1
-         feedback_quality.append("Deducted points for missing spacing around the equal sign.")
+        spacing_score -= 1  # Deduct for missing spaces around `=`
+    if ">" in code.replace(" > ", "") or "<" in code.replace(" < ", ""):
+        spacing_score -= 1  # Deduct for missing spaces around `>` or `<`
 
-    # Check for comments
+    # Comments (5 Points)
+    comment_score = 5
     if "#" not in code:
-          deductions += 1
-          feedback_quality.append("Deducted points for missing comments.")
-    
+        comment_score -= 2  # Deduct for missing comments
+    if code.count("#") > 15:
+        comment_score -= 1  # Deduct for over-commenting
+
+    # Organization (5 Points)
+    organization_score = 5
     if "\n\n" not in code:
-          deductions += 1
-          feedback_quality.append("Deducted points for poor organization (missing newlines).")
-    
-    grade = max(0, 10 - deductions * 2)
+        organization_score -= 1  # Deduct for no blank lines between sections
 
-    if deductions == 0:
-      feedback_quality.append("No code quality violations found")
-    return grade, feedback_quality
-    
+    grade += variable_score + spacing_score + comment_score + organization_score
 
+    # 3. Fetching Data from the API (10 Points)
+    if "https://earthquake.usgs.gov/fdsnws/event/1/query" in code:
+        grade += 3  # Correct API URL
+    if "requests.get" in code:
+        grade += 3  # Successful API call
+    if "response.status_code" in code:
+        grade += 4  # Proper error handling
 
-def check_api_fetching(code):
-    """Checks API URL, request method, and basic error handling."""
-    grade = 0
-    feedback_api = []
-    correct_url = "https://earthquake.usgs.gov/fdsnws/event/1/query"
-    try:
-        # 1. Check for API URL
-        if correct_url in code:
-          grade += 5
-        else:
-             feedback_api.append("Incorrect API URL")
-
-        # 2. Check request method
-        if "requests.get" in code:
-           grade += 5
-        elif "urllib.request" in code:
-            grade += 5
-        else:
-           feedback_api.append("Missing API call")
-
-        # 3. Check for error handling
-        if "response.status_code" in code or "e.code" in code:
-           grade += 5
-        else:
-             feedback_api.append("Missing error handling")
-
-
-
-    except Exception as e:
-        feedback_api.append(f"Error during API check: {e}")
-    return grade , feedback_api
-
-
-
-def check_earthquake_filtering(code):
-    """Checks for correct filtering logic using string search."""
-    grade = 0
-    feedback_filtering = []
+    # 4. Filtering Earthquakes (10 Points)
     if "magnitude > 4.0" in code:
-         grade += 5
-    else:
-         feedback_filtering.append("Incorrect filtering logic")
-
+        grade += 5  # Correct filtering logic
     if all(field in code for field in ["latitude", "longitude", "magnitude", "time"]):
-        grade += 5
-    else:
-        missing_fields = [field for field in ["latitude", "longitude", "magnitude", "time"] if field not in code]
-        feedback_filtering.append(f"Missing Data fields: {', '.join(missing_fields)}")
-    return grade, feedback_filtering
+        grade += 5  # Proper data extraction
 
+    # **Grading Uploaded Files**
 
+    # 5. Map Visualization (20 Points)
+    try:
+        with open(uploaded_html, "r") as html_file:
+            uploaded_map = BeautifulSoup(html_file, "html.parser")
+        markers = uploaded_map.find_all("circlemarker")
+        map_score = 0
 
-def check_map_visualization(uploaded_html, correct_html):
-  """Analyzes the map for markers and structure, compares with a reference"""
-  grade = 0
-  feedback_map = []
-  try:
-    with open(uploaded_html, "r") as html_file:
-        uploaded_map = BeautifulSoup(html_file, "html.parser")
-    with open(correct_html, "r") as correct_map_file:
-        correct_map = BeautifulSoup(correct_map_file, "html.parser")
-    
-    #Verify number of markers
-    uploaded_markers = len(uploaded_map.find_all("circlemarker"))
-    correct_markers = len(correct_map.find_all("circlemarker"))
+        # Marker Colors
+        if any("green" in str(marker) for marker in markers):
+            map_score += 3  # Green markers
+        if any("yellow" in str(marker) for marker in markers):
+            map_score += 3  # Yellow markers
+        if any("red" in str(marker) for marker in markers):
+            map_score += 3  # Red markers
 
-    if uploaded_markers >= correct_markers:
-        grade += 10
-    else:
-         feedback_map.append("Incorrect number of markers")
-    
-    # Verify marker colors
-    uploaded_colors = {marker.get('fill') for marker in uploaded_map.find_all("circlemarker")}
-    correct_colors = {marker.get('fill') for marker in correct_map.find_all("circlemarker")}
+        # Popups
+        popup_score = 0
+        if all("Magnitude" in str(marker) for marker in markers):
+            popup_score += 3
+        if all("Latitude" in str(marker) and "Longitude" in str(marker) for marker in markers):
+            popup_score += 4
+        if all("Time" in str(marker) for marker in markers):
+            popup_score += 4
 
-    if uploaded_colors == correct_colors:
-         grade += 10 # All colors are correct
-    else:
-        feedback_map.append("Incorrect marker colors")
-        
+        map_score += popup_score
+        grade += map_score
+    except Exception as e:
+        print(f"Error grading map: {e}")
 
-  except Exception as e:
-      feedback_map.append(f"Error during map analysis: {e}")
-  return grade, feedback_map
-
-
-def check_bar_chart(uploaded_png, correct_png):
-  """Compares the bar chart visually (SSIM) and verifies labels."""
-  grade = 0
-  feedback_chart = []
-  try:
-        # Compare chart structure using grayscale SSIM
+    # 6. Bar Chart (15 Points)
+    try:
         uploaded_image = np.array(Image.open(uploaded_png).convert("L"))
-        correct_image = np.array(Image.open(correct_png).convert("L"))
-        similarity_score = ssim(uploaded_image, correct_image)
+        correct_image = np.array(Image.open("correct_chart.png").convert("L"))
 
-        if similarity_score > 0.9:  # High similarity
+        # Grayscale SSIM
+        similarity_score = ssim(uploaded_image, correct_image)
+        if similarity_score > 0.9:
             grade += 10
-        elif similarity_score > 0.7:  # Moderate similarity
+        elif similarity_score > 0.7:
             grade += 7
         else:
             grade += 5
-        
-        # Validate bar chart labels using OCR
+
+        # OCR Text Similarity
         uploaded_text = pytesseract.image_to_string(uploaded_png)
-        required_labels = ["4.0-4.5", "4.5-5.0", ">5.0"]
-        if all(label in uploaded_text for label in required_labels):
+        correct_text = pytesseract.image_to_string("correct_chart.png")
+        text_similarity = SequenceMatcher(None, uploaded_text, correct_text).ratio()
+        if text_similarity > 0.9:
             grade += 5
+        elif text_similarity > 0.7:
+            grade += 3
         else:
-            missing_labels = [label for label in required_labels if label not in uploaded_text]
-            feedback_chart.append(f"Missing labels: {', '.join(missing_labels)}")
-            grade += 3  # Partial points if some labels are missing
-
-  except Exception as e:
-      feedback_chart.append(f"Error during chart analysis: {e}")
-  return grade , feedback_chart
-    
-
-def check_csv_summary(uploaded_csv, correct_csv):
-    """Checks the CSV content, focusing on data values, not column names."""
-    grade = 0
-    feedback_csv = []
-    try:
-        # Load the uploaded and correct CSV files
-        uploaded_summary = pd.read_csv(uploaded_csv)
-        correct_summary = pd.read_csv(correct_csv)
-
-        if uploaded_summary.shape == correct_summary.shape:
-            grade += 5 # Points for correct shape
-            if not uploaded_summary.empty:
-                 # Compare numerical values regardless of column names
-                 uploaded_values = uploaded_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
-                 correct_values = correct_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
-
-                # Check for small tolerance in values
-                 tolerance = 0.01
-                 if len(uploaded_values) == len(correct_values):
-                    matching_values = sum(abs(u - c) <= tolerance for u, c in zip(uploaded_values, correct_values))
-                    grade += (15 * matching_values / len(correct_values))  # Scale points by percentage match
-                 else:
-                   feedback_csv.append("Incorrect Number of rows in CSV")
-
-            else:
-                feedback_csv.append("The summary file is empty")
-        else:
-          feedback_csv.append("Incorrect number of rows and columns")
+            grade += 1
     except Exception as e:
-        feedback_csv.append(f"Error during csv analysis: {e}")
-    return grade, feedback_csv
+        print(f"Error grading bar chart: {e}")
+
+    # 7. Text Summary (15 Points)
+    try:
+        uploaded_summary = pd.read_csv(uploaded_csv)
+        correct_summary = pd.read_csv("correct_summary.csv")
+
+        # Extract numerical values regardless of column names
+        uploaded_values = uploaded_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
+        correct_values = correct_summary.select_dtypes(include=["float", "int"]).to_numpy().flatten()
+
+        # Compare values with tolerance
+        tolerance = 0.01
+        points_per_field = 15 / len(correct_values)
+        for uploaded, correct in zip(uploaded_values, correct_values):
+            if abs(uploaded - correct) <= tolerance:
+                grade += points_per_field
+    except Exception as e:
+        print(f"Error grading text summary: {e}")
+
+    return round(grade)
+
+
+# For testing purposes
+if __name__ == "__main__":
+    try:
+        student_code = """
+        import requests
+        import pandas as pd
+        import folium
+        from matplotlib import pyplot as plt
+        # Dummy code example
+        """
+        uploaded_html = "uploaded_map.html"
+        uploaded_png = "uploaded_chart.png"
+        uploaded_csv = "uploaded_summary.csv"
+
+        score = grade_assignment(student_code, uploaded_html, uploaded_png, uploaded_csv)
+        print(f"Student's Grade: {score}/100")
+    except Exception as e:
+        print(f"Error: {e}")
