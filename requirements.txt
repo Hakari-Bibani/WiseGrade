@@ -21,3 +21,4 @@ pytesseract
 oauth2client
 scikit-image
 Pillow
+urllib3
