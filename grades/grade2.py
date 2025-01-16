@@ -1,16 +1,16 @@
-import pandas as pd
+i have this tell me how it work: import pandas as pd
 import re
 from bs4 import BeautifulSoup
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     grade = 0
 
-    # 1. Library Imports (25 Points)
+    # 1. Library Imports (20 Points)
     required_imports = {
         'folium': 5,
         'matplotlib|seaborn': 5,
         'requests|urllib': 5,
-        'pandas': 10  # Increased points for pandas
+        'pandas': 5
     }
     code_imports = [line for line in code.split('\n') if line.startswith('import') or line.startswith('from')]
     import_grade = 0
@@ -18,26 +18,32 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
         pattern = f"({'|'.join(lib.split('|'))})"
         if re.search(pattern, '\n'.join(code_imports)):
             import_grade += points
-    grade += min(25, import_grade)  # Total points for imports increased to 25
+    grade += min(20, import_grade)
 
-    # 2. Code Quality (5 Points)
-    code_quality = 5
+    # 2. Code Quality (10 Points)
+    code_quality = 10
     # Variable Naming: Check for single-letter variables
     if re.search(r'\b[a-zA-Z]\b *=', code):
-        code_quality -= 1
+        code_quality -= 2
     # Spacing: Check for improper spacing around operators
     if re.search(r'[\w=><!]+=[\w=><!]+', code):
-        code_quality -= 1
+        code_quality -= 2
     # Comments: Check for presence of comments
-    if not re.search(r'#', code):
-        code_quality -= 1
+    if re.search(r'#', code) is None:
+        code_quality -= 2
+    # Code Organization: Check for blank lines
+    lines = code.split('\n')
+    if sum(1 for i in range(1, len(lines)) if lines[i-1].strip() and lines[i].strip()) / len(lines) > 0.9:
+        code_quality -= 2
     grade += max(0, code_quality)
 
-    # 3. Fetching Data from API (5 Points)
+    # 3. Fetching Data from API (10 Points)
     api_grade = 0
     if 'https://earthquake.usgs.gov/fdsnws/event/1/query?' in code:
         api_grade += 5
-    grade += min(5, api_grade)
+    if re.search(r'response\.status_code', code):
+        api_grade += 5
+    grade += min(10, api_grade)
 
     # 4. Filtering Earthquakes (10 Points)
     filter_grade = 0
@@ -58,16 +64,16 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
 
     # 6. Bar Chart (15 Points)
     if uploaded_png:
-        grade += 15  # Award full points if PNG is uploaded
+        grade += 12
 
-    # 7. Text Summary (20 Points)
+    # 7. Text Summary (15 Points)
     if uploaded_csv:
         try:
             summary = pd.read_csv(uploaded_csv, header=None)
             correct_values = [210.0, 4.64, 7.1, 4.1, 109.0, 76.0, 25.0]
             uploaded_values = summary.iloc[:, -1].tolist()
             if all(abs(a - b) < 0.1 for a, b in zip(uploaded_values, correct_values)):
-                grade += 20
+                grade += 15
         except:
             pass
 
