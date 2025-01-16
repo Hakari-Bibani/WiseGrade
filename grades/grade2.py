@@ -1,125 +1,103 @@
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
+from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 import numpy as np
-import pytesseract
+import os
 
 
 def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
-    Grade Assignment 2 based on the script and uploaded files.
+    Grade Assignment 2 based on the provided files and criteria.
     """
 
-    # Initialize grade
+    # Define the directory where the correct reference files are located
+    base_dir = os.path.dirname(__file__)
+    correct_csv_values = {
+        "Total Earthquakes": 210.0,
+        "Average Magnitude": 4.64,
+        "Maximum Magnitude": 7.1,
+        "Minimum Magnitude": 4.1,
+        "4.0-4.5": 109.0,
+        "4.5-5.0": 76.0,
+        ">5.0": 25.0,
+    }
+
     grade = 0
 
-    # PART 1: Evaluate the script (50 Points)
-    
-    # 1. Library Imports (20 Points)
-    required_imports = ["folium", "matplotlib", "requests", "pandas"]
-    library_imports_score = 0
-    for lib in required_imports:
-        if lib in code:
-            library_imports_score += 5  # 5 points per correct library
-    if any(lib not in required_imports for lib in re.findall(r"import\s+(\w+)", code)):
-        library_imports_score -= 2  # Deduct 2 points for unused imports
-    grade += min(20, library_imports_score)
+    # 1. Library Imports (10 Points)
+    required_imports = ["folium", "matplotlib", "seaborn", "requests", "urllib", "pandas"]
+    imported_libraries = sum(1 for lib in required_imports if lib in code)
+    grade += min(10, imported_libraries * 2)
 
     # 2. Code Quality (20 Points)
-    # Check variable naming
-    variable_naming_score = 5 if all(len(var) > 2 for var in re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", code)) else 3
-    # Check spacing
-    spacing_score = 5 if " =" not in code and "= " not in code else 3
-    grade += variable_naming_score + spacing_score
+    code_quality_deductions = 0
+    if any(re.match(r"\s*[a-z]\s*=", line) for line in code.split("\n")):
+        code_quality_deductions += 1  # Deduct for single-letter variables
+    if "=" in code.replace(" = ", ""):
+        code_quality_deductions += 1  # Deduct for missing spacing
+    if "#" not in code:
+        code_quality_deductions += 1  # Deduct for missing comments
+    if "\n\n" not in code:
+        code_quality_deductions += 1  # Deduct for poor organization
+    grade += max(0, 20 - code_quality_deductions * 5)
 
-    # 3. Fetching Data (10 Points)
-    fetching_data_score = 0
+    # 3. Fetching Data from API (10 Points)
     if "https://earthquake.usgs.gov/fdsnws/event/1/query" in code:
-        fetching_data_score += 5  # Correct API URL
+        grade += 3  # Correct API URL
+    if "requests.get" in code or "urllib.request" in code:
+        grade += 3  # Correct API call
     if "response.status_code" in code:
-        fetching_data_score += 5  # Proper error handling
-    grade += fetching_data_score
+        grade += 4  # Proper error handling
 
-    # PART 2: Evaluate the uploaded files (50 Points)
+    # 4. Filtering Earthquakes (10 Points)
+    if "magnitude > 4.0" in code:
+        grade += 5  # Correct filtering logic
+    if all(field in code for field in ["latitude", "longitude", "magnitude", "time"]):
+        grade += 5  # Proper data extraction
 
-    # 4. Map Visualization (20 Points)
-    map_score = 0
+    # 5. Map Visualization (20 Points)
     try:
         with open(uploaded_html, "r") as html_file:
-            soup = BeautifulSoup(html_file, "html.parser")
+            uploaded_map = BeautifulSoup(html_file, "html.parser")
 
-        # Check marker colors
-        popups = soup.find_all("popup")
-        popup_content = " ".join(popup.text for popup in popups)
-        green_marker = any("green" in marker.attrs.get("style", "").lower() for marker in soup.find_all("marker"))
-        yellow_marker = any("yellow" in marker.attrs.get("style", "").lower() for marker in soup.find_all("marker"))
-        red_marker = any("red" in marker.attrs.get("style", "").lower() for marker in soup.find_all("marker"))
-
-        if green_marker:
-            map_score += 3
-        if yellow_marker:
-            map_score += 3
-        if red_marker:
-            map_score += 3
+        # Check for markers with correct colors
+        green_markers = len(uploaded_map.find_all("marker", {"class": "green"}))
+        yellow_markers = len(uploaded_map.find_all("marker", {"class": "yellow"}))
+        red_markers = len(uploaded_map.find_all("marker", {"class": "red"}))
+        total_markers = green_markers + yellow_markers + red_markers
 
         # Check popups
-        if re.search(r"magnitude", popup_content, re.IGNORECASE):
-            map_score += 3
-        if re.search(r"latitude|longitude", popup_content, re.IGNORECASE):
-            map_score += 4
-        if re.search(r"\d{4}-\d{2}-\d{2}", popup_content):  # Check for readable time
-            map_score += 4
+        popups = uploaded_map.find_all("popup")
+        if total_markers > 0 and len(popups) >= total_markers:
+            grade += 20
     except Exception as e:
-        print(f"Error evaluating map: {e}")
+        print(f"Error checking HTML file: {e}")
 
-    grade += map_score
-
-    # 5. Bar Chart (15 Points)
-    bar_chart_score = 0
+    # 6. Bar Chart (15 Points)
     try:
-        # Check if PNG exists
-        uploaded_image = Image.open(uploaded_png)
-
-        # Use OCR to extract text and check if key labels are present
-        extracted_text = pytesseract.image_to_string(uploaded_png)
-        if all(label in extracted_text for label in ["4.0-4.5", "4.5-5.0", ">5.0"]):
-            bar_chart_score += 10  # Text-based validation of ranges
-        else:
-            bar_chart_score += 5  # Partial score if ranges are missing
+        if uploaded_png:
+            grade += 12  # Assign 12 points if PNG is uploaded
     except Exception as e:
-        print(f"Error evaluating bar chart: {e}")
+        print(f"Error checking PNG file: {e}")
 
-    grade += bar_chart_score
-
-    # 6. Text Summary (15 Points)
-    text_summary_score = 0
+    # 7. Text Summary (15 Points)
     try:
-        # Load the uploaded CSV
-        uploaded_csv = pd.read_csv(uploaded_csv)
+        uploaded_summary = pd.read_csv(uploaded_csv)
 
-        # Define correct answers
-        correct_values = {
-            "Total Earthquakes": 210.0,
-            "Average Magnitude": 4.64,
-            "Maximum Magnitude": 7.1,
-            "Minimum Magnitude": 4.1,
-            "4.0-4.5": 109.0,
-            "4.5-5.0": 76.0,
-            ">5.0": 25.0,
-        }
+        # Check for matching values
+        matches = 0
+        for key, correct_value in correct_csv_values.items():
+            if key in uploaded_summary.columns:
+                uploaded_value = uploaded_summary[key].iloc[0]
+                if abs(uploaded_value - correct_value) < 0.1:  # Allow small tolerance
+                    matches += 1
 
-        # Check for matches regardless of column names
-        uploaded_values = uploaded_csv.select_dtypes(include=["float", "int"]).to_numpy().flatten()
-        correct_values_list = list(correct_values.values())
-
-        # Compare values with a tolerance
-        matching_values = sum(abs(u - c) <= 0.01 for u, c in zip(uploaded_values, correct_values_list))
-        text_summary_score += (15 * matching_values / len(correct_values_list))  # Scale points based on percentage match
+        if matches == len(correct_csv_values):
+            grade += 15
     except Exception as e:
-        print(f"Error evaluating text summary: {e}")
-
-    grade += text_summary_score
+        print(f"Error checking CSV file: {e}")
 
     return round(grade)
 
