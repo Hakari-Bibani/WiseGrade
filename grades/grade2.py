@@ -126,24 +126,3 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     print(f"Final Grade: {grade}/100")
     return round(grade)
 
-
-# For testing purposes
-if __name__ == "__main__":
-    try:
-        # Test file paths
-        student_code = """
-        import requests
-        import pandas as pd
-        import folium
-        from matplotlib import pyplot as plt
-        # Dummy code example
-        """
-        uploaded_html = "uploaded_map.html"
-        uploaded_png = "uploaded_chart.png"
-        uploaded_csv = "uploaded_summary.csv"
-
-        # Grade the assignment
-        score = grade_assignment(student_code, uploaded_html, uploaded_png, uploaded_csv)
-        print(f"Student's Grade: {score}/100")
-    except Exception as e:
-        print(f"Error: {e}")
