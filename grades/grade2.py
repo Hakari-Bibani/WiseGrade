@@ -17,7 +17,7 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     """
 
     # --- Setup ---
-    base_dir = os.path.dirname(__file__)
+    base_dir = os.path.dirname(os.path.abspath(__file__)) #Important Change
     correct_html = os.path.join(base_dir, "correct_map.html")
     correct_png = os.path.join(base_dir, "correct_chart.png")
     correct_csv = os.path.join(base_dir, "correct_summary.csv")
@@ -27,6 +27,12 @@ def grade_assignment(code, uploaded_html, uploaded_png, uploaded_csv):
     missing_files = [file for file in [correct_html, correct_png, correct_csv, correct_json] if not os.path.exists(file)]
     if missing_files:
         raise FileNotFoundError(f"Reference files ({', '.join(missing_files)}) are missing.")
+    
+    print(f"Base directory: {base_dir}")
+    print(f"HTML path: {correct_html}")
+    print(f"PNG path: {correct_png}")
+    print(f"CSV path: {correct_csv}")
+    print(f"JSON path: {correct_json}")
 
     grade = 0
     feedback = []  # List to store feedback messages
