@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from grades.grade2 import grade_assignment  # ensure the path is correct
+from grades.grade2 import grade_assignment  # ensure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
 def show():
@@ -26,7 +26,7 @@ def show():
 
             spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
             worksheet = spreadsheet.sheet1
-            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming student_id is in the 3rd column
+            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID in 3rd column
 
             if student_id in saved_ids:
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
@@ -71,12 +71,14 @@ def show():
                     with open(csv_path, "wb") as f:
                         f.write(uploaded_csv.getvalue())
 
+                    # Get only the numerical grade (0-100)
                     grade = grade_assignment(code, html_path, png_path, csv_path)
                     st.success(f"Your grade for Assignment 2: {grade}/100")
 
+                    # Now update Google Sheets with the numerical grade only.
                     update_google_sheet(
-                        full_name="",  # Placeholder
-                        email="",      # Placeholder
+                        full_name="",  # Update if needed
+                        email="",      # Update if needed
                         student_id=student_id,
                         grade=grade,
                         current_assignment="assignment_2"
