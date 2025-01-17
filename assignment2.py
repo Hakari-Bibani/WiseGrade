@@ -1,9 +1,6 @@
-Here's the fully updated code:
-assignment2.py
-Python
 import streamlit as st
 import os
-from grades.grade2 import grade_assignment
+from grades.grade2 import grade_assignment  # Make sure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
 def show():
@@ -70,9 +67,9 @@ def show():
                     # Save uploaded files temporarily
                     temp_dir = "temp_uploads"
                     os.makedirs(temp_dir, exist_ok=True)
-                    html_path = os.path.join(temp_dir, "earthquake_map.html")
-                    png_path = os.path.join(temp_dir, "earthquake_bar_chart.png")
-                    csv_path = os.path.join(temp_dir, "earthquake_summary.csv")
+                    html_path = os.path.join(temp_dir, "uploaded_map.html")
+                    png_path = os.path.join(temp_dir, "uploaded_chart.png")
+                    csv_path = os.path.join(temp_dir, "uploaded_summary.csv")
 
                     with open(html_path, "wb") as f:
                         f.write(uploaded_html.getvalue())
@@ -81,14 +78,14 @@ def show():
                     with open(csv_path, "wb") as f:
                         f.write(uploaded_csv.getvalue())
 
-                    # Grade the submission
+                    # Grade the submission using grade2.py
                     grade = grade_assignment(code, html_path, png_path, csv_path)
                     st.success(f"Your grade for Assignment 2: {grade}/100")
 
                     # Update Google Sheets
                     update_google_sheet(
-                        full_name="",  
-                        email="",      
+                        full_name="",  # Placeholder: Update if full_name is captured
+                        email="",      # Placeholder: Update if email is captured
                         student_id=student_id,
                         grade=grade,
                         current_assignment="assignment_2"
@@ -102,22 +99,3 @@ def show():
 
 if __name__ == "__main__":
     show()
-grade2.py
-Python
-import ast
-import re
-from bs4 import BeautifulSoup
-import csv
-import matplotlib.pyplot as plt
-import numpy as np
-
-def grade_assignment(code, html_path, png_path, csv_path):
-    total_points = 100
-    grade = 0
-
-    # 1. Library Imports (20 points)
-    points = 20
-    required_imports = ['requests', 'folium', 'pandas']
-    try:
-        tree = ast.parse(code)
-        imports = [node.names[0].name for node in ast.walk(tree) if
