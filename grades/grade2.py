@@ -170,3 +170,14 @@ def grade_assignment(code, html_path, png_path, csv_path):
     except Exception as e:
         debug_info.append(f"CSV summary check error: {e}")
     debug_info.append(f"Text summary score: {summary_score} / 20")
+    
+    ##########################################
+    # Total Score
+    ##########################################
+    total_score = imports_score + quality_score + api_score + filter_score + map_score + bar_chart_score + summary_score
+    total_score = round(total_score, 2)
+    
+    # Uncomment the next line for detailed debug output:
+    # print("\n".join(debug_info))
+    
+    return total_score, debug_info
