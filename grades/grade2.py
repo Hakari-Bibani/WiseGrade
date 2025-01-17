@@ -95,40 +95,43 @@ def grade_assignment(code, html_path, png_path, csv_path):
     debug_info.append(f"Filter score: {filter_score} / 10")
     
     ##########################################
-    # 5. Map Visualization (20 Points)
+    # 5. Map Visualization (25 Points)
     ##########################################
     map_score = 0
     try:
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
-        # (a) Check for marker keyword — 7 points
-        if re.search(r"marker", html_content, re.IGNORECASE):
-            map_score += 7
-        # (b) Check for color keywords for markers (green, red, yellow) — 7 points
+        
+        # (a) Check for any type of marker — 10 points
+        if re.search(r"L\.(Circle)?Marker\(\[.*?\]\)", html_content, re.IGNORECASE):
+            map_score += 10
+        
+        # (b) Check for color keywords for markers (green, red, yellow) — 10 points
         colors_found = 0
         for color in ["green", "red", "yellow"]:
-            if re.search(color, html_content, re.IGNORECASE):
+            if re.search(fr"color\s*:\s*['\"]{color}['\"]", html_content, re.IGNORECASE):
                 colors_found += 1
         if colors_found == 3:
-            map_score += 7
+            map_score += 10
         else:
-            map_score += 7 * (colors_found / 3)
-        # (c) Check for popups that include “magnitude”, “location”, “time” — 6 points
+            map_score += 10 * (colors_found / 3)
+        
+        # (c) Check for popups that include “magnitude”, “location”, “time” — 5 points
         popup_hits = 0
         for keyword in ["magnitude", "location", "time"]:
-            if re.search(keyword, html_content, re.IGNORECASE):
+            if re.search(fr"\.bindPopup\(\s*['\"].*?{keyword}.*?['\"]\)", html_content, re.IGNORECASE):
                 popup_hits += 1
         if popup_hits == 3:
-            map_score += 6
+            map_score += 5
         else:
-            map_score += 6 * (popup_hits / 3)
+            map_score += 5 * (popup_hits / 3)
     except Exception as e:
         debug_info.append(f"Map visualization check error: {e}")
-    map_score = min(20, map_score)
-    debug_info.append(f"Map visualization score: {map_score} / 20")
+    map_score = min(25, map_score)
+    debug_info.append(f"Map visualization score: {map_score} / 25")
     
     ##########################################
-    # 6. Bar Chart (PNG) (15 Points)
+    # 6. Bar Chart (PNG) (5 Points)
     ##########################################
     bar_chart_score = 0
     # Expected labels for the bar chart:
@@ -139,7 +142,7 @@ def grade_assignment(code, html_path, png_path, csv_path):
         try:
             if os.path.getsize(png_path) > 0:
                 # Not ideal: this gives full points even if label check cannot be done.
-                bar_chart_score = 15
+                bar_chart_score = 5
         except Exception as e:
             debug_info.append(f"Bar chart file error: {e}")
     else:
@@ -150,13 +153,14 @@ def grade_assignment(code, html_path, png_path, csv_path):
             # print("OCR Text:", ocr_text)
             for label in expected_labels:
                 if label in ocr_text:
-                    bar_chart_score += 5
+                    bar_chart_score += 5 / 3  # 5 points split across 3 labels
         except Exception as e:
             debug_info.append(f"Bar chart OCR error: {e}")
-    debug_info.append(f"Bar chart score: {bar_chart_score} / 15")
+    bar_chart_score = min(5, bar_chart_score)
+    debug_info.append(f"Bar chart score: {bar_chart_score} / 5")
     
     ##########################################
-    # 7. Text Summary (CSV) (15 Points)
+    # 7. Text Summary (CSV) (20 Points)
     ##########################################
     summary_score = 0
     # Expected values and tolerances:
@@ -188,11 +192,11 @@ def grade_assignment(code, html_path, png_path, csv_path):
         total_metrics = len(correct_values)
         for metric in correct_values:
             if found_values[metric]:
-                partial += 15 / total_metrics
-        summary_score = min(15, partial)
+                partial += 20 / total_metrics  # 20 points split across 7 metrics
+        summary_score = min(20, partial)
     except Exception as e:
         debug_info.append(f"CSV summary check error: {e}")
-    debug_info.append(f"Text summary score: {summary_score} / 15")
+    debug_info.append(f"Text summary score: {summary_score} / 20")
     
     ##########################################
     # Total Score
