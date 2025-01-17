@@ -1,102 +1,108 @@
-import streamlit as st
-import os
-from grades.grade2 import grade_assignment
-from Record.google_sheet import update_google_sheet
+import ast
+import re
+from bs4 import BeautifulSoup
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
 
-def show():
-    st.title("Assignment 2: Earthquake Data Analysis")
+def grade_assignment(code, html_path, png_path, csv_path):
+    total_points = 100
+    grade = 0
 
-    # Step 1: Validate Student ID
-    st.header("Step 1: Enter Your Student ID")
-    student_id = st.text_input("Enter Your Student ID")
-    verify_button = st.button("Verify Student ID")
-
-    if verify_button:
-        try:
-            # Load saved student IDs from Google Sheets for Assignment 1
-            google_sheets_secrets = st.secrets.get("google_sheets", None)
-            if not google_sheets_secrets:
-                st.error("Google Sheets credentials are missing in Streamlit secrets.")
-                return
-
-            # Define the scope and authorize
-            import gspread
-            from oauth2client.service_account import ServiceAccountCredentials
-            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-            credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
-            client = gspread.authorize(credentials)
-
-            # Open the Google Sheet and get the student IDs
-            spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
-            worksheet = spreadsheet.sheet1
-            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming student_id is in the 3rd column
-
-            if student_id in saved_ids:
-                st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
-                st.session_state["verified"] = True
-            else:
-                st.error("Invalid Student ID. Please enter a valid ID from Assignment 1.")
-                st.session_state["verified"] = False
-
-        except Exception as e:
-            st.error(f"An error occurred while verifying Student ID: {e}")
-            st.session_state["verified"] = False
-
-    # Proceed only if the student ID is verified
-    if st.session_state.get("verified", False):
-        # Step 2: Code Editor
-        st.header("Step 2: Paste Your Code")
-        code = st.text_area("Write your Python code here", height=300)
-
-        # Step 3: Upload Files
-        st.header("Step 3: Upload Your Outputs")
-        uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
-        uploaded_png = st.file_uploader("Upload your PNG file (Bar Chart)", type=["png"])
-        uploaded_csv = st.file_uploader("Upload your CSV file (Summary)", type=["csv"])
-
-        # Check if all files are uploaded
-        all_uploaded = all([uploaded_html, uploaded_png, uploaded_csv])
-        st.write("All files uploaded:", "✅ Yes" if all_uploaded else "❌ No")
-
-        # Step 4: Submit Assignment
-        if all_uploaded:
-            submit_button = st.button("Submit Assignment")
-
-            if submit_button:
-                try:
-                    # Save uploaded files temporarily
-                    temp_dir = "temp_uploads"
-                    os.makedirs(temp_dir, exist_ok=True)
-                    html_path = os.path.join(temp_dir, "uploaded_map.html")
-                    png_path = os.path.join(temp_dir, "uploaded_chart.png")
-                    csv_path = os.path.join(temp_dir, "uploaded_summary.csv")
-
-                    with open(html_path, "wb") as f:
-                        f.write(uploaded_html.getvalue())
-                    with open(png_path, "wb") as f:
-                        f.write(uploaded_png.getvalue())
-                    with open(csv_path, "wb") as f:
-                        f.write(uploaded_csv.getvalue())
-
-                    # Grade the submission
-                    grade, feedback = grade_assignment(code, html_path, png_path, csv_path)
-                    st.success(f"Your grade: {grade}/80")
-                    st.write(feedback)
-
-                    # Update Google Sheets
-                    update_google_sheet(
-                        full_name="",  # Placeholder: Update if full_name is captured
-                        email="",      # Placeholder: Update if email is captured
-                        student_id=student_id,
-                        grade=grade,
-                        current_assignment="assignment_2"
-                    )
-
-                except Exception as e:
-                    st.error(f"An error occurred during submission: {e}")
-
+    # 1. Library Imports (20 points)
+    points = 20
+    required_imports = ['requests', 'folium', 'pandas']
+    try:
+        tree = ast.parse(code)
+        imports = [node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)]
+        if all(import_ in imports for import_ in required_imports):
+            grade += points
         else:
-            st.warning("Please upload all required files to proceed.")
+            print("Missing required library imports.")
+    except Exception as e:
+        print(f"Error evaluating library imports: {e}")
+        points = 0
 
-if __name__ == "__main__":
-    show()
+    # 2. Code Quality (10 points)
+    points = 10
+    try:
+        variables = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=', code)
+        if all(len(variable) > 2 for variable in variables):
+            grade += points
+        else:
+            print("Variable names are not descriptive.")
+    except Exception as e:
+        print(f"Error evaluating code quality: {e}")
+        points = 0
+
+    # 3. Fetching Data from API (10 points)
+    points = 10
+    try:
+        if 'requests.get' in code and 'response.status_code' in code:
+            grade += points
+        else:
+            print("API request or error handling is incorrect.")
+    except Exception as e:
+        print(f"Error evaluating API request: {e}")
+        points = 0
+
+    # 4. Filtering Earthquakes (10 points)
+    points = 10
+    try:
+        if 'df.query' in code or ('df[' in code and '> 4.0' in code):
+            grade += points
+        else:
+            print("Earthquake filtering is incorrect.")
+    except Exception as e:
+        print(f"Error evaluating earthquake filtering: {e}")
+        points = 0
+
+    # 5. Map Visualization (20 points)
+    points = 20
+    try:
+        with open(html_path, 'r') as file:
+            soup = BeautifulSoup(file, 'html.parser')
+            markers = soup.find_all('div', {'class': 'leaflet-marker-icon'})
+            if len(markers) > 0:
+                grade += points
+            else:
+                print("Map markers are missing.")
+    except Exception as e:
+        print(f"Error evaluating map visualization: {e}")
+        points = 0
+
+    # 6. Bar Chart (15 points)
+    points = 15
+    try:
+        img = plt.imread(png_path)
+        if img.shape[2] == 4:  # RGBA (with alpha channel)
+            grade += points
+        else:
+            print("Bar chart is incorrect.")
+    except Exception as e:
+        print(f"Error evaluating bar chart: {e}")
+        points = 0
+
+    # 7. Text Summary (15 points)
+    points = 15
+    try:
+        with open(csv_path, 'r') as file:
+            reader = csv.DictReader(file)
+            data = [row for row in reader]
+            metrics = [row['Metric'] for row in data]
+            values = [float(row['Value']) for row in data]
+            if (np.isclose(values[0], 218.0, atol=1) and
+                np.isclose(values[1], 4.63, atol=0.3) and
+                np.isclose(values[2], 7.1, atol=0.2) and
+                np.isclose(values[3], 4.1, atol=0.2) and
+                np.isclose(values[4], 75.0, atol=1) and
+                np.isclose(values[5], 106.0, atol=0.3) and
+                np.isclose(values[6], 37.0, atol=1)):
+                grade += points
+            else:
+                print("Text summary is incorrect.")
+    except Exception as e:
+        print(f"Error evaluating text summary: {e}")
+        points = 0
+
+    return grade
