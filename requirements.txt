@@ -14,7 +14,6 @@ beautifulsoup4
 opencv-python-headless
 scikit-image
 numpy
-streamlit-folium
 flake8
 python-dotenv
 pytesseract
@@ -22,3 +21,6 @@ oauth2client
 scikit-image
 Pillow
 urllib3
+IPython
+lxml
+google-api-python-client
