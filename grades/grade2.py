@@ -2,13 +2,11 @@ import re
 import csv
 import math
 import os
+from PIL import Image
+import pytesseract
 
-# For bar chart OCR – you'll need to install pytesseract and Pillow (pip install pytesseract Pillow)
-try:
-    import pytesseract
-    from PIL import Image
-except ImportError:
-    pytesseract = None
+# Configure pytesseract (update the path if necessary)
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def grade_assignment(code, html_path, png_path, csv_path):
     total_score = 0
@@ -133,10 +131,9 @@ def grade_assignment(code, html_path, png_path, csv_path):
     # 6. Bar Chart (PNG) (15 Points)
     ##########################################
     bar_chart_score = 0
-    # Expected x-axis labels for the bar chart:
+    # Expected labels for the bar chart:
     expected_labels = ["4.0-4.5", "4.5-5.0", ">5.0"]
     
-    # Award 5 points for each label detected.
     if pytesseract is None:
         # Fallback: if OCR is not available, only check that file exists.
         try:
@@ -206,4 +203,4 @@ def grade_assignment(code, html_path, png_path, csv_path):
     # Uncomment to print detailed debug info if needed:
     # print("\n".join(debug_info))
     
-    return total_score
+    return total_score, debug_info
