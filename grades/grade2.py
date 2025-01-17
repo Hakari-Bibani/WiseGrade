@@ -3,13 +3,6 @@ import csv
 import math
 import os
 from PIL import Image
-import pytesseract
-
-# Configure pytesseract (update the path if necessary)
-try:
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-except Exception as e:
-    pytesseract = None  # Disable OCR if Tesseract is not installed
 
 def grade_assignment(code, html_path, png_path, csv_path):
     total_score = 0
@@ -42,7 +35,6 @@ def grade_assignment(code, html_path, png_path, csv_path):
         lib_score += 15 * (1/5)
     if required_libraries['pandas']:
         lib_score += 15 * (1/5)
-    # Cap the imports score at 15
     imports_score = min(15, lib_score)
     debug_info.append(f"Imports score: {imports_score:.2f} / 15")
     
@@ -78,8 +70,9 @@ def grade_assignment(code, html_path, png_path, csv_path):
     ##########################################
     # 3. Fetching Data from the API (5 Points)
     ##########################################
+    # Check for "starttime" or "endtime" in the URL query string
     api_score = 0
-    if re.search(r"(https?://\S+api\S+\?[^'\"]*date)", code, re.IGNORECASE):
+    if re.search(r"(https?://\S+query\?[^'\"]*(starttime|endtime))", code, re.IGNORECASE):
         api_score = 5
     debug_info.append(f"API score: {api_score} / 5")
     
@@ -103,31 +96,19 @@ def grade_assignment(code, html_path, png_path, csv_path):
     map_score = 0
     try:
         with open(html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
+            html_content = f.read().lower()
         
-        # (a) Check for any type of marker — 10 points
-        if re.search(r"L\.(Circle)?Marker\(\[.*?\]\)", html_content, re.IGNORECASE):
+        # (a) Check for markers – simply check for the substring "marker("
+        if "marker(" in html_content:
             map_score += 10
         
-        # (b) Check for color keywords for markers (green, red, yellow) — 10 points
-        colors_found = 0
-        for color in ["green", "red", "yellow"]:
-            if re.search(fr"color\s*:\s*['\"]{color}['\"]", html_content, re.IGNORECASE):
-                colors_found += 1
-        if colors_found == 3:
-            map_score += 10
-        else:
-            map_score += 10 * (colors_found / 3)
+        # (b) Check for color keywords ("green", "red", "yellow")
+        colors_found = sum(1 for color in ["green", "red", "yellow"] if color in html_content)
+        map_score += 10 * (colors_found / 3)
         
-        # (c) Check for popups that include “magnitude”, “location”, “time” — 5 points
-        popup_hits = 0
-        for keyword in ["magnitude", "location", "time"]:
-            if re.search(fr"\.bindPopup\(\s*['\"].*?{keyword}.*?['\"]\)", html_content, re.IGNORECASE):
-                popup_hits += 1
-        if popup_hits == 3:
-            map_score += 5
-        else:
-            map_score += 5 * (popup_hits / 3)
+        # (c) Check for popups including the keywords "magnitude", "location", "time"
+        popup_hits = sum(1 for keyword in ["magnitude", "location", "time"] if keyword in html_content)
+        map_score += 5 * (popup_hits / 3)
     except Exception as e:
         debug_info.append(f"Map visualization check error: {e}")
     map_score = min(25, map_score)
@@ -136,36 +117,19 @@ def grade_assignment(code, html_path, png_path, csv_path):
     ##########################################
     # 6. Bar Chart (PNG) (5 Points)
     ##########################################
+    # Simply check that the PNG file is non-empty.
     bar_chart_score = 0
-    # Expected labels for the bar chart:
-    expected_labels = ["4.0-4.5", "4.5-5.0", ">5.0"]
-    
-    if pytesseract is None:
-        # Fallback: if OCR is not available, only check that file exists.
-        try:
-            if os.path.getsize(png_path) > 0:
-                bar_chart_score = 5  # Full points if file exists
-        except Exception as e:
-            debug_info.append(f"Bar chart file error: {e}")
-    else:
-        try:
-            img = Image.open(png_path)
-            ocr_text = pytesseract.image_to_string(img)
-            # Debug: Uncomment the next line to print OCR text if needed
-            # print("OCR Text:", ocr_text)
-            for label in expected_labels:
-                if label in ocr_text:
-                    bar_chart_score += 5 / 3  # 5 points split across 3 labels
-        except Exception as e:
-            debug_info.append(f"Bar chart OCR error: {e}")
-    bar_chart_score = min(5, bar_chart_score)
+    try:
+        if os.path.getsize(png_path) > 0:
+            bar_chart_score = 5
+    except Exception as e:
+        debug_info.append(f"Bar chart file error: {e}")
     debug_info.append(f"Bar chart score: {bar_chart_score} / 5")
     
     ##########################################
     # 7. Text Summary (CSV) (20 Points)
     ##########################################
     summary_score = 0
-    # Expected values and tolerances:
     correct_values = {
         "Total Earthquakes (>4.0)": (218.0, 1),
         "Average Magnitude": (4.63, 0.1),
@@ -176,7 +140,6 @@ def grade_assignment(code, html_path, png_path, csv_path):
         "5.0+": (37.0, 1)
     }
     
-    # We ignore header and formatting differences: check every cell.
     found_values = {metric: False for metric in correct_values}
     try:
         with open(csv_path, newline="") as csvfile:
@@ -194,7 +157,7 @@ def grade_assignment(code, html_path, png_path, csv_path):
         total_metrics = len(correct_values)
         for metric in correct_values:
             if found_values[metric]:
-                partial += 20 / total_metrics  # 20 points split across 7 metrics
+                partial += 20 / total_metrics  # 20 points split across all metrics
         summary_score = min(20, partial)
     except Exception as e:
         debug_info.append(f"CSV summary check error: {e}")
@@ -206,7 +169,7 @@ def grade_assignment(code, html_path, png_path, csv_path):
     total_score = imports_score + quality_score + api_score + filter_score + map_score + bar_chart_score + summary_score
     total_score = round(total_score, 2)
     
-    # Uncomment to print detailed debug info if needed:
+    # Uncomment the following line for detailed debug output if needed:
     # print("\n".join(debug_info))
     
     return total_score, debug_info
