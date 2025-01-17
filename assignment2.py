@@ -79,8 +79,9 @@ def show():
                         f.write(uploaded_csv.getvalue())
 
                     # Grade the submission
-                    grade = grade_assignment(code, html_path, png_path, csv_path)
-                    st.success(f"Your grade for Assignment 2: {grade}/100")
+                    grade, feedback = grade_assignment(code, html_path, png_path, csv_path)
+                    st.success(f"Your grade: {grade}/80")
+                    st.write(feedback)
 
                     # Update Google Sheets
                     update_google_sheet(
