@@ -6,26 +6,6 @@ from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import ast
 
-def grade_assignment(code_str, html_path, png_path, csv_path):
-    """Main grading function that evaluates code and files."""
-    total_grade = 0
-    
-    # Initialize grading components
-    code_grade = grade_code(code_str)
-    map_grade = grade_map(html_path)
-    chart_grade = grade_chart(png_path)
-    summary_grade = grade_summary(csv_path)
-    
-    # Calculate total grade (weighted components)
-    total_grade = (
-        code_grade * 0.4 +    # 40% for code implementation
-        map_grade * 0.3 +     # 30% for map visualization
-        chart_grade * 0.15 +  # 15% for bar chart
-        summary_grade * 0.15  # 15% for summary statistics
-    )
-    
-    return round(total_grade)
-
 def grade_code(code_str):
     """Grade the submitted code implementation."""
     grade = 0
@@ -33,45 +13,52 @@ def grade_code(code_str):
         'api_usage': 0,       # 10 points
         'data_filtering': 0,  # 10 points
         'libraries': 0,       # 5 points
-        'error_handling': 0,  # 5 points
-        'date_range': 0,      # 5 points
-        'code_quality': 0     # 5 points
+        'visualization': 0,   # 10 points
+        'data_processing': 0  # 5 points
     }
     
     try:
-        # Parse the code into an AST
-        tree = ast.parse(code_str)
+        # More flexible API URL check
+        if ('earthquake.usgs.gov' in code_str and 
+            'fdsnws/event/1/query' in code_str and 
+            '2025-01-02' in code_str and 
+            '2025-01-09' in code_str):
+            checks['api_usage'] = 10
         
-        # Check for required libraries
-        imports = [node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)]
-        required_libraries = ['folium', 'pandas', 'requests', 'matplotlib']
-        if all(lib in ' '.join(imports) for lib in required_libraries):
-            checks['libraries'] = 5
+        # More flexible library checks
+        required_libs = ['requests', 'pandas', 'folium', 'matplotlib']
+        found_libs = [lib for lib in required_libs if lib in code_str]
+        checks['libraries'] = (len(found_libs) / len(required_libs)) * 5
         
-        # Check API usage
-        if 'earthquake.usgs.gov/fdsnws/event/1/query' in code_str:
-            checks['api_usage'] += 5
-        if '2025-01-02' in code_str and '2025-01-09' in code_str:
-            checks['date_range'] = 5
-            checks['api_usage'] += 5
-        
-        # Check data filtering
-        if 'magnitude > 4' in code_str.lower() or 'magnitude >= 4' in code_str.lower():
-            checks['data_filtering'] += 5
-        if any(range_str in code_str.lower() for range_str in ['4-5', '5-5.5', '5.5+']):
+        # Data filtering checks
+        if ('magnitude' in code_str.lower() and 
+            ('> 4' in code_str or '>= 4' in code_str or 'greater than 4' in code_str)):
             checks['data_filtering'] += 5
         
-        # Check error handling
-        if 'try' in code_str and 'except' in code_str:
-            checks['error_handling'] = 5
+        if any(x in code_str for x in ['4.0-4.5', '4.5-5.0', '5.0+']):
+            checks['data_filtering'] += 5
         
-        # Basic code quality checks
-        if code_str.count('\n') > 10 and 'def' in code_str:
-            checks['code_quality'] = 5
+        # Visualization checks
+        if ('folium.Map' in code_str and 
+            'CircleMarker' in code_str and 
+            'color' in code_str):
+            checks['visualization'] += 5
+        
+        if ('plt.bar' in code_str and 
+            'savefig' in code_str):
+            checks['visualization'] += 5
+        
+        # Data processing checks
+        if ('mean' in code_str and 
+            'max' in code_str and 
+            'min' in code_str and 
+            'to_csv' in code_str):
+            checks['data_processing'] = 5
         
         grade = sum(checks.values())
         
-    except SyntaxError:
+    except Exception as e:
+        print(f"Error in grading code: {e}")
         grade = 0
     
     return grade
@@ -82,28 +69,25 @@ def grade_map(html_path):
     
     try:
         with open(html_path, 'r', encoding='utf-8') as f:
-            soup = BeautifulSoup(f.read(), 'html.parser')
+            content = f.read()
+            soup = BeautifulSoup(content, 'html.parser')
         
         # Check if it's a folium map
-        if soup.find('div', class_='folium-map'):
-            grade += 10  # Basic map implementation
-            
-            # Check for markers
-            markers = soup.find_all('div', class_='leaflet-marker-icon')
-            if markers:
-                grade += 10  # Has markers
-            
-            # Check for popups
-            popups = soup.find_all('div', class_='leaflet-popup-content')
-            if popups:
-                grade += 5  # Has popups
-                
-                # Check popup content
-                popup_text = ' '.join([p.text for p in popups])
-                if all(term in popup_text.lower() for term in ['magnitude', 'time']):
-                    grade += 5  # Proper popup content
+        if 'folium-map' in content:
+            grade += 10
         
-    except Exception:
+        # Check for markers/circles
+        if 'CircleMarker' in content or 'circle-marker' in content:
+            grade += 10
+        
+        # Check for popups with required info
+        if ('Magnitude' in content and 
+            'Location' in content and 
+            'Time' in content):
+            grade += 10
+            
+    except Exception as e:
+        print(f"Error in grading map: {e}")
         grade = 0
     
     return grade
@@ -113,22 +97,23 @@ def grade_chart(png_path):
     grade = 0
     
     try:
-        # Load and analyze the image
         img = plt.imread(png_path)
         
-        # Basic checks for a valid image
-        if img is not None and len(img.shape) >= 2:
+        if img is not None:
             grade += 5  # Basic image exists
             
-            # Check image dimensions (reasonable size for a chart)
-            if img.shape[0] >= 300 and img.shape[1] >= 400:
-                grade += 5  # Proper size
+            # Check image dimensions
+            if img.shape[0] >= 200 and img.shape[1] >= 300:
+                grade += 5
             
-            # Check for multiple colors (indicating different magnitude ranges)
-            unique_colors = len(set(tuple(pixel) for row in img for pixel in row))
-            if unique_colors > 3:  # More than background + 3 bars
-                grade += 5  # Different colors used
-    except Exception:
+            # Check for multiple colors (indicating different ranges)
+            pixels = img.reshape(-1, img.shape[-1])
+            unique_colors = len(set(tuple(p) for p in pixels))
+            if unique_colors > 3:
+                grade += 5
+            
+    except Exception as e:
+        print(f"Error in grading chart: {e}")
         grade = 0
     
     return grade
@@ -140,23 +125,42 @@ def grade_summary(csv_path):
     try:
         df = pd.read_csv(csv_path)
         
-        required_stats = [
-            'total_earthquakes',
-            'average_magnitude',
-            'maximum_magnitude',
-            'minimum_magnitude'
-        ]
+        # Check for required statistics
+        columns = ' '.join(df.columns).lower()
         
-        # Check if required statistics are present
-        if all(any(stat.lower() in col.lower() for col in df.columns) for stat in required_stats):
-            grade += 7.5  # Basic statistics present
-        
-        # Check for magnitude range counts
-        magnitude_ranges = ['4-5', '5-6', '6+']
-        if any(any(range_str in col.lower() for col in df.columns) for range_str in magnitude_ranges):
-            grade += 7.5  # Magnitude range breakdown present
+        if 'total' in columns and 'earthquake' in columns:
+            grade += 5
             
-    except Exception:
+        if any(stat in columns for stat in ['average', 'mean']):
+            grade += 3
+            
+        if 'maximum' in columns or 'max' in columns:
+            grade += 3
+            
+        if 'minimum' in columns or 'min' in columns:
+            grade += 4
+            
+    except Exception as e:
+        print(f"Error in grading summary: {e}")
         grade = 0
     
     return grade
+
+def grade_assignment(code_str, html_path, png_path, csv_path):
+    """Main grading function that evaluates code and files."""
+    
+    # Get individual component grades
+    code_points = grade_code(code_str)
+    map_points = grade_map(html_path)
+    chart_points = grade_chart(png_path)
+    summary_points = grade_summary(csv_path)
+    
+    # Calculate total (40% code, 30% map, 15% chart, 15% summary)
+    total_grade = (
+        code_points * 0.4 +
+        map_points * 0.3 +
+        chart_points * 0.15 +
+        summary_points * 0.15
+    )
+    
+    return round(total_grade)
