@@ -51,12 +51,10 @@ def grade_assignment(code, html_path, png_path, csv_path):
     ##########################################
     # a) Descriptive Variable Names (5 Points)
     naming_score = 0
-    # (Your heuristic looks for specific variable names; adjust as needed)
     if re.search(r"\bearthquake_map\b", code):
         naming_score += 5
     if re.search(r"\bmagnitude_counts\b", code):
         naming_score += 5
-    # Cap at 5:
     naming_score = min(5, naming_score)
     
     # b) Spacing After Operators (5 Points)
@@ -65,7 +63,7 @@ def grade_assignment(code, html_path, png_path, csv_path):
     # c) Comments (5 Points)
     comment_lines = sum(1 for line in code.splitlines() if line.strip().startswith("#"))
     comments_score = min(5, (comment_lines / 3) * 5)
-
+    
     # d) Code Organization (5 Points)
     organization_score = 5 if re.search(r"\n\s*\n", code) else 0
 
@@ -76,7 +74,6 @@ def grade_assignment(code, html_path, png_path, csv_path):
     ##########################################
     # 3. Fetching Data from the API (5 Points)
     ##########################################
-    # Check for "starttime" or "endtime" in the API URL
     api_score = 5 if re.search(r"(https?://\S+query\?[^'\"]*(starttime|endtime))", code, re.IGNORECASE) else 0
     debug_info.append(f"API score: {api_score} / 5")
     
@@ -84,10 +81,10 @@ def grade_assignment(code, html_path, png_path, csv_path):
     # 4. Filtering Earthquakes (5 Points)
     ##########################################
     filter_score = 0
-    # Award 2.5 points if filtering condition is found (e.g., "magnitude > 4.0")
+    # 2.5 points for filtering condition "magnitude > 4.0"
     if re.search(r"magnitude\s*[><=]+\s*4\.0", code):
         filter_score += 2.5
-    # Award 2.5 points if at least 4 required fields are mentioned (latitude, longitude, magnitude, time)
+    # 2.5 points for detecting at least 4 key fields: latitude, longitude, magnitude, time
     extraction_hits = 0
     for field in ["latitude", "longitude", "magnitude", "time"]:
         if re.search(field, code, re.IGNORECASE):
@@ -108,11 +105,11 @@ def grade_assignment(code, html_path, png_path, csv_path):
         if "marker(" in html_content:
             map_score += 10
         
-        # (b) Color Keywords (10 points): Check for presence of "green", "red", "yellow"
+        # (b) Color Keywords (10 points): Check for "green", "red", "yellow"
         colors_found = sum(1 for color in ["green", "red", "yellow"] if color in html_content)
         map_score += 10 * (colors_found / 3)
         
-        # (c) Popups (5 points): Check for keywords "magnitude", "location", "time"
+        # (c) Popup Content (5 points): Check for keywords "magnitude", "location", "time"
         popup_hits = sum(1 for keyword in ["magnitude", "location", "time"] if keyword in html_content)
         map_score += 5 * (popup_hits / 3)
     except Exception as e:
@@ -123,7 +120,7 @@ def grade_assignment(code, html_path, png_path, csv_path):
     ##########################################
     # 6. Bar Chart (PNG) (5 Points)
     ##########################################
-    # Simply check that the PNG file is non-empty.
+    # Check that the PNG file is non-empty.
     bar_chart_score = 0
     try:
         if os.path.getsize(png_path) > 0:
@@ -136,7 +133,6 @@ def grade_assignment(code, html_path, png_path, csv_path):
     # 7. Text Summary (CSV) (20 Points)
     ##########################################
     summary_score = 0
-    # Expected values and tolerances:
     correct_values = {
         "Total Earthquakes (>4.0)": (218.0, 1),
         "Average Magnitude": (4.63, 0.1),
@@ -162,7 +158,6 @@ def grade_assignment(code, html_path, png_path, csv_path):
                         continue
         partial = 0
         total_metrics = len(correct_values)
-        # Award points evenly (20 points split across all metrics)
         for metric in correct_values:
             if found_values[metric]:
                 partial += 20 / total_metrics
@@ -172,12 +167,21 @@ def grade_assignment(code, html_path, png_path, csv_path):
     debug_info.append(f"Text summary score: {summary_score} / 20")
     
     ##########################################
-    # Total Score
+    # Total Score Calculation
     ##########################################
-    total_score = imports_score + quality_score + api_score + filter_score + map_score + bar_chart_score + summary_score
+    total_score = (
+        imports_score
+        + quality_score
+        + api_score
+        + filter_score
+        + map_score
+        + bar_chart_score
+        + summary_score
+    )
     total_score = round(total_score, 2)
     
-    # Uncomment the next line for detailed debug output:
+    # Uncomment the next line to print debug info locally for troubleshooting.
     # print("\n".join(debug_info))
     
-    return total_score, debug_info
+    # Return only the total score (a number between 0 and 100)
+    return total_score
