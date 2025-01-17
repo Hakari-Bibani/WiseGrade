@@ -3,9 +3,16 @@ import csv
 import math
 import os
 
+# For bar chart OCR – you'll need to install pytesseract and Pillow (pip install pytesseract Pillow)
+try:
+    import pytesseract
+    from PIL import Image
+except ImportError:
+    pytesseract = None
+
 def grade_assignment(code, html_path, png_path, csv_path):
     total_score = 0
-    debug_info = []  # Optional: collect info on each section for debugging
+    debug_info = []
 
     ##########################################
     # 1. Library Imports (15 Points)
@@ -15,18 +22,16 @@ def grade_assignment(code, html_path, png_path, csv_path):
         'folium': False,
         'matplotlib': False,  # or seaborn; we check for either
         'seaborn': False,
-        'requests': False,  # or urllib, we check for either
+        'requests': False,     # or urllib
         'urllib': False,
         'pandas': False,
     }
     
-    # Look for import patterns in the code (this is a simple heuristic)
     for lib in required_libraries.keys():
         pattern = r"(?i)(import|from)\s+" + re.escape(lib) + r"\b"
         if re.search(pattern, code):
             required_libraries[lib] = True
 
-    # Calculate score: each group gives an equal share of 15 points.
     lib_score = 0
     if required_libraries['folium']:
         lib_score += 15 * (1/5)
@@ -36,16 +41,14 @@ def grade_assignment(code, html_path, png_path, csv_path):
         lib_score += 15 * (1/5)
     if required_libraries['pandas']:
         lib_score += 15 * (1/5)
-    # For balance, we assume the fifth group is a bonus if all are found
+    # Cap the imports score at 15
     imports_score = min(15, lib_score)
     debug_info.append(f"Imports score: {imports_score:.2f} / 15")
     
     ##########################################
     # 2. Code Quality (20 Points)
     ##########################################
-    quality_score = 0
-
-    # Descriptive variable names: Checking for keywords
+    # Descriptive Variable Names (5 Points)
     naming_score = 0
     if re.search(r"\bearthquake_map\b", code):
         naming_score += 5
@@ -53,18 +56,18 @@ def grade_assignment(code, html_path, png_path, csv_path):
         naming_score += 5
     naming_score = min(5, naming_score)
     
-    # Spacing after operators
+    # Spacing After Operators (5 Points)
     spacing_score = 0
     if not re.search(r"\S[=<>+\-/*]{1}\S", code):
         spacing_score = 5
     else:
         spacing_score = 2.5
 
-    # Comments: Count comment lines (at least 3 for full credit)
+    # Comments (5 Points)
     comment_lines = sum(1 for line in code.splitlines() if line.strip().startswith("#"))
     comments_score = min(5, (comment_lines / 3) * 5)
     
-    # Code Organization: blank lines present
+    # Code Organization (5 Points)
     organization_score = 5 if re.search(r"\n\s*\n", code) else 0
 
     quality_score = naming_score + spacing_score + comments_score + organization_score
@@ -100,36 +103,63 @@ def grade_assignment(code, html_path, png_path, csv_path):
     try:
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
-        markers_found = bool(re.search(r"marker", html_content, re.IGNORECASE))
-        colors_found = bool(re.search(r"(red|orange|green)", html_content, re.IGNORECASE))
-        popup_found = bool(re.search(r"(magnitude|location|time)", html_content, re.IGNORECASE))
-        if markers_found:
+        # (a) Check for marker keyword — 7 points
+        if re.search(r"marker", html_content, re.IGNORECASE):
             map_score += 7
-        if colors_found:
+        # (b) Check for color keywords for markers (green, red, yellow) — 7 points
+        colors_found = 0
+        for color in ["green", "red", "yellow"]:
+            if re.search(color, html_content, re.IGNORECASE):
+                colors_found += 1
+        if colors_found == 3:
             map_score += 7
-        if popup_found:
+        else:
+            map_score += 7 * (colors_found / 3)
+        # (c) Check for popups that include “magnitude”, “location”, “time” — 6 points
+        popup_hits = 0
+        for keyword in ["magnitude", "location", "time"]:
+            if re.search(keyword, html_content, re.IGNORECASE):
+                popup_hits += 1
+        if popup_hits == 3:
             map_score += 6
+        else:
+            map_score += 6 * (popup_hits / 3)
     except Exception as e:
         debug_info.append(f"Map visualization check error: {e}")
     map_score = min(20, map_score)
     debug_info.append(f"Map visualization score: {map_score} / 20")
     
     ##########################################
-    # 6. Bar Chart (15 Points)
+    # 6. Bar Chart (PNG) (15 Points)
     ##########################################
     bar_chart_score = 0
-    # Modification: only check for the correct magnitude range labels.
-    # Since it's hard to extract text from an image without OCR,
-    # we assume that if a non-empty PNG file is uploaded, it was generated using the correct ranges.
-    try:
-        if os.path.getsize(png_path) > 0:
-            bar_chart_score = 15
-    except Exception as e:
-        debug_info.append(f"Bar chart file error: {e}")
+    # Expected x-axis labels for the bar chart:
+    expected_labels = ["4.0-4.5", "4.5-5.0", ">5.0"]
+    
+    # Award 5 points for each label detected.
+    if pytesseract is None:
+        # Fallback: if OCR is not available, only check that file exists.
+        try:
+            if os.path.getsize(png_path) > 0:
+                # Not ideal: this gives full points even if label check cannot be done.
+                bar_chart_score = 15
+        except Exception as e:
+            debug_info.append(f"Bar chart file error: {e}")
+    else:
+        try:
+            img = Image.open(png_path)
+            ocr_text = pytesseract.image_to_string(img)
+            # Debug: Uncomment the next line to print OCR text if needed
+            # print("OCR Text:", ocr_text)
+            for label in expected_labels:
+                if label in ocr_text:
+                    bar_chart_score += 5
+        except Exception as e:
+            debug_info.append(f"Bar chart OCR error: {e}")
     debug_info.append(f"Bar chart score: {bar_chart_score} / 15")
     
     ##########################################
-    # 7. Text Summary (15 Points)
+    # 7. Text Summary (CSV) (15 Points)
     ##########################################
     summary_score = 0
     # Expected values and tolerances:
@@ -143,39 +173,37 @@ def grade_assignment(code, html_path, png_path, csv_path):
         "5.0+": (37.0, 1)
     }
     
-    # Instead of relying on column names or order, we scan all cells in the CSV (ignoring formatting)
-    found_values = {metric: [] for metric in correct_values}
+    # We ignore header and formatting differences: check every cell.
+    found_values = {metric: False for metric in correct_values}
     try:
         with open(csv_path, newline="") as csvfile:
             reader = csv.reader(csvfile)
-            # Go through every cell in the CSV
             for row in reader:
                 for cell in row:
                     try:
                         num = float(cell.strip())
                         for metric, (expected, tol) in correct_values.items():
-                            if math.isclose(num, expected, abs_tol=tol):
-                                found_values[metric].append(num)
+                            if not found_values[metric] and math.isclose(num, expected, abs_tol=tol):
+                                found_values[metric] = True
                     except ValueError:
                         continue
-
         partial = 0
-        # For each metric, if we found at least one matching number within tolerance, award partial credit.
-        for metric, (expected, tol) in correct_values.items():
+        total_metrics = len(correct_values)
+        for metric in correct_values:
             if found_values[metric]:
-                partial += 15 / len(correct_values)
+                partial += 15 / total_metrics
         summary_score = min(15, partial)
     except Exception as e:
         debug_info.append(f"CSV summary check error: {e}")
     debug_info.append(f"Text summary score: {summary_score} / 15")
     
     ##########################################
-    # Sum up points
+    # Total Score
     ##########################################
     total_score = imports_score + quality_score + api_score + filter_score + map_score + bar_chart_score + summary_score
     total_score = round(total_score, 2)
     
-    # Optionally, uncomment the following line to print debug information:
+    # Uncomment to print detailed debug info if needed:
     # print("\n".join(debug_info))
     
     return total_score
