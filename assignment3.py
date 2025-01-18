@@ -1,6 +1,7 @@
 import streamlit as st
 import os
-from grades.grade3 import grade_assignment  # Updated grade3
+import pandas as pd
+from grades.grade3 import grade_assignment  # Ensure this is the updated grade3.py
 from Record.google_sheet import update_google_sheet
 
 def show():
@@ -45,7 +46,7 @@ def show():
             st.session_state["verified"] = False
 
     if st.session_state.get("verified", False):
-        # Step 2: Assignment Details
+        # Step 2: Assignment Submission
         st.header("Step 2: Submit Your Assignment")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
@@ -59,7 +60,7 @@ def show():
 
         if submit_button:
             try:
-                # Validate that required files are uploaded
+                # Validate required files
                 if not uploaded_html:
                     st.error("Please upload an HTML file for the interactive map.")
                     return
@@ -81,7 +82,7 @@ def show():
                 with open(excel_path, "wb") as f:
                     f.write(uploaded_excel.getvalue())
 
-                # Path to correct reference Excel file
+                # Path to the correct reference Excel file
                 correct_excel_path = os.path.join("grades", "correct_assignment3.xlsx")
 
                 # Grade the assignment
@@ -95,8 +96,8 @@ def show():
 
                 # Update Google Sheets with grade
                 update_google_sheet(
-                    full_name="",  # Fill this with the student's full name if available
-                    email="",      # Fill this with the student's email if available
+                    full_name="",  # Fill with the student's full name if available
+                    email="",      # Fill with the student's email if available
                     student_id=student_id,
                     grade=total_grade,
                     current_assignment="assignment_3"
