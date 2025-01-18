@@ -1,8 +1,16 @@
-import streamlit as st
 import os
+import sys
+import streamlit as st
 import pandas as pd
-from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
-from Record.google_sheet import update_google_sheet
+
+# --- Ensure the current working directory is set to the location of this file ---
+app_path = os.path.dirname(os.path.abspath(__file__))
+os.chdir(app_path)
+sys.path.insert(0, app_path)
+
+# --- Import the needed modules from subdirectories ---
+from grades.grade3 import grade_assignment  # Make sure grades/grade3.py exists and is correct.
+from Record.google_sheet import update_google_sheet  # Make sure Record/google_sheet.py exists and is correct.
 
 def check_assignment2_submission(student_id):
     """
@@ -26,7 +34,7 @@ def check_assignment2_submission(student_id):
         records = worksheet.get_all_records()
 
         for record in records:
-            if record["Student ID"] == student_id and record["Assignment"] == "assignment_2":
+            if record.get("Student ID") == student_id and record.get("Assignment") == "assignment_2":
                 return True
         return False
     except Exception as e:
@@ -56,7 +64,7 @@ def show():
 
             spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
             worksheet = spreadsheet.sheet1
-            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID in 3rd column
+            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID is in the 3rd column
 
             if student_id in saved_ids:
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
@@ -77,17 +85,18 @@ def show():
         with tab1:
             st.markdown("""
             ### Objective
-            In this assignment, you will extend your earthquake data analysis from Assignment 2. You will fetch real-time earthquake data, perform advanced filtering, and create interactive visualizations. Additionally, you will analyze trends and generate a report.
+            In this assignment, you will extend your earthquake data analysis from Assignment 2.
+            You will fetch real-time earthquake data, perform advanced filtering, and create interactive visualizations.
+            Additionally, you will analyze trends and generate a report.
             """)
-            # Add "See More" expandable section
+            # "See More" expandable section
             with st.expander("See More"):
                 st.markdown("""
             ### Task Requirements
             - **Fetch Earthquake Data**:
                 - Use the USGS Earthquake API to fetch data for the date range **January 10th, 2025, to January 17th, 2025**.
                 - The API URL is:  
-                  `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD`.  
-                  Replace `YYYY-MM-DD` with the appropriate dates.
+                  `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD`.
             - **Advanced Filtering**:
                 - Filter the data to include only earthquakes with a magnitude greater than 4.5.
             - **Interactive Map**:
@@ -96,7 +105,7 @@ def show():
             - **Trend Analysis**:
                 - Generate a line chart showing the frequency of earthquakes over time.
             - **Report Generation**:
-                - Create a PDF report summarizing your findings.
+                - Create a PDF report summarizing your analysis.
             ### Python Libraries You Will Use
             - `folium` for the map.
             - `matplotlib` or `seaborn` for the line chart.
@@ -115,57 +124,36 @@ def show():
             #### 1. Library Imports (10 Points)
             - Checks if the required libraries (`folium`, `matplotlib`, `requests`, `pandas`, `reportlab`) are imported.
             """)
-            # Add "See More" expandable section
             with st.expander("See More"):
                 st.markdown("""
             #### 2. Code Quality (10 Points)
-            - **Variable Naming (5 Points)**:
-                - Deducted if non-descriptive variable names are used (e.g., `x`, `y`).
-            - **Spacing (5 Points)**:
-                - Deducted if improper spacing is found (e.g., no space after `=`, `>`, `<`).
-            - **Comments (5 Points)**:
-                - Deducted if no comments are present to explain major steps.
-            - **Code Organization (5 Points)**:
-                - Deducted if code blocks are not logically separated with blank lines.
+            - **Variable Naming (5 Points)**
+            - **Spacing (5 Points)**
             #### 3. Using JSON API (10 Points)
-            - **Correct API URL (5 Points)**:
-                - Deducted if the URL is incorrect or the date range is invalid.
-            - **Successful Data Retrieval (5 Points)**:
-                - Deducted if the data is not fetched successfully or error handling is missing.
+            - Checks for the correct API URL and successful data retrieval.
             #### 4. Encapsulate Functionality (5 Points)
-            - **Encapsulation (5 Points)**:
-                - Deducted if the functionality of the three scripts (Stage 1, Stage 2, and Stage 3) is not encapsulated into distinct functions.
+            - Checks if the functionality is encapsulated into distinct functions (`stage_1`, `stage_2`, `stage_3`).
             #### 5. Filter Data Below 25°C (5 Points)
-            - **Correct Filtering (5 Points)**:
-                - Deducted if the data is not filtered correctly for temperatures below 25°C.
+            - Checks for filtering data where temperature is below 25°C.
             #### 6. Filter Data Above 25°C (5 Points)
-            - **Correct Filtering (5 Points)**:
-                - Deducted if the data is not filtered correctly for temperatures above 25°C.
+            - Checks for filtering data where temperature is above 25°C.
             #### 7. HTML File (15 Points)
-            - **Markers (5 Points)**:
-                - Deducted if the HTML file does not contain markers (e.g., `marker` or `circle-marker`).
-            - **Colors (10 Points)**:
-                - Deducted if the HTML file does not contain the colors green (5 points) and red (5 points).
+            - Checks for markers (e.g., `marker` or `circle-marker`) and the presence of colors green and red.
             #### 8. Excel File (25 Points)
-            - **Sheet Names (15 Points)**:
-                - Deducted if the Excel file does not contain sheets named `Sheet1`, `Below_25`, and `Above_25` (5 points each).
-            - **Column Names (5 Points)**:
-                - Deducted if the sheets do not contain the columns `longitude`, `latitude`, and `temperature` (or equivalent).
-            - **Row Counts (5 Points)**:
-                - Deducted if the `Below_25` sheet does not contain 264 rows (±3) or the `Above_25` sheet does not contain 237 rows (±3).
+            - Checks for correct sheet names (`Sheet1`, `Below_25`, `Above_25`), column names, and approximate row counts.
             """)
 
         # Step 3: Code Submission and Output
         st.header("Step 3: Run and Submit Your Code")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        # Step 4: Upload HTML File
+        # Step 4: Upload HTML File (Interactive Map)
         st.header("Step 4: Upload Your HTML File (Interactive Map)")
-        uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
+        uploaded_html = st.file_uploader("Upload your HTML file", type=["html"])
 
-        # Step 5: Upload Excel File
+        # Step 5: Upload Excel File (Google Sheet equivalent)
         st.header("Step 5: Upload Your Excel File (Google Sheet)")
-        uploaded_excel = st.file_uploader("Upload your Excel file (Google Sheet)", type=["xlsx"])
+        uploaded_excel = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
         # Step 6: Submit Assignment
         st.header("Step 6: Submit Assignment")
@@ -198,11 +186,11 @@ def show():
                     with open(excel_path, "wb") as f:
                         f.write(uploaded_excel.getvalue())
 
-                    # Grade the assignment
+                    # Grade the assignment (grade is a value out of 100)
                     grade = grade_assignment(code_input, html_path, excel_path)
                     st.success(f"Your grade for Assignment 3: {grade}/100")
 
-                    # Update Google Sheets with the numerical grade
+                    # Update Google Sheets with the numerical grade under "assignment_3"
                     update_google_sheet(
                         full_name="",  # Update if needed
                         email="",      # Update if needed
