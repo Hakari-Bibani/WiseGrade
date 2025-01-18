@@ -3,14 +3,14 @@ import sys
 import streamlit as st
 import pandas as pd
 
-# --- Ensure the current working directory is set to the location of this file ---
+# --- Ensure the current working directory is set to this file's location ---
 app_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(app_path)
 sys.path.insert(0, app_path)
 
 # --- Import the needed modules from subdirectories ---
-from grades.grade3 import grade_assignment  # Make sure grades/grade3.py exists and is correct.
-from Record.google_sheet import update_google_sheet  # Make sure Record/google_sheet.py exists and is correct.
+from grades.grade3 import grade_assignment  # Requires that grades/grade3.py exists
+from Record.google_sheet import update_google_sheet  # Requires that Record/google_sheet.py exists
 
 def check_assignment2_submission(student_id):
     """
@@ -89,7 +89,6 @@ def show():
             You will fetch real-time earthquake data, perform advanced filtering, and create interactive visualizations.
             Additionally, you will analyze trends and generate a report.
             """)
-            # "See More" expandable section
             with st.expander("See More"):
                 st.markdown("""
             ### Task Requirements
