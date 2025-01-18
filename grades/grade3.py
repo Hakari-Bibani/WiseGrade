@@ -108,7 +108,7 @@ def grade_assignment(code, html_path, excel_path):
         if "Above_25" in sheet_names:
             excel_score += 5
 
-        # Check column names
+        # Check column names in Below_25 and Above_25 sheets
         for sheet in ["Below_25", "Above_25"]:
             if sheet in sheet_names:
                 df = pd.read_excel(excel_path, sheet_name=sheet)
@@ -131,9 +131,9 @@ def grade_assignment(code, html_path, excel_path):
     total_score += excel_score
 
     ##########################################
-    # Final Score
+    # Final Score Calculation
     ##########################################
-    total_score = min(total_score, 100)  # Ensure score does not exceed 100
+    total_score = min(total_score, 100)  # Ensure the score does not exceed 100
     debug_info.append(f"Total Score: {total_score} / 100")
-    print("\n".join(debug_info))  # Print debug info for troubleshooting
+    print("\n".join(debug_info))  # Debug info printed to the console
     return total_score
