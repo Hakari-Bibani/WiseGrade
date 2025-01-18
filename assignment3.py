@@ -6,9 +6,17 @@ from Record.google_sheet import update_google_sheet
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
-    # Prevent resubmission
-    if st.session_state.get("assignment3_submitted", False):
-        st.warning("You have already submitted Assignment 3. Resubmission is not allowed.")
+    # Prevent resubmission of Assignment 2 with the same code
+    if "assignment2_submitted_code" not in st.session_state:
+        st.session_state["assignment2_submitted_code"] = None
+
+    # Allow resubmission of Assignment 3 until Assignment 4 is submitted
+    if "assignment4_submitted" not in st.session_state:
+        st.session_state["assignment4_submitted"] = False
+
+    # Prevent resubmission of Assignment 3 if Assignment 4 is submitted
+    if st.session_state["assignment4_submitted"]:
+        st.warning("You cannot resubmit Assignment 3 after submitting Assignment 4.")
         return
 
     # Step 1: Validate Student ID
@@ -67,6 +75,11 @@ def show():
                     st.error("Please upload your Excel file.")
                     return
 
+                # Prevent submission of Assignment 2 with the same code
+                if st.session_state["assignment2_submitted_code"] == code_input:
+                    st.error("You cannot reuse the same code from Assignment 2.")
+                    return
+
                 # Save uploaded files temporarily
                 temp_dir = "temp_uploads"
                 os.makedirs(temp_dir, exist_ok=True)
@@ -99,8 +112,8 @@ def show():
                     current_assignment="assignment_3"
                 )
 
-                # Mark as submitted
-                st.session_state["assignment3_submitted"] = True
+                # Store the submitted code for Assignment 3
+                st.session_state["assignment3_submitted_code"] = code_input
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
