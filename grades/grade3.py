@@ -5,6 +5,7 @@ import pandas as pd
 def grade_excel_file(uploaded_excel_path, correct_excel_path):
     """
     Grades the Excel file by comparing it with the reference correct_assignment3.xlsx.
+    Returns the total points earned for the Excel file (out of 40).
     """
     excel_points = 0
 
@@ -13,14 +14,20 @@ def grade_excel_file(uploaded_excel_path, correct_excel_path):
         correct_xl = pd.ExcelFile(correct_excel_path)
         uploaded_xl = pd.ExcelFile(uploaded_excel_path)
 
+        # Debug: Print sheet names
+        print("\n=== Debug: Sheet Names ===")
+        print("Correct Sheets:", correct_xl.sheet_names)
+        print("Uploaded Sheets:", uploaded_xl.sheet_names)
+
         # 1. Compare Sheet Names (15 Points)
         correct_sheets = [sheet.lower() for sheet in correct_xl.sheet_names]
         uploaded_sheets = [sheet.lower() for sheet in uploaded_xl.sheet_names]
         if set(correct_sheets) == set(uploaded_sheets):
             excel_points += 15
+            print("Sheet Names: Correct (15/15 points)")
         else:
             missing_sheets = set(correct_sheets) - set(uploaded_sheets)
-            print(f"Missing sheets: {missing_sheets}")
+            print(f"Sheet Names: Missing sheets - {missing_sheets} (0/15 points)")
 
         # 2. Compare Column Names (13 Points)
         column_points = 0
@@ -29,12 +36,21 @@ def grade_excel_file(uploaded_excel_path, correct_excel_path):
                 correct_df = correct_xl.parse(sheet)
                 uploaded_df = uploaded_xl.parse(sheet)
 
+                # Debug: Print column names
+                print(f"\n=== Debug: Column Names in {sheet} ===")
+                print("Correct Columns:", correct_df.columns)
+                print("Uploaded Columns:", uploaded_df.columns)
+
                 # Normalize column names
                 correct_cols = [col.lower().strip() for col in correct_df.columns]
                 uploaded_cols = [col.lower().strip() for col in uploaded_df.columns]
 
                 if set(correct_cols) == set(uploaded_cols):
-                    column_points += 13 / len(correct_sheets)  # Divide points equally among sheets
+                    column_points += 13 / len(correct_sheets)
+                    print(f"Column Names: Correct ({13 / len(correct_sheets):.2f} points)")
+                else:
+                    mismatched_cols = set(correct_cols) - set(uploaded_cols)
+                    print(f"Column Names: Mismatched columns - {mismatched_cols} (0 points)")
         excel_points += column_points
 
         # 3. Compare Data for "Above_25" Sheet (12 Points)
@@ -42,19 +58,22 @@ def grade_excel_file(uploaded_excel_path, correct_excel_path):
             correct_df = correct_xl.parse("Above_25")
             uploaded_df = uploaded_xl.parse("Above_25")
 
-            # Normalize data
-            correct_df = correct_df.apply(pd.to_numeric, errors='ignore')
-            uploaded_df = uploaded_df.apply(pd.to_numeric, errors='ignore')
-            correct_df = correct_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-            uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+            # Debug: Print row counts
+            print("\n=== Debug: Row Count in Above_25 ===")
+            print("Correct Row Count:", len(correct_df))
+            print("Uploaded Row Count:", len(uploaded_df))
 
             # Compare row count with tolerance ±3
             if abs(len(correct_df) - len(uploaded_df)) <= 3:
                 excel_points += 12
+                print("Row Count: Correct (12/12 points)")
+            else:
+                print(f"Row Count: Mismatch (Difference: {abs(len(correct_df) - len(uploaded_df))}) (0/12 points)")
 
     except Exception as e:
-        print(f"Error processing Excel file: {e}")
+        print(f"\n=== Error ===\nError processing Excel file: {e}")
 
+    print(f"\n=== Total Excel Points ===\nExcel File: {excel_points}/40 points")
     return excel_points
 
 
@@ -119,7 +138,7 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
             if "red" in html_content:
                 html_points += 5
     except Exception as e:
-        print(f"Error reading HTML file: {e}")
+        print(f"\n=== Error ===\nError reading HTML file: {e}")
     grading_breakdown["HTML File"] = html_points
     total_score += html_points
 
