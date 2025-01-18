@@ -133,12 +133,16 @@ def show():
         st.header("Step 3: Run and Submit Your Code")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        # Step 4: Paste URL Link
-        st.header("Step 4: Paste Your URL Link")
+        # Step 4: Upload HTML File
+        st.header("Step 4: Upload Your HTML File (Interactive Map)")
+        uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
+
+        # Step 5: Paste URL Link
+        st.header("Step 5: Paste Your URL Link")
         url_link = st.text_input("**🔗 Paste Your URL Link Here**")
 
-        # Step 5: Submit Assignment
-        st.header("Step 5: Submit Assignment")
+        # Step 6: Submit Assignment
+        st.header("Step 6: Submit Assignment")
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
@@ -146,8 +150,19 @@ def show():
                 # Validate code (ensure it matches codes used in Assignment 2)
                 # You can add logic here to check against saved codes in Google Sheets.
 
+                # Save the uploaded HTML file temporarily
+                if uploaded_html is not None:
+                    temp_dir = "temp_uploads"
+                    os.makedirs(temp_dir, exist_ok=True)
+                    html_path = os.path.join(temp_dir, "uploaded_map.html")
+                    with open(html_path, "wb") as f:
+                        f.write(uploaded_html.getvalue())
+                else:
+                    st.error("Please upload an HTML file for the interactive map.")
+                    return
+
                 # Grade the assignment
-                grade = grade_assignment(code_input, url_link)
+                grade = grade_assignment(code_input, url_link, html_path)
                 st.success(f"Your grade for Assignment 3: {grade}/100")
 
                 # Update Google Sheets with the numerical grade
