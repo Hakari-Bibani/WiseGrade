@@ -1,8 +1,7 @@
 import streamlit as st
 import os
-from grades.grade3 import grade_assignment  # Updated grading function
+from grades.grade3 import grade_assignment  # Updated grade3
 from Record.google_sheet import update_google_sheet
-
 
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
@@ -46,11 +45,12 @@ def show():
             st.session_state["verified"] = False
 
     if st.session_state.get("verified", False):
-        # Step 2: Submit Code and Files
+        # Step 2: Assignment Details
         st.header("Step 2: Submit Your Assignment")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        st.header("Step 3: Upload Your Files")
+        # Step 3: Upload Files
+        st.header("Step 3: Upload Your HTML and Excel Files")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
         uploaded_excel = st.file_uploader("Upload your Excel file (Google Sheet)", type=["xlsx"])
 
@@ -107,7 +107,6 @@ def show():
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-
 
 if __name__ == "__main__":
     show()
