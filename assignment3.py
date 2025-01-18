@@ -36,6 +36,10 @@ def check_assignment2_submission(student_id):
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
+    # Initialize session state
+    if "verified" not in st.session_state:
+        st.session_state["verified"] = False
+
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     student_id = st.text_input("Enter Your Student ID")
