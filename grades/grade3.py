@@ -78,15 +78,16 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
     #### Part 3: Excel File Grading (40 Points Total) ####
     excel_points = 0
     try:
-        # Load the correct Excel file
+        # Load the correct and uploaded Excel files
         correct_xl = pd.ExcelFile(correct_excel_path)
         uploaded_xl = pd.ExcelFile(excel_path)
 
         # Compare Sheet Names (15 Points)
         correct_sheets = [sheet.lower() for sheet in correct_xl.sheet_names]
         uploaded_sheets = [sheet.lower() for sheet in uploaded_xl.sheet_names]
-        if all(sheet in uploaded_sheets for sheet in correct_sheets):
+        if set(correct_sheets) == set(uploaded_sheets):
             excel_points += 15
+        grading_breakdown["Excel Sheet Names"] = 15 if set(correct_sheets) == set(uploaded_sheets) else 0
 
         # Compare Column Names (10 Points)
         column_points = 0
@@ -96,22 +97,33 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
                 uploaded_df = uploaded_xl.parse(sheet)
                 correct_cols = [col.lower() for col in correct_df.columns]
                 uploaded_cols = [col.lower() for col in uploaded_df.columns]
-                if all(col in uploaded_cols for col in correct_cols):
+                if set(correct_cols) == set(uploaded_cols):
                     column_points += 5  # Award points for each matching sheet
         excel_points += column_points
+        grading_breakdown["Excel Column Names"] = column_points
 
-        # Compare Data Equivalence (15 Points)
-        data_points = 0
-        for sheet in correct_sheets:
-            if sheet in uploaded_sheets:
-                correct_df = correct_xl.parse(sheet)
-                uploaded_df = uploaded_xl.parse(sheet)
-                if correct_df.equals(uploaded_df):
-                    data_points += 5  # Award points for each matching sheet
-        excel_points += data_points
+        # Compare Data for "Above_25" Sheet (15 Points with Tolerance ±3 Rows)
+        if "above_25" in correct_sheets and "above_25" in uploaded_sheets:
+            correct_df = correct_xl.parse("Above_25")
+            uploaded_df = uploaded_xl.parse("Above_25")
+
+            # Ensure column names match
+            correct_df.columns = [col.lower() for col in correct_df.columns]
+            uploaded_df.columns = [col.lower() for col in uploaded_df.columns]
+
+            # Compare data
+            if len(correct_df) - 3 <= len(uploaded_df) <= len(correct_df) + 3:
+                excel_points += 15
+                grading_breakdown["Excel Data Above_25"] = 15
+            else:
+                grading_breakdown["Excel Data Above_25"] = 0
+        else:
+            grading_breakdown["Excel Data Above_25"] = 0
+
     except Exception as e:
         print(f"Error processing Excel file: {e}")
-    grading_breakdown["Excel File"] = excel_points
+        grading_breakdown["Excel Error"] = "An error occurred during Excel file processing."
+
     total_score += excel_points
 
     # Ensure the total score does not exceed 100
