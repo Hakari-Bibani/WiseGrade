@@ -1,13 +1,13 @@
 import streamlit as st
 import os
 import pandas as pd
-from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
+from grades.grade3 import grade_assignment  # Import updated grade3
 from Record.google_sheet import update_google_sheet
 
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
-    # Prevent re-submission: if the user has already submitted assignment 3, disable resubmission.
+    # Prevent resubmission
     if st.session_state.get("assignment3_submitted", False):
         st.warning("You have already submitted Assignment 3. Resubmission is not allowed.")
         return
@@ -46,65 +46,29 @@ def show():
             st.session_state["verified"] = False
 
     if st.session_state.get("verified", False):
-        # Step 2: Assignment and Grading Details
-        st.header("Step 2: Review Assignment Details")
-        tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
+        # Step 2: Assignment Details
+        st.header("Step 2: Submit Your Assignment")
+        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        with tab1:
-            st.markdown("""
-            ### Objective
-            In this assignment, you will:
-            - Fetch real-time earthquake data.
-            - Perform filtering and analysis.
-            - Create an interactive map.
-            - Generate a PDF report.
-            - Filter data into "Below_25" and "Above_25" categories.
-            """)
-
-        with tab2:
-            st.markdown("""
-            ### Grading Breakdown
-            #### Code Grading (50 Points)
-            - Library Imports (15 Points)
-            - JSON Path (5 Points)
-            - Sheet Creation (10 Points)
-            - Code Quality (20 Points)
-            #### Uploaded HTML File (10 Points)
-            - Markers with "blue" (5 Points)
-            - Markers with "red" (5 Points)
-            #### Uploaded Excel File (40 Points)
-            - Compare sheet names (15 Points)
-            - Compare column names (10 Points)
-            - Compare data equivalence (15 Points)
-            """)
-
-        # Step 3: Code Submission and Output
-        st.header("Step 3: Submit Your Assignment")
-        code_input = st.text_area("Paste Your Code Here", height=300)
-
-        # Step 4: Upload HTML File
-        st.header("Step 4: Upload Your HTML File")
+        # Step 3: Upload Files
+        st.header("Step 3: Upload Your HTML and Excel Files")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
+        uploaded_excel = st.file_uploader("Upload your Excel file (Google Sheet)", type=["xlsx"])
 
-        # Step 5: Upload Excel File
-        st.header("Step 5: Upload Your Excel File")
-        uploaded_excel = st.file_uploader("Upload your Excel file", type=["xlsx"])
-
-        # Submit Assignment
-        st.header("Step 6: Submit Assignment")
+        # Step 4: Submit Button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
-                # Validate uploads
-                if uploaded_html is None:
-                    st.error("Please upload an HTML file.")
+                # Validate that required files are uploaded
+                if not uploaded_html:
+                    st.error("Please upload an HTML file for the interactive map.")
                     return
-                if uploaded_excel is None:
+                if not uploaded_excel:
                     st.error("Please upload your Excel file.")
                     return
 
-                # Save the uploaded files temporarily
+                # Save uploaded files temporarily
                 temp_dir = "temp_uploads"
                 os.makedirs(temp_dir, exist_ok=True)
 
@@ -118,21 +82,28 @@ def show():
                 with open(excel_path, "wb") as f:
                     f.write(uploaded_excel.getvalue())
 
-                # Path to the correct Excel file
-                correct_excel_path = "grades/correct_assignment3.xlsx"
-                if not os.path.exists(correct_excel_path):
-                    st.error("The correct reference Excel file is missing. Contact your instructor.")
-                    return
+                # Path to correct reference Excel file
+                correct_excel_path = os.path.join("grades", "correct_assignment3.xlsx")
 
                 # Grade the assignment
-                scores = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
+                total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
 
-                # Display detailed feedback
-                st.header("Grading Feedback")
-                for category, score in scores.items():
-                    st.write(f"**{category}:** {score} / 100" if category == "Total" else f"**{category}:** {score} points")
+                # Display grades
+                st.success(f"Your total grade: {total_grade}/100")
+                st.subheader("Detailed Grading Breakdown:")
+                for category, points in grading_breakdown.items():
+                    st.write(f"**{category}:** {points} points")
 
-                # Prevent resubmission
+                # Update Google Sheets with grade
+                update_google_sheet(
+                    full_name="",  # Fill this with the student's full name if available
+                    email="",      # Fill this with the student's email if available
+                    student_id=student_id,
+                    grade=total_grade,
+                    current_assignment="assignment_3"
+                )
+
+                # Mark as submitted
                 st.session_state["assignment3_submitted"] = True
 
             except Exception as e:
