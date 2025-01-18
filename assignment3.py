@@ -7,6 +7,11 @@ from Record.google_sheet import update_google_sheet
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
+    # Prevent re-submission: if the user has already submitted assignment 3, disable resubmission.
+    if st.session_state.get("assignment3_submitted", False):
+        st.warning("You have already submitted Assignment 3. Resubmission is not allowed.")
+        return
+
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     student_id = st.text_input("Enter Your Student ID")
@@ -69,65 +74,48 @@ def show():
             - **Report Generation**:
                 - Create a PDF report summarizing your findings.
             ### Python Libraries You Will Use
-            - `folium` for the map.
+            - `folium` (or `plotly`, `geopandas`, or `matplotlib` with mapping extensions) for the map.
             - `matplotlib` or `seaborn` for the line chart.
             - `requests` or `urllib` for API calls.
-            - `pandas` for data processing.
+            - `pandas` or `numpy` for data processing.
             - `reportlab` for PDF generation.
+            - Additionally, a library for Google Sheets such as `gspread`, `pygsheets`, or `google-api-python-client`.
             ### Expected Output
             1. An interactive map showing earthquake locations.
             2. A line chart showing earthquake frequency over time.
             3. A PDF report summarizing your analysis.
+            4. Two filtered Excel sheets: one for data below 25°C (labeled "Below_25") and one for data above 25°C (labeled "Above_25").
             """)
 
         with tab2:
             st.markdown("""
             ### Detailed Grading Breakdown
-            #### 1. Library Imports (10 Points)
-            - Checks if the required libraries (`folium`, `matplotlib`, `requests`, `pandas`, `reportlab`) are imported.
-            """)
-            # Add "See More" expandable section
-            with st.expander("See More"):
-                st.markdown("""
-            #### 2. Code Quality (20 Points)
-            - **Variable Naming (5 Points)**:
-                - Deducted if non-descriptive variable names are used (e.g., `x`, `y`).
-            - **Spacing (5 Points)**:
-                - Deducted if improper spacing is found (e.g., no space after `=`, `>`, `<`).
-            - **Comments (5 Points)**:
-                - Deducted if no comments are present to explain major steps.
-            - **Code Organization (5 Points)**:
-                - Deducted if code blocks are not logically separated with blank lines.
-            #### 3. Fetching Data from the API (10 Points)
-            - **Correct API URL (5 Points)**:
-                - Deducted if the URL is incorrect or the date range is invalid.
-            - **Successful Data Retrieval (5 Points)**:
-                - Deducted if the data is not fetched successfully or error handling is missing.
-            #### 4. Advanced Filtering (10 Points)
-            - **Correct Filtering (5 Points)**:
-                - Deducted if earthquakes with magnitude ≤ 4.5 are included.
-            - **Data Extraction (5 Points)**:
-                - Deducted if relevant data (latitude, longitude, magnitude, time) is not extracted.
-            #### 5. Interactive Map (20 Points)
-            - **Map Generation (5 Points)**:
-                - Deducted if the map is not generated or displayed.
-            - **Custom Icons (10 Points)**:
-                - Deducted if custom icons are not used based on magnitude ranges.
-            - **Popups (5 Points)**:
-                - Deducted if popups do not display:
-                    - Magnitude: 2 points
-                    - Latitude and Longitude: 2 points
-                    - Time in readable format: 1 point
-            #### 6. Trend Analysis (20 Points)
-            - **Line Chart Generation (10 Points)**:
-                - Deducted if the line chart is not generated or displayed.
-            - **Labeling (10 Points)**:
-                - Deducted if the chart is not properly labeled (title, x-axis, y-axis).
-            #### 7. Report Generation (20 Points)
-            - **PDF Report (10 Points)**:
-                - Deducted if the PDF report is not generated.
-            - **Content Quality (10 Points)**:
-                - Deducted if the report does not summarize findings clearly.
+            #### Code Grading (45 Points Total)
+            - **Library Imports (10 Points)**
+              - gspread/pygsheets/google-api-python-client (4 Points)
+              - pandas/numpy (2 Points)
+              - folium/plotly/geopandas/matplotlib (4 Points)
+            - **Code Quality (10 Points)**
+              - Descriptive Variable Names (5 Points)
+              - Spacing (5 Points)
+            - **Using JSON API (10 Points)**
+            - **Encapsulation (5 Points)**
+              - Encapsulate functionality into at least 3 functions.
+            - **Data Filtering (10 Points)**
+              - Filter data below 25°C and save to a new tab (5 Points)
+              - Filter data above 25°C and save to another tab (5 Points)
+            #### HTML File (15 Points Total)
+            - Contains a marker (5 Points)
+            - Contains the color green (5 Points)
+            - Contains the color red (5 Points)
+            #### Excel File (40 Points Total)
+            - **Sheet Names (15 Points)**
+              - Must contain "Sheet1", "Below_25", and "Above_25" (5 Points each)
+            - **Column Names (15 Points)**
+              - Each sheet should have columns for longitude, latitude, and temperature (or Temp) (5 Points each)
+            - **Row Counts (10 Points)**
+              - "Below_25" should have 264 rows (±3 rows tolerance) (5 Points)
+              - "Above_25" should have 237 rows (±3 rows tolerance) (5 Points)
             """)
 
         # Step 3: Code Submission and Output
@@ -182,6 +170,9 @@ def show():
                     grade=grade,
                     current_assignment="assignment_3"
                 )
+
+                # Mark assignment 3 as submitted to prevent resubmission
+                st.session_state["assignment3_submitted"] = True
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
