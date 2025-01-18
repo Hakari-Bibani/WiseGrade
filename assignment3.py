@@ -4,7 +4,7 @@ from grades.grade3 import grade_assignment  # ensure this path is correct in you
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 3: Geographical Temperature Data Analysis")
+    st.title("Assignment 3: Data Processing and Visualization in Python")
 
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
