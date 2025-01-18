@@ -55,93 +55,55 @@ def show():
             ### Objective
             In this assignment, you will extend your earthquake data analysis from Assignment 2. You will fetch real-time earthquake data, perform advanced filtering, and create interactive visualizations. Additionally, you will analyze trends and generate a report.
             """)
-            # Add "See More" expandable section
+
             with st.expander("See More"):
                 st.markdown("""
             ### Task Requirements
-            - **Fetch Earthquake Data**:
-                - Use the USGS Earthquake API to fetch data for the date range **January 10th, 2025, to January 17th, 2025**.
-                - The API URL is:  
-                  `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD`.  
-                  Replace `YYYY-MM-DD` with the appropriate dates.
-            - **Advanced Filtering**:
-                - Filter the data to include only earthquakes with a magnitude greater than 4.5.
-            - **Interactive Map**:
-                - Create an interactive map using `folium` to show the locations of the filtered earthquakes.
-                - Use custom icons for markers based on magnitude ranges.
-            - **Trend Analysis**:
-                - Generate a line chart showing the frequency of earthquakes over time.
-            - **Report Generation**:
-                - Create a PDF report summarizing your findings.
-            ### Python Libraries You Will Use
-            - `folium` (or `plotly`, `geopandas`, or `matplotlib` with mapping extensions) for the map.
-            - `matplotlib` or `seaborn` for the line chart.
-            - `requests` or `urllib` for API calls.
-            - `pandas` or `numpy` for data processing.
-            - `reportlab` for PDF generation.
-            - Additionally, a library for Google Sheets such as `gspread`, `pygsheets`, or `google-api-python-client`.
-            ### Expected Output
-            1. An interactive map showing earthquake locations.
-            2. A line chart showing earthquake frequency over time.
-            3. A PDF report summarizing your analysis.
-            4. Two filtered Excel sheets: one for data below 25°C (labeled "Below_25") and one for data above 25°C (labeled "Above_25").
+            - Fetch real-time earthquake data.
+            - Perform filtering and analysis.
+            - Create an interactive map.
+            - Generate a PDF report.
+            - Filter data to separate rows below 25°C and above 25°C.
             """)
 
         with tab2:
             st.markdown("""
-            ### Detailed Grading Breakdown
-            #### Code Grading (45 Points Total)
-            - **Library Imports (10 Points)**
-              - gspread/pygsheets/google-api-python-client (4 Points)
-              - pandas/numpy (2 Points)
-              - folium/plotly/geopandas/matplotlib (4 Points)
-            - **Code Quality (10 Points)**
-              - Descriptive Variable Names (5 Points)
-              - Spacing (5 Points)
-            - **Using JSON API (10 Points)**
-            - **Encapsulation (5 Points)**
-              - Encapsulate functionality into at least 3 functions.
-            - **Data Filtering (10 Points)**
-              - Filter data below 25°C and save to a new tab (5 Points)
-              - Filter data above 25°C and save to another tab (5 Points)
-            #### HTML File (15 Points Total)
-            - Contains a marker (5 Points)
-            - Contains the color green (5 Points)
-            - Contains the color red (5 Points)
-            #### Excel File (40 Points Total)
-            - **Sheet Names (15 Points)**
-              - Must contain "Sheet1", "Below_25", and "Above_25" (5 Points each)
-            - **Column Names (15 Points)**
-              - Each sheet should have columns for longitude, latitude, and temperature (or Temp) (5 Points each)
-            - **Row Counts (10 Points)**
-              - "Below_25" should have 264 rows (±3 rows tolerance) (5 Points)
-              - "Above_25" should have 237 rows (±3 rows tolerance) (5 Points)
+            ### Grading Breakdown
+            #### Code Grading (40 Points)
+            - Library Imports (20 Points)
+            - JSON Path (10 Points)
+            - Sheet Creation (10 Points)
+            #### Uploaded HTML File (15 Points)
+            - Markers with "blue" (5 Points)
+            - Markers with "red" (10 Points)
+            #### Uploaded Excel File (45 Points)
+            - Compare sheet names, column names, and data equivalence.
             """)
 
         # Step 3: Code Submission and Output
-        st.header("Step 3: Run and Submit Your Code")
-        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
+        st.header("Step 3: Submit Your Assignment")
+        code_input = st.text_area("Paste Your Code Here", height=300)
 
         # Step 4: Upload HTML File
-        st.header("Step 4: Upload Your HTML File (Interactive Map)")
+        st.header("Step 4: Upload Your HTML File")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
 
-        # Step 5: Upload Google Sheet as Excel File
-        st.header("Step 5: Upload Your Google Sheet (Excel File)")
-        uploaded_excel = st.file_uploader("Upload your Google Sheet as an Excel file", type=["xlsx"])
+        # Step 5: Upload Excel File
+        st.header("Step 5: Upload Your Excel File")
+        uploaded_excel = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
-        # Step 6: Submit Assignment
+        # Submit Assignment
         st.header("Step 6: Submit Assignment")
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
-                # Validate that all required files are uploaded
+                # Validate uploads
                 if uploaded_html is None:
-                    st.error("Please upload an HTML file for the interactive map.")
+                    st.error("Please upload an HTML file.")
                     return
                 if uploaded_excel is None:
-                    st.error("Please upload your Google Sheet as an Excel file.")
+                    st.error("Please upload your Excel file.")
                     return
 
                 # Save the uploaded files temporarily
@@ -158,8 +120,11 @@ def show():
                 with open(excel_path, "wb") as f:
                     f.write(uploaded_excel.getvalue())
 
+                # Path to the correct Excel file
+                correct_excel_path = "grades/correct_assignment3.xlsx"
+
                 # Grade the assignment
-                grade = grade_assignment(code_input, html_path, excel_path)
+                grade = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
                 st.success(f"Your grade for Assignment 3: {grade}/100")
 
                 # Update Google Sheets with the numerical grade
@@ -171,11 +136,12 @@ def show():
                     current_assignment="assignment_3"
                 )
 
-                # Mark assignment 3 as submitted to prevent resubmission
+                # Prevent resubmission
                 st.session_state["assignment3_submitted"] = True
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
+
 
 if __name__ == "__main__":
     show()
