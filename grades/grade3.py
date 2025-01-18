@@ -69,7 +69,7 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
     #### Part 3: Excel File Grading (40 Points Total) ####
     excel_points = 0
     try:
-        # Load the correct Excel file
+        # Load the correct Excel file and uploaded file
         correct_xl = pd.ExcelFile(correct_excel_path)
         uploaded_xl = pd.ExcelFile(excel_path)
 
@@ -78,8 +78,11 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
         uploaded_sheets = [sheet.lower() for sheet in uploaded_xl.sheet_names]
         if set(correct_sheets) == set(uploaded_sheets):
             excel_points += 15
+        else:
+            missing_sheets = set(correct_sheets) - set(uploaded_sheets)
+            print(f"Missing sheets: {missing_sheets}")
 
-        # Compare Column Names (10 Points)
+        # Compare Column Names (13 Points)
         column_points = 0
         for sheet in correct_sheets:
             if sheet in uploaded_sheets:
@@ -87,16 +90,16 @@ def grade_assignment(code, html_path, excel_path, correct_excel_path):
                 uploaded_df = uploaded_xl.parse(sheet)
                 correct_cols = [col.lower() for col in correct_df.columns]
                 uploaded_cols = [col.lower() for col in uploaded_df.columns]
-                if correct_cols == uploaded_cols:
-                    column_points += 5
+                if set(correct_cols) == set(uploaded_cols):
+                    column_points += 13 / len(correct_sheets)  # Divide points equally among sheets
         excel_points += column_points
 
-        # Compare Data in "Above_25" Sheet (15 Points)
+        # Compare Data in "Above_25" Sheet (12 Points)
         if "above_25" in correct_sheets and "above_25" in uploaded_sheets:
-            correct_above = correct_xl.parse("Above_25")
-            uploaded_above = uploaded_xl.parse("Above_25")
-            if abs(len(correct_above) - len(uploaded_above)) <= 3:
-                excel_points += 15
+            correct_df = correct_xl.parse("Above_25")
+            uploaded_df = uploaded_xl.parse("Above_25")
+            if abs(len(correct_df) - len(uploaded_df)) <= 3:
+                excel_points += 12
     except Exception as e:
         print(f"Error processing Excel file: {e}")
     grading_breakdown["Excel File"] = excel_points
