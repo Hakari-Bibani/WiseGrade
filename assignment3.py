@@ -4,7 +4,6 @@ import pandas as pd
 from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
-
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
@@ -126,24 +125,18 @@ def show():
                     return
 
                 # Grade the assignment
-                grade = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
-                st.success(f"Your grade for Assignment 3: {grade}/100")
+                scores = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
 
-                # Update Google Sheets with the numerical grade
-                update_google_sheet(
-                    full_name="",  # Update if needed
-                    email="",      # Update if needed
-                    student_id=student_id,
-                    grade=grade,
-                    current_assignment="assignment_3"
-                )
+                # Display detailed feedback
+                st.header("Grading Feedback")
+                for category, score in scores.items():
+                    st.write(f"**{category}:** {score} / 100" if category == "Total" else f"**{category}:** {score} points")
 
                 # Prevent resubmission
                 st.session_state["assignment3_submitted"] = True
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-
 
 if __name__ == "__main__":
     show()
