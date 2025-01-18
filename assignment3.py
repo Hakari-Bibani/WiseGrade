@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import pandas as pd
 from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
@@ -137,9 +138,9 @@ def show():
         st.header("Step 4: Upload Your HTML File (Interactive Map)")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
 
-        # Step 5: Paste URL Link
-        st.header("Step 5: Paste Your URL Link")
-        url_link = st.text_input("**🔗 Paste Your URL Link Here**")
+        # Step 5: Upload Google Sheet as Excel File
+        st.header("Step 5: Upload Your Google Sheet (Excel File)")
+        uploaded_excel = st.file_uploader("Upload your Google Sheet as an Excel file", type=["xlsx"])
 
         # Step 6: Submit Assignment
         st.header("Step 6: Submit Assignment")
@@ -147,22 +148,30 @@ def show():
 
         if submit_button:
             try:
-                # Validate code (ensure it matches codes used in Assignment 2)
-                # You can add logic here to check against saved codes in Google Sheets.
-
-                # Save the uploaded HTML file temporarily
-                if uploaded_html is not None:
-                    temp_dir = "temp_uploads"
-                    os.makedirs(temp_dir, exist_ok=True)
-                    html_path = os.path.join(temp_dir, "uploaded_map.html")
-                    with open(html_path, "wb") as f:
-                        f.write(uploaded_html.getvalue())
-                else:
+                # Validate that all required files are uploaded
+                if uploaded_html is None:
                     st.error("Please upload an HTML file for the interactive map.")
                     return
+                if uploaded_excel is None:
+                    st.error("Please upload your Google Sheet as an Excel file.")
+                    return
+
+                # Save the uploaded files temporarily
+                temp_dir = "temp_uploads"
+                os.makedirs(temp_dir, exist_ok=True)
+
+                # Save HTML file
+                html_path = os.path.join(temp_dir, "uploaded_map.html")
+                with open(html_path, "wb") as f:
+                    f.write(uploaded_html.getvalue())
+
+                # Save Excel file
+                excel_path = os.path.join(temp_dir, "uploaded_sheet.xlsx")
+                with open(excel_path, "wb") as f:
+                    f.write(uploaded_excel.getvalue())
 
                 # Grade the assignment
-                grade = grade_assignment(code_input, url_link, html_path)
+                grade = grade_assignment(code_input, html_path, excel_path)
                 st.success(f"Your grade for Assignment 3: {grade}/100")
 
                 # Update Google Sheets with the numerical grade
