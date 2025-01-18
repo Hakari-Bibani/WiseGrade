@@ -97,8 +97,8 @@ def show():
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path)
 
-                # Display grades
-                 st.success(f"Your total grade: {total_grade}/100")
+                # Display total grade only
+                st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
