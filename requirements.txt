@@ -24,3 +24,5 @@ urllib3
 IPython
 lxml
 google-api-python-client
+openpyxl
+
