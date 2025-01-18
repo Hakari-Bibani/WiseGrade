@@ -4,7 +4,7 @@ from grades.grade3 import grade_assignment  # ensure this path is correct in you
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 3: Data Processing and Visualization in Python")
+    st.title("Assignment 3: Temperature Data Analysis")
 
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -143,10 +143,11 @@ def show():
 
         # Step 4: Upload Files
         st.header("Step 4: Upload Your Outputs")
-        uploaded_excel = st.file_uploader("Upload your Excel file", type=["xlsx"])
-        uploaded_map = st.file_uploader("Upload your Map file (HTML or PNG)", type=["html", "png"])
+        uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
+        uploaded_png = st.file_uploader("Upload your PNG file (Bar Chart)", type=["png"])
+        uploaded_csv = st.file_uploader("Upload your CSV file (Summary)", type=["csv"])
 
-        all_uploaded = all([uploaded_excel, uploaded_map])
+        all_uploaded = all([uploaded_html, uploaded_png, uploaded_csv])
         st.write("All files uploaded:", "✅ Yes" if all_uploaded else "❌ No")
 
         if all_uploaded:
@@ -156,16 +157,19 @@ def show():
                 try:
                     temp_dir = "temp_uploads"
                     os.makedirs(temp_dir, exist_ok=True)
-                    excel_path = os.path.join(temp_dir, "uploaded_excel.xlsx")
-                    map_path = os.path.join(temp_dir, "uploaded_map.html" if uploaded_map.type == "text/html" else "uploaded_map.png")
+                    html_path = os.path.join(temp_dir, "uploaded_map.html")
+                    png_path = os.path.join(temp_dir, "uploaded_chart.png")
+                    csv_path = os.path.join(temp_dir, "uploaded_summary.csv")
 
-                    with open(excel_path, "wb") as f:
-                        f.write(uploaded_excel.getvalue())
-                    with open(map_path, "wb") as f:
-                        f.write(uploaded_map.getvalue())
+                    with open(html_path, "wb") as f:
+                        f.write(uploaded_html.getvalue())
+                    with open(png_path, "wb") as f:
+                        f.write(uploaded_png.getvalue())
+                    with open(csv_path, "wb") as f:
+                        f.write(uploaded_csv.getvalue())
 
                     # Get only the numerical grade (0-100)
-                    grade = grade_assignment(code_input, excel_path, map_path)
+                    grade = grade_assignment(code_input, html_path, png_path, csv_path)
                     st.success(f"Your grade for Assignment 3: {grade}/100")
 
                     # Now update Google Sheets with the numerical grade only.
