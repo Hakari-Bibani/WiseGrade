@@ -4,6 +4,7 @@ import pandas as pd
 from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
+
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
@@ -32,9 +33,9 @@ def show():
 
             spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
             worksheet = spreadsheet.sheet1
-            saved_ids = [row[2].strip() for row in worksheet.get_all_values()[1:] if len(row) > 2]  # Assuming Student ID in 3rd column
+            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID in 3rd column
 
-            if student_id.strip() in saved_ids:
+            if student_id in saved_ids:
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
                 st.session_state["verified"] = True
             else:
@@ -53,31 +54,29 @@ def show():
         with tab1:
             st.markdown("""
             ### Objective
-            In this assignment, you will extend your earthquake data analysis from Assignment 2. You will fetch real-time earthquake data, perform advanced filtering, and create interactive visualizations. Additionally, you will analyze trends and generate a report.
-            """)
-
-            with st.expander("See More"):
-                st.markdown("""
-            ### Task Requirements
+            In this assignment, you will:
             - Fetch real-time earthquake data.
             - Perform filtering and analysis.
             - Create an interactive map.
             - Generate a PDF report.
-            - Filter data to separate rows below 25°C and above 25°C.
+            - Filter data into "Below_25" and "Above_25" categories.
             """)
 
         with tab2:
             st.markdown("""
             ### Grading Breakdown
-            #### Code Grading (40 Points)
-            - Library Imports (20 Points)
-            - JSON Path (10 Points)
+            #### Code Grading (50 Points)
+            - Library Imports (15 Points)
+            - JSON Path (5 Points)
             - Sheet Creation (10 Points)
-            #### Uploaded HTML File (15 Points)
+            - Code Quality (20 Points)
+            #### Uploaded HTML File (10 Points)
             - Markers with "blue" (5 Points)
-            - Markers with "red" (10 Points)
-            #### Uploaded Excel File (45 Points)
-            - Compare sheet names, column names, and data equivalence.
+            - Markers with "red" (5 Points)
+            #### Uploaded Excel File (40 Points)
+            - Compare sheet names (15 Points)
+            - Compare column names (10 Points)
+            - Compare data equivalence (15 Points)
             """)
 
         # Step 3: Code Submission and Output
@@ -122,6 +121,9 @@ def show():
 
                 # Path to the correct Excel file
                 correct_excel_path = "grades/correct_assignment3.xlsx"
+                if not os.path.exists(correct_excel_path):
+                    st.error("The correct reference Excel file is missing. Contact your instructor.")
+                    return
 
                 # Grade the assignment
                 grade = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
@@ -139,13 +141,9 @@ def show():
                 # Prevent resubmission
                 st.session_state["assignment3_submitted"] = True
 
-                # Cleanup temporary files
-                if os.path.exists(temp_dir):
-                    import shutil
-                    shutil.rmtree(temp_dir)
-
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
+
 
 if __name__ == "__main__":
     show()
