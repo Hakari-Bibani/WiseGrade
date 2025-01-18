@@ -32,9 +32,9 @@ def show():
 
             spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
             worksheet = spreadsheet.sheet1
-            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID in 3rd column
+            saved_ids = [row[2].strip() for row in worksheet.get_all_values()[1:] if len(row) > 2]  # Assuming Student ID in 3rd column
 
-            if student_id in saved_ids:
+            if student_id.strip() in saved_ids:
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
                 st.session_state["verified"] = True
             else:
@@ -139,9 +139,13 @@ def show():
                 # Prevent resubmission
                 st.session_state["assignment3_submitted"] = True
 
+                # Cleanup temporary files
+                if os.path.exists(temp_dir):
+                    import shutil
+                    shutil.rmtree(temp_dir)
+
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-
 
 if __name__ == "__main__":
     show()
