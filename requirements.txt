@@ -28,3 +28,4 @@ openpyxl
 matplotlib
 plotly
 google-auth
+xlrd
