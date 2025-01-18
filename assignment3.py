@@ -1,10 +1,18 @@
 import streamlit as st
 import os
-from grades.grade3 import grade_assignment  # ensure this path is correct in your project
+from grades.grade3 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 3: Temperature Data Analysis")
+    st.title("Assignment 3: Advanced Earthquake Data Analysis")
+
+    # Prevent resubmission of Assignment 3 after Assignment 4 submission
+    if "assignment4_submitted" not in st.session_state:
+        st.session_state["assignment4_submitted"] = False
+
+    if st.session_state["assignment4_submitted"]:
+        st.warning("You cannot resubmit Assignment 3 after submitting Assignment 4.")
+        return
 
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -32,7 +40,7 @@ def show():
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
                 st.session_state["verified"] = True
             else:
-                st.error("Invalid Student ID. Please enter a valid ID from Assignment 1.")
+                st.error("Invalid Student ID. Please enter a valid ID from Assignment 2.")
                 st.session_state["verified"] = False
 
         except Exception as e:
@@ -40,7 +48,7 @@ def show():
             st.session_state["verified"] = False
 
     if st.session_state.get("verified", False):
-        # Step 2: Assignment and Grading Details
+        # Add Tabs for Assignment Details and Grading Details
         st.header("Step 2: Review Assignment Details")
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
@@ -137,55 +145,59 @@ def show():
                 - Deducted if the file is not saved in the correct format or structure.
             """)
 
-        # Step 3: Code Submission and Output
-        st.header("Step 3: Run and Submit Your Code")
+        # Step 3: Assignment Submission
+        st.header("Step 3: Submit Your Assignment")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
         # Step 4: Upload Files
-        st.header("Step 4: Upload Your Outputs")
+        st.header("Step 4: Upload Your HTML and Excel Files")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
-        uploaded_png = st.file_uploader("Upload your PNG file (Bar Chart)", type=["png"])
-        uploaded_csv = st.file_uploader("Upload your CSV file (Summary)", type=["csv"])
+        uploaded_excel = st.file_uploader("Upload your Excel file (Google Sheet)", type=["xlsx"])
 
-        all_uploaded = all([uploaded_html, uploaded_png, uploaded_csv])
-        st.write("All files uploaded:", "✅ Yes" if all_uploaded else "❌ No")
+        # Step 5: Submit Button
+        submit_button = st.button("Submit Assignment")
 
-        if all_uploaded:
-            submit_button = st.button("Submit Assignment")
+        if submit_button:
+            try:
+                # Validate required files
+                if not uploaded_html:
+                    st.error("Please upload an HTML file for the interactive map.")
+                    return
+                if not uploaded_excel:
+                    st.error("Please upload your Excel file.")
+                    return
 
-            if submit_button:
-                try:
-                    temp_dir = "temp_uploads"
-                    os.makedirs(temp_dir, exist_ok=True)
-                    html_path = os.path.join(temp_dir, "uploaded_map.html")
-                    png_path = os.path.join(temp_dir, "uploaded_chart.png")
-                    csv_path = os.path.join(temp_dir, "uploaded_summary.csv")
+                # Save uploaded files temporarily
+                temp_dir = "temp_uploads"
+                os.makedirs(temp_dir, exist_ok=True)
 
-                    with open(html_path, "wb") as f:
-                        f.write(uploaded_html.getvalue())
-                    with open(png_path, "wb") as f:
-                        f.write(uploaded_png.getvalue())
-                    with open(csv_path, "wb") as f:
-                        f.write(uploaded_csv.getvalue())
+                # Save HTML file
+                html_path = os.path.join(temp_dir, "uploaded_map.html")
+                with open(html_path, "wb") as f:
+                    f.write(uploaded_html.getvalue())
 
-                    # Get only the numerical grade (0-100)
-                    grade = grade_assignment(code_input, html_path, png_path, csv_path)
-                    st.success(f"Your grade for Assignment 3: {grade}/100")
+                # Save Excel file
+                excel_path = os.path.join(temp_dir, "uploaded_sheet.xlsx")
+                with open(excel_path, "wb") as f:
+                    f.write(uploaded_excel.getvalue())
 
-                    # Now update Google Sheets with the numerical grade only.
-                    update_google_sheet(
-                        full_name="",  # Update if needed
-                        email="",      # Update if needed
-                        student_id=student_id,
-                        grade=grade,
-                        current_assignment="assignment_3"
-                    )
+                # Grade the assignment
+                total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path)
 
-                except Exception as e:
-                    st.error(f"An error occurred during submission: {e}")
+                # Display total grade only
+                st.success(f"Your total grade: {total_grade}/100")
 
-        else:
-            st.warning("Please upload all required files to proceed.")
+                # Update Google Sheets with grade
+                update_google_sheet(
+                    full_name="",  # Fill with the student's full name if available
+                    email="",      # Fill with the student's email if available
+                    student_id=student_id,
+                    grade=total_grade,
+                    current_assignment="assignment_3"
+                )
+
+            except Exception as e:
+                st.error(f"An error occurred during submission: {e}")
 
 if __name__ == "__main__":
     show()
