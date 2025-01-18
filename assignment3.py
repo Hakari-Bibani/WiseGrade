@@ -222,5 +222,6 @@ def show():
                 except Exception as e:
                     st.error(f"An error occurred during submission: {e}")
 
-if __name__ == "__main__":
+# Entry point for the app.py script
+def assignment3():
     show()
