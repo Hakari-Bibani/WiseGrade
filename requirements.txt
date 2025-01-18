@@ -25,4 +25,5 @@ IPython
 lxml
 google-api-python-client
 openpyxl
-
+matplotlib
+plotly
