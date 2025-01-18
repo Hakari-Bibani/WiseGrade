@@ -106,4 +106,4 @@ def show():
                 st.error(f"An error occurred during submission: {e}")
 
 if __name__ == "__main__":
-   
+    show()
