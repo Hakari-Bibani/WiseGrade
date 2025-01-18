@@ -98,10 +98,7 @@ def show():
                 total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path)
 
                 # Display grades
-                st.success(f"Your total grade: {total_grade}/100")
-                st.subheader("Detailed Grading Breakdown:")
-                for category, points in grading_breakdown.items():
-                    st.write(f"**{category}:** {points} points")
+                 st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
