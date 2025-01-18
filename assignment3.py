@@ -1,7 +1,6 @@
 import streamlit as st
 import os
-import pandas as pd
-from grades.grade3 import grade_assignment  # Ensure this is the updated grade3.py
+from grades.grade3 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
@@ -82,11 +81,8 @@ def show():
                 with open(excel_path, "wb") as f:
                     f.write(uploaded_excel.getvalue())
 
-                # Path to the correct reference Excel file
-                correct_excel_path = os.path.join("grades", "correct_assignment3.xlsx")
-
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path, correct_excel_path)
+                total_grade, grading_breakdown = grade_assignment(code_input, html_path, excel_path)
 
                 # Display grades
                 st.success(f"Your total grade: {total_grade}/100")
@@ -110,4 +106,4 @@ def show():
                 st.error(f"An error occurred during submission: {e}")
 
 if __name__ == "__main__":
-    show()
+   
