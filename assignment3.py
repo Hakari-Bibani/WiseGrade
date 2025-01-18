@@ -4,6 +4,35 @@ import pandas as pd
 from grades.grade3 import grade_assignment  # Ensure this path is correct in your project
 from Record.google_sheet import update_google_sheet
 
+def check_assignment2_submission(student_id):
+    """
+    Checks if the student has already submitted Assignment 2.
+    Returns True if they have, False otherwise.
+    """
+    try:
+        google_sheets_secrets = st.secrets.get("google_sheets", None)
+        if not google_sheets_secrets:
+            st.error("Google Sheets credentials are missing in Streamlit secrets.")
+            return False
+
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
+        client = gspread.authorize(credentials)
+
+        spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
+        worksheet = spreadsheet.sheet1
+        records = worksheet.get_all_records()
+
+        for record in records:
+            if record["Student ID"] == student_id and record["Assignment"] == "assignment_2":
+                return True
+        return False
+    except Exception as e:
+        st.error(f"Error checking Assignment 2 submission: {e}")
+        return False
+
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
@@ -89,7 +118,7 @@ def show():
             # Add "See More" expandable section
             with st.expander("See More"):
                 st.markdown("""
-            #### 2. Code Quality (20 Points)
+            #### 2. Code Quality (10 Points)
             - **Variable Naming (5 Points)**:
                 - Deducted if non-descriptive variable names are used (e.g., `x`, `y`).
             - **Spacing (5 Points)**:
@@ -147,44 +176,47 @@ def show():
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
-            try:
-                # Validate that all required files are uploaded
-                if uploaded_html is None:
-                    st.error("Please upload an HTML file for the interactive map.")
-                    return
-                if uploaded_excel is None:
-                    st.error("Please upload your Google Sheet as an Excel file.")
-                    return
+            if check_assignment2_submission(student_id):
+                st.error("You have already submitted Assignment 2. You cannot resubmit it.")
+            else:
+                try:
+                    # Validate that all required files are uploaded
+                    if uploaded_html is None:
+                        st.error("Please upload an HTML file for the interactive map.")
+                        return
+                    if uploaded_excel is None:
+                        st.error("Please upload your Google Sheet as an Excel file.")
+                        return
 
-                # Save the uploaded files temporarily
-                temp_dir = "temp_uploads"
-                os.makedirs(temp_dir, exist_ok=True)
+                    # Save the uploaded files temporarily
+                    temp_dir = "temp_uploads"
+                    os.makedirs(temp_dir, exist_ok=True)
 
-                # Save HTML file
-                html_path = os.path.join(temp_dir, "uploaded_map.html")
-                with open(html_path, "wb") as f:
-                    f.write(uploaded_html.getvalue())
+                    # Save HTML file
+                    html_path = os.path.join(temp_dir, "uploaded_map.html")
+                    with open(html_path, "wb") as f:
+                        f.write(uploaded_html.getvalue())
 
-                # Save Excel file
-                excel_path = os.path.join(temp_dir, "uploaded_sheet.xlsx")
-                with open(excel_path, "wb") as f:
-                    f.write(uploaded_excel.getvalue())
+                    # Save Excel file
+                    excel_path = os.path.join(temp_dir, "uploaded_sheet.xlsx")
+                    with open(excel_path, "wb") as f:
+                        f.write(uploaded_excel.getvalue())
 
-                # Grade the assignment
-                grade = grade_assignment(code_input, html_path, excel_path)
-                st.success(f"Your grade for Assignment 3: {grade}/100")
+                    # Grade the assignment
+                    grade = grade_assignment(code_input, html_path, excel_path)
+                    st.success(f"Your grade for Assignment 3: {grade}/100")
 
-                # Update Google Sheets with the numerical grade
-                update_google_sheet(
-                    full_name="",  # Update if needed
-                    email="",      # Update if needed
-                    student_id=student_id,
-                    grade=grade,
-                    current_assignment="assignment_3"
-                )
+                    # Update Google Sheets with the numerical grade
+                    update_google_sheet(
+                        full_name="",  # Update if needed
+                        email="",      # Update if needed
+                        student_id=student_id,
+                        grade=grade,
+                        current_assignment="assignment_3"
+                    )
 
-            except Exception as e:
-                st.error(f"An error occurred during submission: {e}")
+                except Exception as e:
+                    st.error(f"An error occurred during submission: {e}")
 
 if __name__ == "__main__":
     show()
