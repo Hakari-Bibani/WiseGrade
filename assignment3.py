@@ -36,10 +36,6 @@ def check_assignment2_submission(student_id):
 def show():
     st.title("Assignment 3: Advanced Earthquake Data Analysis")
 
-    # Initialize session state
-    if "verified" not in st.session_state:
-        st.session_state["verified"] = False
-
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     student_id = st.text_input("Enter Your Student ID")
@@ -131,36 +127,32 @@ def show():
                 - Deducted if no comments are present to explain major steps.
             - **Code Organization (5 Points)**:
                 - Deducted if code blocks are not logically separated with blank lines.
-            #### 3. Fetching Data from the API (10 Points)
+            #### 3. Using JSON API (10 Points)
             - **Correct API URL (5 Points)**:
                 - Deducted if the URL is incorrect or the date range is invalid.
             - **Successful Data Retrieval (5 Points)**:
                 - Deducted if the data is not fetched successfully or error handling is missing.
-            #### 4. Advanced Filtering (10 Points)
+            #### 4. Encapsulate Functionality (5 Points)
+            - **Encapsulation (5 Points)**:
+                - Deducted if the functionality of the three scripts (Stage 1, Stage 2, and Stage 3) is not encapsulated into distinct functions.
+            #### 5. Filter Data Below 25°C (5 Points)
             - **Correct Filtering (5 Points)**:
-                - Deducted if earthquakes with magnitude ≤ 4.5 are included.
-            - **Data Extraction (5 Points)**:
-                - Deducted if relevant data (latitude, longitude, magnitude, time) is not extracted.
-            #### 5. Interactive Map (20 Points)
-            - **Map Generation (5 Points)**:
-                - Deducted if the map is not generated or displayed.
-            - **Custom Icons (10 Points)**:
-                - Deducted if custom icons are not used based on magnitude ranges.
-            - **Popups (5 Points)**:
-                - Deducted if popups do not display:
-                    - Magnitude: 2 points
-                    - Latitude and Longitude: 2 points
-                    - Time in readable format: 1 point
-            #### 6. Trend Analysis (20 Points)
-            - **Line Chart Generation (10 Points)**:
-                - Deducted if the line chart is not generated or displayed.
-            - **Labeling (10 Points)**:
-                - Deducted if the chart is not properly labeled (title, x-axis, y-axis).
-            #### 7. Report Generation (20 Points)
-            - **PDF Report (10 Points)**:
-                - Deducted if the PDF report is not generated.
-            - **Content Quality (10 Points)**:
-                - Deducted if the report does not summarize findings clearly.
+                - Deducted if the data is not filtered correctly for temperatures below 25°C.
+            #### 6. Filter Data Above 25°C (5 Points)
+            - **Correct Filtering (5 Points)**:
+                - Deducted if the data is not filtered correctly for temperatures above 25°C.
+            #### 7. HTML File (15 Points)
+            - **Markers (5 Points)**:
+                - Deducted if the HTML file does not contain markers (e.g., `marker` or `circle-marker`).
+            - **Colors (10 Points)**:
+                - Deducted if the HTML file does not contain the colors green (5 points) and red (5 points).
+            #### 8. Excel File (25 Points)
+            - **Sheet Names (15 Points)**:
+                - Deducted if the Excel file does not contain sheets named `Sheet1`, `Below_25`, and `Above_25` (5 points each).
+            - **Column Names (5 Points)**:
+                - Deducted if the sheets do not contain the columns `longitude`, `latitude`, and `temperature` (or equivalent).
+            - **Row Counts (5 Points)**:
+                - Deducted if the `Below_25` sheet does not contain 264 rows (±3) or the `Above_25` sheet does not contain 237 rows (±3).
             """)
 
         # Step 3: Code Submission and Output
@@ -171,9 +163,9 @@ def show():
         st.header("Step 4: Upload Your HTML File (Interactive Map)")
         uploaded_html = st.file_uploader("Upload your HTML file (Map)", type=["html"])
 
-        # Step 5: Upload Google Sheet as Excel File
-        st.header("Step 5: Upload Your Google Sheet (Excel File)")
-        uploaded_excel = st.file_uploader("Upload your Google Sheet as an Excel file", type=["xlsx"])
+        # Step 5: Upload Excel File
+        st.header("Step 5: Upload Your Excel File (Google Sheet)")
+        uploaded_excel = st.file_uploader("Upload your Excel file (Google Sheet)", type=["xlsx"])
 
         # Step 6: Submit Assignment
         st.header("Step 6: Submit Assignment")
@@ -189,7 +181,7 @@ def show():
                         st.error("Please upload an HTML file for the interactive map.")
                         return
                     if uploaded_excel is None:
-                        st.error("Please upload your Google Sheet as an Excel file.")
+                        st.error("Please upload your Excel file (Google Sheet).")
                         return
 
                     # Save the uploaded files temporarily
@@ -222,6 +214,5 @@ def show():
                 except Exception as e:
                     st.error(f"An error occurred during submission: {e}")
 
-# Entry point for the app.py script
-def assignment3():
+if __name__ == "__main__":
     show()
