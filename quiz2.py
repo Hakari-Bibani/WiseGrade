@@ -1,22 +1,22 @@
 import streamlit as st
 from Record.google_sheet import update_google_sheet
 
-# Quiz Questions and Answers
+# Quiz Questions and Points
 questions = [
     {
         "question": "Splitting a script into multiple smaller scripts helps make the code more manageable and easier to debug.",
-        "options": ["True", "False"],
-        "answer": "True"
+        "points": 35,
+        "answer": True
     },
     {
         "question": "The main.py script is responsible for importing and executing functions or modules stored in other scripts saved on Google Drive.",
-        "options": ["True", "False"],
-        "answer": "True"
+        "points": 35,
+        "answer": True
     },
     {
         "question": "Saving smaller scripts in Google Drive and importing them into Google Colab increases the risk of altering the main script when making changes.",
-        "options": ["True", "False"],
-        "answer": "False"
+        "points": 30,
+        "answer": False
     }
 ]
 
@@ -50,7 +50,7 @@ def validate_student_id(student_id):
         return False
 
 def show():
-    st.title("Quiz 2: Managing Python Scripts in Colab")
+    st.title("Quiz 2: Python and Script Management")
 
     # Step 1: Enter Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -78,14 +78,16 @@ def show():
         # Quiz questions
         for i, question in enumerate(questions):
             st.write(f"**Q{i+1}: {question['question']}**")
-            answer = st.radio(
-                "Choose an answer:",
-                options=["Choose an answer"] + question["options"],
-                index=0,
-                key=f"question_{i}"
+            answer = st.slider(
+                "Select True or False:",
+                min_value=0,
+                max_value=1,
+                step=1,
+                format="%s",
+                key=f"question_{i}",
+                value=0  # Default to False
             )
-            if answer != "Choose an answer":
-                st.session_state["user_answers"][i] = answer
+            st.session_state["user_answers"][i] = bool(answer)
 
         # Submit Button
         submit_button = st.button("Submit Quiz")
@@ -104,11 +106,11 @@ def show():
             score = 0
             for i, question in enumerate(questions):
                 if st.session_state["user_answers"][i] == question["answer"]:
-                    score += 1
+                    score += question["points"]
 
             # Update attempts and display score
             st.session_state["attempts"] += 1
-            total_score = (score / len(questions)) * 100
+            total_score = score
             st.success(f"Your score: {total_score}/100")
 
             # Save grade to Google Sheets
@@ -122,4 +124,3 @@ def show():
 
 if __name__ == "__main__":
     show()
-
