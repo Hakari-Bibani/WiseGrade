@@ -6,12 +6,12 @@ from Record.google_sheet import update_google_sheet
 def show():
     st.title("Assignment 4: Image Analysis and Rectangle Detection in Python")
 
-    # Prevent resubmission of Assignment 4 if Assignment 3 is not submitted
-    if "assignment3_submitted" not in st.session_state:
-        st.session_state["assignment3_submitted"] = False
+    # Prevent resubmission of Assignment 4 after Assignment 5 submission
+    if "assignment5_submitted" not in st.session_state:
+        st.session_state["assignment5_submitted"] = False
 
-    if not st.session_state["assignment3_submitted"]:
-        st.warning("You cannot access Assignment 4 unless you have submitted Assignment 3.")
+    if st.session_state["assignment5_submitted"]:
+        st.warning("You cannot resubmit Assignment 4 after submitting Assignment 5.")
         return
 
     # Step 1: Validate Student ID
@@ -40,7 +40,7 @@ def show():
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
                 st.session_state["verified"] = True
             else:
-                st.error("Invalid Student ID. Please enter a valid ID from Assignment 3.")
+                st.error("Invalid Student ID. Please enter a valid ID used in Assignment 3.")
                 st.session_state["verified"] = False
 
         except Exception as e:
@@ -54,42 +54,46 @@ def show():
 
         with tab1:
             st.markdown("""
-            ### Assignment Details
-            _Provide detailed instructions here for students. This can include:
-            - The goal of the assignment.
-            - Step-by-step breakdown of tasks.
-            - Example input/output formats._
+            ### Objective
+            This assignment involves analyzing an image, detecting rectangles, and providing their coordinates. You will also visualize the rectangles on the image and upload both the thresholded image and the outlined image for validation.
             """)
 
         with tab2:
             st.markdown("""
-            ### Grading Details
-            _Provide a detailed grading rubric here. Break down the points for:
-            - Code structure and quality.
-            - Functionality and correctness.
-            - Proper submission of required files._
+            ### Grading Criteria
+            - **Rectangle Detection Accuracy (50 Points)**: Correctly detect all rectangles in the image.
+            - **Thresholded Image Quality (25 Points)**: Ensure the thresholded image is clear and appropriate for rectangle detection.
+            - **Outlined Image Accuracy (25 Points)**: Ensure all rectangles are outlined correctly and visible.
             """)
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
-        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        # Step 4: Upload Files
-        st.header("Step 4: Upload Images")
-        uploaded_thresh_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
-        uploaded_outlined_image = st.file_uploader("Upload your image with rectangles outlined", type=["png", "jpg", "jpeg"])
+        # Code submission
+        code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
-        # Step 5: Submit Button
+        # Rectangle coordinates input
+        st.header("Step 4: Enter Rectangle Coordinates")
+        coordinates_input = st.text_area(
+            "Enter Rectangle Coordinates (Top-Left and Bottom-Right)", height=200
+        )
+
+        # File uploads
+        st.header("Step 5: Upload Files")
+        uploaded_threshold = st.file_uploader("Upload your Thresholded Image", type=["png", "jpg", "jpeg"])
+        uploaded_outlined = st.file_uploader("Upload your Outlined Image", type=["png", "jpg", "jpeg"])
+
+        # Submit button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
                 # Validate required files
-                if not uploaded_thresh_image:
-                    st.error("Please upload the thresholded image.")
+                if not uploaded_threshold:
+                    st.error("Please upload your thresholded image.")
                     return
-                if not uploaded_outlined_image:
-                    st.error("Please upload the outlined image.")
+                if not uploaded_outlined:
+                    st.error("Please upload your outlined image.")
                     return
 
                 # Save uploaded files temporarily
@@ -97,19 +101,21 @@ def show():
                 os.makedirs(temp_dir, exist_ok=True)
 
                 # Save thresholded image
-                thresh_image_path = os.path.join(temp_dir, "thresholded_image.png")
-                with open(thresh_image_path, "wb") as f:
-                    f.write(uploaded_thresh_image.getvalue())
+                threshold_path = os.path.join(temp_dir, "uploaded_threshold.png")
+                with open(threshold_path, "wb") as f:
+                    f.write(uploaded_threshold.getvalue())
 
                 # Save outlined image
-                outlined_image_path = os.path.join(temp_dir, "outlined_image.png")
-                with open(outlined_image_path, "wb") as f:
-                    f.write(uploaded_outlined_image.getvalue())
+                outlined_path = os.path.join(temp_dir, "uploaded_outlined.png")
+                with open(outlined_path, "wb") as f:
+                    f.write(uploaded_outlined.getvalue())
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, thresh_image_path, outlined_image_path)
+                total_grade, grading_breakdown = grade_assignment(
+                    code_input, coordinates_input, threshold_path, outlined_path
+                )
 
-                # Display total grade only
+                # Display total grade
                 st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
@@ -126,4 +132,3 @@ def show():
 
 if __name__ == "__main__":
     show()
-
