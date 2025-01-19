@@ -4,17 +4,17 @@ from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 4: Image Analysis and Rectangle Detection")
+    st.title("Assignment 4: Image Analysis and Rectangle Detection in Python")
 
-    # Prevent access to Assignment 4 if Assignment 3 was not submitted
-    if "assignment3_submitted" not in st.session_state:
-        st.session_state["assignment3_submitted"] = False
+    # Prevent resubmission of Assignment 4 if already submitted
+    if "assignment4_submitted" not in st.session_state:
+        st.session_state["assignment4_submitted"] = False
 
-    if not st.session_state["assignment3_submitted"]:
-        st.warning("You must submit Assignment 3 before accessing Assignment 4.")
+    if st.session_state["assignment4_submitted"]:
+        st.warning("You cannot resubmit Assignment 4 after submission.")
         return
 
-    # Validate Student ID
+    # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     student_id = st.text_input("Enter Your Student ID")
     verify_button = st.button("Verify Student ID")
@@ -53,44 +53,36 @@ def show():
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
-            st.markdown("""### Assignment 4: Image Analysis and Rectangle Detection
-            **Objective**: Analyze images to detect rectangular objects and apply thresholding for preprocessing. 
-            **Tasks**:
-            - Apply thresholding to the provided image.
-            - Detect rectangles in the processed image.
-            - Outline detected rectangles and save the output.
+            st.markdown("""
+            ### Assignment Details
+            (Provide assignment-specific details here later.)
             """)
 
         with tab2:
-            st.markdown("""### Detailed Grading Breakdown
-            - Thresholding accuracy: 30 points
-            - Rectangle detection: 40 points
-            - Output clarity and file formatting: 30 points
-            Total: 100 points
+            st.markdown("""
+            ### Grading Details
+            (Provide detailed grading breakdown here later.)
             """)
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
-        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
+        code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
-        # Step 4: Upload Thresholded Image
-        st.header("Step 4: Upload Your Thresholded Image")
-        uploaded_thresh_image = st.file_uploader("Upload the thresholded image", type=["png", "jpg", "jpeg"])
+        # Step 4: Upload Images
+        st.header("Step 4: Upload Your Images")
+        uploaded_thresholded_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
+        uploaded_rectangle_image = st.file_uploader("Upload your image with rectangles outlined", type=["png", "jpg", "jpeg"])
 
-        # Step 5: Upload Image with Rectangles Outlined
-        st.header("Step 5: Upload Your Image with Rectangles Outlined")
-        uploaded_rect_image = st.file_uploader("Upload the image with rectangles outlined", type=["png", "jpg", "jpeg"])
-
-        # Submit Button
+        # Step 5: Submit Button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
                 # Validate required files
-                if not uploaded_thresh_image:
+                if not uploaded_thresholded_image:
                     st.error("Please upload the thresholded image.")
                     return
-                if not uploaded_rect_image:
+                if not uploaded_rectangle_image:
                     st.error("Please upload the image with rectangles outlined.")
                     return
 
@@ -99,17 +91,17 @@ def show():
                 os.makedirs(temp_dir, exist_ok=True)
 
                 # Save thresholded image
-                thresh_image_path = os.path.join(temp_dir, "thresholded_image.png")
-                with open(thresh_image_path, "wb") as f:
-                    f.write(uploaded_thresh_image.getvalue())
+                thresholded_image_path = os.path.join(temp_dir, "thresholded_image.png")
+                with open(thresholded_image_path, "wb") as f:
+                    f.write(uploaded_thresholded_image.getvalue())
 
-                # Save rectangle-outlined image
-                rect_image_path = os.path.join(temp_dir, "rectangles_image.png")
-                with open(rect_image_path, "wb") as f:
-                    f.write(uploaded_rect_image.getvalue())
+                # Save rectangle image
+                rectangle_image_path = os.path.join(temp_dir, "rectangle_image.png")
+                with open(rectangle_image_path, "wb") as f:
+                    f.write(uploaded_rectangle_image.getvalue())
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, thresh_image_path, rect_image_path)
+                total_grade, grading_breakdown = grade_assignment(code_input, thresholded_image_path, rectangle_image_path)
 
                 # Display total grade only
                 st.success(f"Your total grade: {total_grade}/100")
