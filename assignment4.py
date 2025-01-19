@@ -4,11 +4,15 @@ from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 4: Image Analysis and Rectangle Detection in Python")
+    st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
-    # Prevent resubmission of Assignment 4 if not verified from Assignment 3
-    if "assignment3_verified" not in st.session_state:
-        st.session_state["assignment3_verified"] = False
+    # Prevent resubmission of Assignment 4 after another assignment
+    if "assignment5_submitted" not in st.session_state:
+        st.session_state["assignment5_submitted"] = False
+
+    if st.session_state["assignment5_submitted"]:
+        st.warning("You cannot resubmit Assignment 4 after submitting the next assignment.")
+        return
 
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -24,7 +28,6 @@ def show():
 
             import gspread
             from oauth2client.service_account import ServiceAccountCredentials
-
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
             client = gspread.authorize(credentials)
@@ -35,73 +38,94 @@ def show():
 
             if student_id in saved_ids:
                 st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
-                st.session_state["assignment3_verified"] = True
+                st.session_state["verified"] = True
             else:
-                st.error("Invalid Student ID. Make sure you submitted Assignment 3.")
-                st.session_state["assignment3_verified"] = False
+                st.error("Invalid Student ID. You must use the ID used for Assignment 3.")
+                st.session_state["verified"] = False
 
         except Exception as e:
             st.error(f"An error occurred while verifying Student ID: {e}")
-            st.session_state["assignment3_verified"] = False
+            st.session_state["verified"] = False
 
-    if st.session_state.get("assignment3_verified", False):
-        # Tabs for Assignment Details and Grading Details
+    if st.session_state.get("verified", False):
+        # Add Tabs for Assignment Details and Grading Details
         st.header("Step 2: Review Assignment Details")
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
-            st.markdown("### Assignment Details")
-            st.markdown("Provide the detailed description here.")  # Placeholder for your text
+            st.markdown("""
+            ### Objective
+            In this assignment, students will analyze an image to detect rectangles and visualize them. The task is broken into three stages, with each stage encapsulating a specific function. By the end of the assignment, students will merge the functions into one script to complete the task efficiently.
+            """)
+            # Placeholder for "See More" text
+            with st.expander("See More"):
+                st.markdown("Assignment-specific instructions will go here.")
 
         with tab2:
-            st.markdown("### Grading Breakdown")
-            st.markdown("Provide the grading details here.")  # Placeholder for your text
+            st.markdown("""
+            ### Detailed Grading Breakdown
+            Detailed grading criteria for image analysis and rectangle detection will be provided here.
+            """)
+            with st.expander("See More"):
+                st.markdown("Grading details for each stage of the assignment.")
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
-        code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
-        # Step 4: Enter Rectangle Coordinates
+        # Code Input
+        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
+
+        # Rectangle Coordinates Input
         st.header("Step 4: Enter Rectangle Coordinates")
-        top_left = st.text_input("Top-Left Coordinates (format: x,y)")
-        bottom_right = st.text_input("Bottom-Right Coordinates (format: x,y)")
+        rectangle_coordinates = st.text_area(
+            "Paste Rectangle Coordinates (Top-Left and Bottom-Right) Here",
+            height=150
+        )
 
-        # Step 5: Upload Files
-        st.header("Step 5: Upload Your Files")
-        uploaded_threshold_image = st.file_uploader("Upload Thresholded Image", type=["png", "jpg", "jpeg"])
-        uploaded_outlined_image = st.file_uploader("Upload Image with Rectangles Outlined", type=["png", "jpg", "jpeg"])
+        # Upload Thresholded Image
+        st.header("Step 5: Upload Your Thresholded Image")
+        uploaded_thresholded_image = st.file_uploader("Upload your thresholded image file", type=["png", "jpg", "jpeg"])
 
-        # Step 6: Submit Button
+        # Upload Image with Rectangles
+        st.header("Step 6: Upload Image with Rectangles Outlined")
+        uploaded_outlined_image = st.file_uploader("Upload your image with rectangles outlined", type=["png", "jpg", "jpeg"])
+
+        # Submit Button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
-                # Validate required fields
-                if not uploaded_threshold_image:
-                    st.error("Please upload a thresholded image.")
+                # Validate required files
+                if not uploaded_thresholded_image:
+                    st.error("Please upload a thresholded image file.")
                     return
                 if not uploaded_outlined_image:
-                    st.error("Please upload an outlined image.")
+                    st.error("Please upload an image with rectangles outlined.")
                     return
 
                 # Save uploaded files temporarily
                 temp_dir = "temp_uploads"
                 os.makedirs(temp_dir, exist_ok=True)
 
-                threshold_image_path = os.path.join(temp_dir, "threshold_image.png")
-                with open(threshold_image_path, "wb") as f:
-                    f.write(uploaded_threshold_image.getvalue())
+                # Save thresholded image
+                thresholded_image_path = os.path.join(temp_dir, "thresholded_image.png")
+                with open(thresholded_image_path, "wb") as f:
+                    f.write(uploaded_thresholded_image.getvalue())
 
+                # Save outlined image
                 outlined_image_path = os.path.join(temp_dir, "outlined_image.png")
                 with open(outlined_image_path, "wb") as f:
                     f.write(uploaded_outlined_image.getvalue())
 
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(
-                    code_input, threshold_image_path, outlined_image_path, top_left, bottom_right
+                    code_input,
+                    rectangle_coordinates,
+                    thresholded_image_path,
+                    outlined_image_path
                 )
 
-                # Display total grade
+                # Display total grade only
                 st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
