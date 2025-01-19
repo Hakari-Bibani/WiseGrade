@@ -1,96 +1,126 @@
-import cv2
-import numpy as np
+import streamlit as st
+import os
+from grades.grade4 import grade_assignment
+from Record.google_sheet import update_google_sheet
 
-def grade_assignment(code, rectangle_coords, threshold_image_path, outlined_image_path):
-    total_grade = 0
-    grading_breakdown = {}
+def show():
+    st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
-    # 1. Library Imports (15 Points)
-    grading_breakdown["Library Imports"] = 0
-    libraries = ["cv2", "numpy", "matplotlib", "PIL", "scipy", "tensorflow", "torch", "seaborn", "plotly"]
-    for lib in libraries:
-        if f"import {lib}" in code or f"from {lib}" in code:
-            grading_breakdown["Library Imports"] += 5
-            if grading_breakdown["Library Imports"] >= 15:
-                break
+    # Prevent resubmission of Assignment 4
+    if "assignment4_submitted" not in st.session_state:
+        st.session_state["assignment4_submitted"] = False
 
-    total_grade += grading_breakdown["Library Imports"]
+    if st.session_state["assignment4_submitted"]:
+        st.warning("You cannot resubmit Assignment 4 after submitting it.")
+        return
 
-    # 2. Code Quality (20 Points)
-    grading_breakdown["Code Quality"] = 20
-    # Deduct for non-descriptive variable names (example: "x", "y")
-    if any(var in code for var in [" x ", " y ", " z "]):
-        grading_breakdown["Code Quality"] -= 5
-    # Deduct for improper spacing (e.g., "a=10" instead of "a = 10")
-    if "=" in code and " = " not in code:
-        grading_breakdown["Code Quality"] -= 5
-    # Deduct for missing comments
-    if "#" not in code:
-        grading_breakdown["Code Quality"] -= 5
-    # Deduct for poor code organization
-    if "\n\n" not in code:
-        grading_breakdown["Code Quality"] -= 5
+    # Step 1: Validate Student ID
+    st.header("Step 1: Enter Your Student ID")
+    student_id = st.text_input("Enter Your Student ID")
+    verify_button = st.button("Verify Student ID")
 
-    total_grade += grading_breakdown["Code Quality"]
-
-    # 3. Detected Rectangle Coordinates (28 Points)
-    grading_breakdown["Rectangle Coordinates"] = 0
-    correct_coords = {
-        1: ((1655, 1305), (2021, 1512)),
-        2: ((459, 1305), (825, 1512)),
-        3: ((2051, 1305), (2417, 1512)),
-        4: ((1257, 1305), (1623, 1512)),
-        5: ((857, 1305), (1223, 1512)),
-        6: ((63, 1305), (429, 1512)),
-        7: ((157, 1050), (398, 1122)),
-        8: ((351, 869), (592, 941)),
-        9: ((624, 744), (865, 816)),
-        10: ((888, 646), (1129, 718)),
-        11: ((1069, 492), (1311, 564)),
-        12: ((1338, 360), (1579, 432)),
-        13: ((64, 231), (800, 506)),
-        14: ((2103, 166), (2344, 239))
-    }
-
-    student_coords = rectangle_coords.split("\n")
-    for i, rect in enumerate(correct_coords.values(), start=1):
+    if verify_button:
         try:
-            student_rect = tuple(map(int, student_coords[i - 1].strip("() ").split(",")))
-            if student_rect == rect:
-                grading_breakdown["Rectangle Coordinates"] += 2
-        except Exception:
-            continue
+            google_sheets_secrets = st.secrets.get("google_sheets", None)
+            if not google_sheets_secrets:
+                st.error("Google Sheets credentials are missing in Streamlit secrets.")
+                return
 
-    total_grade += grading_breakdown["Rectangle Coordinates"]
+            import gspread
+            from oauth2client.service_account import ServiceAccountCredentials
+            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+            credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
+            client = gspread.authorize(credentials)
 
-    # 4. Thresholded Image Check (20 Points)
-    grading_breakdown["Thresholded Image"] = 0
-    try:
-        correct_threshold_image = cv2.imread("correct_files/correct_thresholded_image.png", 0)
-        student_threshold_image = cv2.imread(threshold_image_path, 0)
-        if correct_threshold_image.shape == student_threshold_image.shape:
-            diff = cv2.absdiff(correct_threshold_image, student_threshold_image)
-            non_zero_count = np.count_nonzero(diff)
-            if non_zero_count < 1000:  # Allow minor differences
-                grading_breakdown["Thresholded Image"] = 20
-    except Exception:
-        pass
+            spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
+            worksheet = spreadsheet.sheet1
+            saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]  # Assuming Student ID in 3rd column
 
-    total_grade += grading_breakdown["Thresholded Image"]
+            if student_id in saved_ids:
+                st.success(f"Student ID {student_id} verified. Proceed to the next steps.")
+                st.session_state["verified"] = True
+            else:
+                st.error("Invalid Student ID. Please enter a valid ID from Assignment 3.")
+                st.session_state["verified"] = False
 
-    # 5. Rectangles Outlined Check (17 Points)
-    grading_breakdown["Rectangles Outlined"] = 0
-    try:
-        correct_outlined_image = cv2.imread("correct_files/correct_outlined_image.png")
-        student_outlined_image = cv2.imread(outlined_image_path)
-        if correct_outlined_image.shape == student_outlined_image.shape:
-            diff = cv2.absdiff(correct_outlined_image, student_outlined_image)
-            non_zero_count = np.count_nonzero(diff)
-            if non_zero_count < 2000:  # Allow minor differences
-                grading_breakdown["Rectangles Outlined"] = 17
-    except Exception:
-        pass
+        except Exception as e:
+            st.error(f"An error occurred while verifying Student ID: {e}")
+            st.session_state["verified"] = False
 
-    total_grade += grading_breakdown["Rectangles Outlined"]
+    if st.session_state.get("verified", False):
+        # Add Tabs for Assignment Details and Grading Details
+        st.header("Step 2: Review Assignment Details")
+        tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
-    return total_grade, grading_breakdown
+        with tab1:
+            st.markdown("### Assignment Details will be added here.")
+
+        with tab2:
+            st.markdown("### Grading Details will be added here.")
+
+        # Step 3: Assignment Submission
+        st.header("Step 3: Submit Your Assignment")
+
+        # Cell to paste code
+        st.subheader("Paste Your Code Below")
+        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
+
+        # Cell to paste detected rectangle coordinates
+        st.subheader("Detected Rectangle Coordinates")
+        rectangle_coords = st.text_area("**📋 Paste Detected Rectangle Coordinates Here**", height=100)
+
+        # Upload thresholded image
+        st.subheader("Upload Thresholded Image")
+        uploaded_threshold_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
+
+        # Upload image with rectangles outlined
+        st.subheader("Upload Image with Rectangles Outlined")
+        uploaded_rectangle_image = st.file_uploader("Upload your outlined image", type=["png", "jpg", "jpeg"])
+
+        # Submit button
+        submit_button = st.button("Submit Assignment")
+
+        if submit_button:
+            try:
+                # Validate required files
+                if not uploaded_threshold_image:
+                    st.error("Please upload a thresholded image.")
+                    return
+                if not uploaded_rectangle_image:
+                    st.error("Please upload an image with rectangles outlined.")
+                    return
+
+                # Save uploaded files temporarily
+                temp_dir = "temp_uploads"
+                os.makedirs(temp_dir, exist_ok=True)
+
+                # Save thresholded image
+                threshold_image_path = os.path.join(temp_dir, "thresholded_image.png")
+                with open(threshold_image_path, "wb") as f:
+                    f.write(uploaded_threshold_image.getvalue())
+
+                # Save outlined image
+                rectangle_image_path = os.path.join(temp_dir, "outlined_image.png")
+                with open(rectangle_image_path, "wb") as f:
+                    f.write(uploaded_rectangle_image.getvalue())
+
+                # Grade the assignment
+                total_grade, grading_breakdown = grade_assignment(code_input, rectangle_coords, threshold_image_path, rectangle_image_path)
+
+                # Display total grade
+                st.success(f"Your total grade: {total_grade}/100")
+
+                # Update Google Sheets with grade
+                update_google_sheet(
+                    full_name="",  # Fill with the student's full name if available
+                    email="",      # Fill with the student's email if available
+                    student_id=student_id,
+                    grade=total_grade,
+                    current_assignment="assignment_4"
+                )
+
+            except Exception as e:
+                st.error(f"An error occurred during submission: {e}")
+
+if __name__ == "__main__":
+    show()
