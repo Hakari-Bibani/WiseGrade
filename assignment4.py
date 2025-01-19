@@ -3,7 +3,7 @@ import os
 from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
-def show():
+def assignment4_page():
     st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
     # Prevent resubmission of Assignment 4
@@ -105,7 +105,9 @@ def show():
                     f.write(uploaded_rectangle_image.getvalue())
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, rectangle_coords, threshold_image_path, rectangle_image_path)
+                total_grade, grading_breakdown = grade_assignment(
+                    code_input, rectangle_coords, threshold_image_path, rectangle_image_path
+                )
 
                 # Display total grade
                 st.success(f"Your total grade: {total_grade}/100")
@@ -121,6 +123,3 @@ def show():
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-
-if __name__ == "__main__":
-    show()
