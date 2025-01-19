@@ -33,6 +33,9 @@ with st.sidebar:
         orientation="vertical",
     )
 
+    # Debug: Check initial `selected` value
+    st.write(f"Selected main menu: {selected}")
+
     # Initialize sub-selection state for Assignments and Quizzes
     sub_selected = None
     if selected in ["Assignments", "Quizzes"]:
@@ -50,8 +53,8 @@ with st.sidebar:
     else:
         selected = menu_options[selected]
 
-# Debugging: Print the resolved module name
-st.write(f"Selected module: {selected}")  # For debugging, can be removed later
+    # Debug: Check the resolved `selected` value
+    st.write(f"Selected module: {selected}")
 
 # Main content area
 try:
@@ -64,8 +67,9 @@ try:
             module.show()  # Call the show function
         else:
             st.error(f"The module '{selected}' does not have a valid entry point.")
-except ImportError:
+except ImportError as e:
     st.error(f"Module '{selected}' not found. Please check your file names or paths.")
+    st.write(f"Error details: {e}")
 
 # Footer
 st.markdown("""
