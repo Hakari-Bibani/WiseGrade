@@ -3,16 +3,13 @@ import os
 from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
-def assignment4_page():
+def show():
     st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
-    # Prevent resubmission of Assignment 4
-    if "assignment4_submitted" not in st.session_state:
-        st.session_state["assignment4_submitted"] = False
-
-    if st.session_state["assignment4_submitted"]:
-        st.warning("You cannot resubmit Assignment 4 after submitting it.")
-        return
+    # Sidebar Navigation
+    with st.sidebar:
+        st.subheader("Assignment Navigation")
+        st.info("You are currently on Assignment 4.")
 
     # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
@@ -48,7 +45,7 @@ def assignment4_page():
             st.session_state["verified"] = False
 
     if st.session_state.get("verified", False):
-        # Add Tabs for Assignment Details and Grading Details
+        # Tabs for Assignment and Grading Details
         st.header("Step 2: Review Assignment Details")
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
@@ -60,29 +57,15 @@ def assignment4_page():
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
-
-        # Cell to paste code
-        st.subheader("Paste Your Code Below")
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
-
-        # Cell to paste detected rectangle coordinates
-        st.subheader("Detected Rectangle Coordinates")
         rectangle_coords = st.text_area("**📋 Paste Detected Rectangle Coordinates Here**", height=100)
-
-        # Upload thresholded image
-        st.subheader("Upload Thresholded Image")
         uploaded_threshold_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
-
-        # Upload image with rectangles outlined
-        st.subheader("Upload Image with Rectangles Outlined")
         uploaded_rectangle_image = st.file_uploader("Upload your outlined image", type=["png", "jpg", "jpeg"])
 
-        # Submit button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
-                # Validate required files
                 if not uploaded_threshold_image:
                     st.error("Please upload a thresholded image.")
                     return
@@ -90,16 +73,13 @@ def assignment4_page():
                     st.error("Please upload an image with rectangles outlined.")
                     return
 
-                # Save uploaded files temporarily
                 temp_dir = "temp_uploads"
                 os.makedirs(temp_dir, exist_ok=True)
 
-                # Save thresholded image
                 threshold_image_path = os.path.join(temp_dir, "thresholded_image.png")
                 with open(threshold_image_path, "wb") as f:
                     f.write(uploaded_threshold_image.getvalue())
 
-                # Save outlined image
                 rectangle_image_path = os.path.join(temp_dir, "outlined_image.png")
                 with open(rectangle_image_path, "wb") as f:
                     f.write(uploaded_rectangle_image.getvalue())
@@ -109,10 +89,12 @@ def assignment4_page():
                     code_input, rectangle_coords, threshold_image_path, rectangle_image_path
                 )
 
-                # Display total grade
+                # Display grades
                 st.success(f"Your total grade: {total_grade}/100")
+                for category, score in grading_breakdown.items():
+                    st.write(f"{category}: {score} points")
 
-                # Update Google Sheets with grade
+                # Update grades in Google Sheets
                 update_google_sheet(
                     full_name="",  # Fill with the student's full name if available
                     email="",      # Fill with the student's email if available
@@ -123,3 +105,4 @@ def assignment4_page():
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
+
