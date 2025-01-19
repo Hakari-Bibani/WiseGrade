@@ -119,16 +119,22 @@ def show():
 
                 # Parse rectangle coordinates
                 try:
-                    student_coordinates = []
-                    for line in rectangle_coordinates.splitlines():
-                        line = line.strip()
-                        if not line or line.startswith("Rectangle Coordinates"):  # Skip invalid lines or headers
-                            continue
-                        coords = line.split(":")[1].strip()  # Extract coordinates after "Rectangle X:"
-                        top_left, bottom_right = coords.split(", Bottom-Right ")
-                        top_left = tuple(map(int, top_left.replace("Top-Left (", "").replace(")", "").split(",")))
-                        bottom_right = tuple(map(int, bottom_right.replace("(", "").replace(")", "").split(",")))
-                        student_coordinates.append((top_left, bottom_right))
+                    correct_values = [
+                        1655, 1305, 2021, 1512, 459, 1305, 825, 1512,
+                        2051, 1305, 2417, 1512, 1257, 1305, 1623, 1512,
+                        857, 1305, 1223, 1512, 63, 1305, 429, 1512,
+                        157, 1050, 398, 1122, 351, 869, 592, 941,
+                        624, 744, 865, 816, 888, 646, 1129, 718,
+                        1069, 492, 1311, 564, 1338, 360, 1579, 432,
+                        64, 231, 800, 506, 2103, 166, 2344, 239
+                    ]
+                    student_values = [
+                        int(value) for line in rectangle_coordinates.splitlines()
+                        for value in line.replace("Top-Left (", "").replace("Bottom-Right (", "")
+                        .replace(")", "").replace(",", " ").split()
+                        if value.isdigit()
+                    ]
+                    rectangle_grade = sum(1 for i, val in enumerate(student_values) if i < len(correct_values) and val == correct_values[i])
                 except Exception as e:
                     st.error(f"Invalid input format for rectangle coordinates: {e}")
                     return
@@ -136,7 +142,7 @@ def show():
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(
                     code_input,
-                    student_coordinates,
+                    rectangle_grade,
                     thresholded_image_path,
                     outlined_image_path
                 )
