@@ -19,7 +19,7 @@ python-dotenv
 pytesseract
 oauth2client
 scikit-image
-Pillow
+pillow
 urllib3
 IPython
 lxml
@@ -28,5 +28,4 @@ openpyxl
 matplotlib
 plotly
 google-auth
-xlrd
-opencv-python
+opencv-python-headless  # Avoids GUI-related OpenCV issues
