@@ -139,8 +139,8 @@ def show():
                     st.error(f"Invalid input format for rectangle coordinates: {e}")
                     return
 
-                # Thresholded Image Grading (20 Points)
-                def count_rectangles(image_path):
+                # Detect rectangles in the thresholded image
+                def count_rectangles_in_image(image_path):
                     import cv2
                     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
                     _, thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
@@ -148,35 +148,38 @@ def show():
                     return len(contours)
 
                 try:
-                    detected_rectangles = count_rectangles(thresholded_image_path)
+                    detected_rectangles = count_rectangles_in_image(thresholded_image_path)
                     if detected_rectangles >= 14:
-                        thresholded_grade = 20
-                    elif 7 < detected_rectangles < 14:
-                        thresholded_grade = int(20 * (detected_rectangles / 14))
+                        thresholded_image_grade = 20
+                    elif detected_rectangles > 7:
+                        thresholded_image_grade = int(20 * (detected_rectangles / 14))
                     else:
-                        thresholded_grade = 0
+                        thresholded_image_grade = 0
                 except Exception as e:
-                    st.error(f"Error grading thresholded image: {e}")
-                    thresholded_grade = 0
+                    st.error(f"Error detecting rectangles in the thresholded image: {e}")
+                    thresholded_image_grade = 0
 
-                # Outlined Image Grading (4 Points)
+                # Validate outlined rectangles by comparing with correct file
+                def validate_outlined_image(uploaded_path, correct_path):
+                    import cv2
+                    uploaded = cv2.imread(uploaded_path)
+                    correct = cv2.imread(correct_path)
+                    return cv2.norm(uploaded, correct, cv2.NORM_L2) == 0
+
+                correct_outlined_path = "grades/correct_files/correct_outlined.png"
                 try:
-                    correct_rectangles = 14
-                    outlined_rectangles = count_rectangles(outlined_image_path)
-                    outlined_grade = 4 if outlined_rectangles == correct_rectangles else 0
+                    outlined_image_grade = 4 if validate_outlined_image(outlined_image_path, correct_outlined_path) else 0
                 except Exception as e:
-                    st.error(f"Error grading outlined image: {e}")
-                    outlined_grade = 0
+                    st.error(f"Error validating outlined image: {e}")
+                    outlined_image_grade = 0
 
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(
                     code_input,
                     rectangle_grade,
-                    thresholded_image_path,
-                    outlined_image_path
+                    thresholded_image_grade,
+                    outlined_image_grade
                 )
-
-                total_grade += thresholded_grade + outlined_grade
 
                 # Display total grade and detailed breakdown
                 st.success(f"Your total grade: {total_grade}/100")
@@ -184,9 +187,9 @@ def show():
                 st.header("Grading Breakdown")
                 st.write(f"**Library Imports:** {grading_breakdown['Library Imports']} points")
                 st.write(f"**Code Quality:** {grading_breakdown['Code Quality']} points")
-                st.write(f"**Rectangle Coordinates:** {grading_breakdown['Rectangle Coordinates']} points")
-                st.write(f"**Thresholded Image:** {thresholded_grade} points")
-                st.write(f"**Image with Rectangles Outlined:** {outlined_grade} points")
+                st.write(f"**Rectangle Coordinates:** {rectangle_grade} points")
+                st.write(f"**Thresholded Image:** {thresholded_image_grade} points")
+                st.write(f"**Image with Rectangles Outlined:** {outlined_image_grade} points")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
