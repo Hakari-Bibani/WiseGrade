@@ -1,83 +1,75 @@
 import cv2
 import numpy as np
 
-def grade_assignment(code, thresh_image_path, outlined_image_path):
-    total_score = 100
+def grade_assignment(code_input, thresholded_image_path, outlined_image_path):
+    grade = 0
     grading_breakdown = {}
 
-    # 1. Library Imports (15 Points)
-    required_libraries = {
-        "cv2": 5,
-        "numpy": 5,
-        "matplotlib.pyplot": 5,
-    }
-    import_points = 0
-    for lib, points in required_libraries.items():
-        if lib in code:
-            import_points += points
-    grading_breakdown["Library Imports"] = import_points
-    total_score -= (15 - import_points)
+    # Step 1: Check Library Imports (15 Points)
+    grading_breakdown['Library Imports'] = 0
+    required_libraries = ['cv2', 'numpy', 'matplotlib']
+    for lib in required_libraries:
+        if lib in code_input:
+            grade += 5
+            grading_breakdown['Library Imports'] += 5
 
-    # 2. Code Quality (20 Points)
-    code_quality_points = 20
-    if " " not in code and "\t" not in code:
-        code_quality_points -= 5  # Deduct for spacing issues
-    if "#" not in code:
-        code_quality_points -= 5  # Deduct for missing comments
-    grading_breakdown["Code Quality"] = code_quality_points
-    total_score -= (20 - code_quality_points)
+    # Step 2: Code Quality (20 Points)
+    grading_breakdown['Code Quality'] = 0
+    if all(var in code_input for var in ['variable_name', 'descriptive_name']):  # Example variable naming check
+        grade += 5
+        grading_breakdown['Code Quality'] += 5
+    if ' ' in code_input and '    ' in code_input:  # Example spacing check
+        grade += 5
+        grading_breakdown['Code Quality'] += 5
+    if '#' in code_input:  # Example comment check
+        grade += 5
+        grading_breakdown['Code Quality'] += 5
+    if 'def ' in code_input and '\n\n' in code_input:  # Example organization check
+        grade += 5
+        grading_breakdown['Code Quality'] += 5
 
-    # 3. Rectangle Coordinates (28 Points)
-    correct_coordinates = [
-        {"top_left": (1655, 1305), "bottom_right": (2021, 1512)},
-        {"top_left": (459, 1305), "bottom_right": (825, 1512)},
-        # ... (Add the rest here)
+    # Step 3: Detected Rectangle Coordinates (28 Points)
+    grading_breakdown['Rectangle Coordinates'] = 0
+    correct_rectangles = [
+        ((1655, 1305), (2021, 1512)),  # Example for Rectangle 1
+        # Add all other rectangle coordinates...
     ]
     try:
-        # Simulate rectangle detection logic (replace with actual implementation)
-        detected_rectangles = [
-            # Load coordinates from the output of the student's code
-        ]
-        rect_points = 28
-        for i, correct_rect in enumerate(correct_coordinates):
-            if i < len(detected_rectangles):
-                if (
-                    detected_rectangles[i]["top_left"] == correct_rect["top_left"]
-                    and detected_rectangles[i]["bottom_right"] == correct_rect["bottom_right"]
-                ):
-                    continue  # Rectangle matches
-                else:
-                    rect_points -= 2  # Deduct 2 points per incorrect rectangle
-        grading_breakdown["Rectangle Coordinates"] = rect_points
-        total_score -= (28 - rect_points)
-    except Exception:
-        grading_breakdown["Rectangle Coordinates"] = 0
-        total_score -= 28  # Deduct full marks for failure
+        img = cv2.imread(outlined_image_path, cv2.IMREAD_COLOR)
+        detected_rectangles = detect_rectangles(img)  # Function to detect rectangles
+        for i, rect in enumerate(correct_rectangles):
+            if i < len(detected_rectangles) and detected_rectangles[i] == rect:
+                grade += 2
+                grading_breakdown['Rectangle Coordinates'] += 2
+    except Exception as e:
+        grading_breakdown['Rectangle Coordinates Error'] = str(e)
 
-    # 4. Thresholded Image (20 Points)
+    # Step 4: Thresholded Image (20 Points)
+    grading_breakdown['Thresholded Image'] = 0
     try:
-        thresh_image = cv2.imread(thresh_image_path, 0)
-        contours, _ = cv2.findContours(thresh_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        detected_rect_count = len(contours)
-        correct_rect_count = 14  # Assuming the correct thresholded image detects 14 rectangles
-        thresh_points = 20 if detected_rect_count == correct_rect_count else max(0, 20 - abs(detected_rect_count - correct_rect_count))
-        grading_breakdown["Thresholded Image"] = thresh_points
-        total_score -= (20 - thresh_points)
-    except Exception:
-        grading_breakdown["Thresholded Image"] = 0
-        total_score -= 20
+        img_thresh = cv2.imread(thresholded_image_path, cv2.IMREAD_GRAYSCALE)
+        num_detected_rectangles = len(detect_rectangles(img_thresh))
+        correct_num_rectangles = 14  # Example correct number of rectangles
+        if num_detected_rectangles == correct_num_rectangles:
+            grade += 20
+            grading_breakdown['Thresholded Image'] += 20
+    except Exception as e:
+        grading_breakdown['Thresholded Image Error'] = str(e)
 
-    # 5. Outlined Rectangles (17 Points)
+    # Step 5: Rectangles Outlined Image (17 Points)
+    grading_breakdown['Outlined Image'] = 0
     try:
-        outlined_image = cv2.imread(outlined_image_path)
-        # Simulate outlined rectangle detection (replace with actual implementation)
-        outlined_rectangles_detected = True  # Placeholder condition
-        outline_points = 17 if outlined_rectangles_detected else 0
-        grading_breakdown["Outlined Rectangles"] = outline_points
-        total_score -= (17 - outline_points)
-    except Exception:
-        grading_breakdown["Outlined Rectangles"] = 0
-        total_score -= 17
+        img_outlined = cv2.imread(outlined_image_path, cv2.IMREAD_COLOR)
+        outlined_detected = len(detect_rectangles(img_outlined)) == len(correct_rectangles)
+        if outlined_detected:
+            grade += 17
+            grading_breakdown['Outlined Image'] += 17
+    except Exception as e:
+        grading_breakdown['Outlined Image Error'] = str(e)
 
-    return total_score, grading_breakdown
+    return grade, grading_breakdown
 
+
+def detect_rectangles(image):
+    # Dummy function for rectangle detection
+    return []  # Replace with actual detection logic
