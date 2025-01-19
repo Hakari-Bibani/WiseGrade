@@ -33,9 +33,6 @@ with st.sidebar:
         orientation="vertical",
     )
 
-    # Debug: Check initial `selected` value
-    st.write(f"Selected main menu: {selected}")
-
     # Initialize sub-selection state for Assignments and Quizzes
     sub_selected = None
     if selected in ["Assignments", "Quizzes"]:
@@ -53,23 +50,20 @@ with st.sidebar:
     else:
         selected = menu_options[selected]
 
-    # Debug: Check the resolved `selected` value
-    st.write(f"Selected module: {selected}")
-
 # Main content area
 try:
     if selected == "home":
         home.show()  # Display the Home page
     else:
-        # Dynamically import the selected module
         module = importlib.import_module(selected)
-        if hasattr(module, "show"):
+        if hasattr(module, "assignment1"):  # Check for assignment function
+            getattr(module, "assignment1")()  # Call the function
+        elif hasattr(module, "show"):
             module.show()  # Call the show function
         else:
             st.error(f"The module '{selected}' does not have a valid entry point.")
-except ImportError as e:
-    st.error(f"Module '{selected}' not found. Please check your file names or paths.")
-    st.write(f"Error details: {e}")
+except ImportError:
+    st.error(f"Module '{selected}' not found.")
 
 # Footer
 st.markdown("""
