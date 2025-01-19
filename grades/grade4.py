@@ -1,6 +1,4 @@
-import cv2
-
-def grade_assignment(code_input, rectangle_grade, thresholded_image_path, outlined_image_path):
+def grade_assignment(code_input, rectangle_grade, thresholded_image_grade, outlined_image_grade):
     total_grade = 0
     grading_breakdown = {}
 
@@ -36,41 +34,11 @@ def grade_assignment(code_input, rectangle_grade, thresholded_image_path, outlin
     total_grade += rectangle_grade
 
     # 4. Thresholded Image (20 Points)
-    try:
-        detected_rectangles = count_rectangles_in_image(thresholded_image_path)
-        if detected_rectangles >= 14:
-            grading_breakdown["Thresholded Image"] = 20
-        elif 7 < detected_rectangles < 14:
-            grading_breakdown["Thresholded Image"] = int(20 * (detected_rectangles / 14))
-        else:
-            grading_breakdown["Thresholded Image"] = 0
-        total_grade += grading_breakdown["Thresholded Image"]
-    except Exception as e:
-        grading_breakdown["Thresholded Image"] = 0
-        print(f"Error processing thresholded image: {e}")
+    grading_breakdown["Thresholded Image"] = thresholded_image_grade
+    total_grade += thresholded_image_grade
 
     # 5. Image with Rectangles Outlined (4 Points)
-    try:
-        correct_rectangles = 14
-        outlined_rectangles = count_rectangles_in_image(outlined_image_path)
-        grading_breakdown["Image with Rectangles Outlined"] = 4 if outlined_rectangles == correct_rectangles else 0
-        total_grade += grading_breakdown["Image with Rectangles Outlined"]
-    except Exception as e:
-        grading_breakdown["Image with Rectangles Outlined"] = 0
-        print(f"Error processing outlined image: {e}")
+    grading_breakdown["Image with Rectangles Outlined"] = outlined_image_grade
+    total_grade += outlined_image_grade
 
     return total_grade, grading_breakdown
-
-# Helper function to count rectangles in the image
-def count_rectangles_in_image(image_path):
-    """
-    Counts the number of rectangles detected in the image.
-    """
-    try:
-        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        _, thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        return len(contours)
-    except Exception as e:
-        print(f"Error in count_rectangles_in_image: {e}")
-        return 0
