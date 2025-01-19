@@ -117,10 +117,26 @@ def show():
                 with open(outlined_image_path, "wb") as f:
                     f.write(uploaded_outlined_image.getvalue())
 
+                # Parse rectangle coordinates
+                try:
+                    student_coordinates = []
+                    for line in rectangle_coordinates.splitlines():
+                        line = line.strip()
+                        if not line or line.startswith("Rectangle Coordinates"):  # Skip invalid lines or headers
+                            continue
+                        coords = line.split(":")[1].strip()  # Extract coordinates after "Rectangle X:"
+                        top_left, bottom_right = coords.split(", Bottom-Right ")
+                        top_left = tuple(map(int, top_left.replace("Top-Left (", "").replace(")", "").split(",")))
+                        bottom_right = tuple(map(int, bottom_right.replace("(", "").replace(")", "").split(",")))
+                        student_coordinates.append((top_left, bottom_right))
+                except Exception as e:
+                    st.error(f"Invalid input format for rectangle coordinates: {e}")
+                    return
+
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(
                     code_input,
-                    rectangle_coordinates,
+                    student_coordinates,
                     thresholded_image_path,
                     outlined_image_path
                 )
