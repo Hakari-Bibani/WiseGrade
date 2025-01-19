@@ -1,143 +1,246 @@
 import os
 import cv2
 import numpy as np
-from PIL import Image
+from typing import Tuple, Dict
 
-# Correct rectangle coordinates for comparison
-CORRECT_RECTANGLES = [
-    ((1655, 1305), (2021, 1512)),  # Rectangle 1
-    ((459, 1305), (825, 1512)),    # Rectangle 2
-    ((2051, 1305), (2417, 1512)),  # Rectangle 3
-    ((1257, 1305), (1623, 1512)),  # Rectangle 4
-    ((857, 1305), (1223, 1512)),   # Rectangle 5
-    ((63, 1305), (429, 1512)),     # Rectangle 6
-    ((157, 1050), (398, 1122)),    # Rectangle 7
-    ((351, 869), (592, 941)),      # Rectangle 8
-    ((624, 744), (865, 816)),      # Rectangle 9
-    ((888, 646), (1129, 718)),     # Rectangle 10
-    ((1069, 492), (1311, 564)),    # Rectangle 11
-    ((1338, 360), (1579, 432)),    # Rectangle 12
-    ((64, 231), (800, 506)),       # Rectangle 13
-    ((2103, 166), (2344, 239))     # Rectangle 14
-]
-
-def grade_assignment(code_input, rectangle_coords, threshold_image_path, rectangle_image_path):
+def check_library_imports(code_input: str) -> Tuple[int, Dict[str, int]]:
     """
-    Grades the Assignment 4 submission.
-
-    Args:
-        code_input (str): The code submitted by the student.
-        rectangle_coords (str): The detected rectangle coordinates submitted by the student.
-        threshold_image_path (str): Path to the thresholded image uploaded by the student.
-        rectangle_image_path (str): Path to the image with rectangles outlined uploaded by the student.
-
-    Returns:
-        tuple: Total grade (int) and detailed grading breakdown (dict).
+    Check for required library imports in the code
+    Returns: Points earned and breakdown
     """
-    total_grade = 0
+    points = 0
+    breakdown = {}
+    
+    # Group 1: Image processing libraries (5 points)
+    if any(lib in code_input for lib in ['cv2', 'PIL', 'skimage', 'imageai']):
+        points += 5
+        breakdown['Image Processing Library'] = 5
+    else:
+        breakdown['Image Processing Library'] = 0
+
+    # Group 2: Numerical processing libraries (5 points)
+    if any(lib in code_input for lib in ['numpy', 'scipy', 'tensorflow', 'torch']):
+        points += 5
+        breakdown['Numerical Library'] = 5
+    else:
+        breakdown['Numerical Library'] = 0
+
+    # Group 3: Visualization libraries (5 points)
+    if any(lib in code_input for lib in ['matplotlib', 'plotly', 'seaborn', 'PIL']):
+        points += 5
+        breakdown['Visualization Library'] = 5
+    else:
+        breakdown['Visualization Library'] = 0
+        
+    return points, breakdown
+
+def check_code_quality(code_input: str) -> Tuple[int, Dict[str, int]]:
+    """
+    Evaluate code quality based on naming, spacing, comments, and organization
+    """
+    points = 0
+    breakdown = {}
+    
+    # Variable naming (5 points)
+    poor_names = ['x', 'y', 'a', 'b', 'foo', 'bar']
+    has_poor_names = any(f" {name} " in f" {code_input} " for name in poor_names)
+    if not has_poor_names:
+        points += 5
+        breakdown['Variable Naming'] = 5
+    else:
+        breakdown['Variable Naming'] = 0
+    
+    # Spacing (5 points)
+    poor_spacing = ['=+', '=-', '=*', '=/', '><', '<>', '==+', '==-']
+    has_poor_spacing = any(pattern in code_input for pattern in poor_spacing)
+    if not has_poor_spacing:
+        points += 5
+        breakdown['Spacing'] = 5
+    else:
+        breakdown['Spacing'] = 0
+    
+    # Comments (5 points)
+    if '#' in code_input and code_input.count('#') >= 3:
+        points += 5
+        breakdown['Comments'] = 5
+    else:
+        breakdown['Comments'] = 0
+    
+    # Code organization (5 points)
+    if code_input.count('\n\n') >= 2:
+        points += 5
+        breakdown['Code Organization'] = 5
+    else:
+        breakdown['Code Organization'] = 0
+    
+    return points, breakdown
+
+def check_rectangle_coordinates(coords_input: str) -> Tuple[int, Dict[str, bool]]:
+    """
+    Validate rectangle coordinates against correct answers
+    """
+    correct_coords = {
+        1: ((1655, 1305), (2021, 1512)),
+        2: ((459, 1305), (825, 1512)),
+        3: ((2051, 1305), (2417, 1512)),
+        4: ((1257, 1305), (1623, 1512)),
+        5: ((857, 1305), (1223, 1512)),
+        6: ((63, 1305), (429, 1512)),
+        7: ((157, 1050), (398, 1122)),
+        8: ((351, 869), (592, 941)),
+        9: ((624, 744), (865, 816)),
+        10: ((888, 646), (1129, 718)),
+        11: ((1069, 492), (1311, 564)),
+        12: ((1338, 360), (1579, 432)),
+        13: ((64, 231), (800, 506)),
+        14: ((2103, 166), (2344, 239))
+    }
+    
+    points = 0
+    results = {}
+    
+    try:
+        # Parse submitted coordinates
+        submitted_coords = {}
+        for line in coords_input.strip().split('\n'):
+            if 'Rectangle' in line and ':' in line:
+                rect_num = int(line.split(':')[0].split()[-1])
+                coords = line.split(':')[1].strip()
+                top_left = tuple(map(int, coords.split(',')[0:2]))
+                bottom_right = tuple(map(int, coords.split(',')[2:4]))
+                submitted_coords[rect_num] = (top_left, bottom_right)
+        
+        # Check each rectangle (2 points each)
+        for rect_num, correct_coord in correct_coords.items():
+            if rect_num in submitted_coords:
+                submitted = submitted_coords[rect_num]
+                # Allow for small deviation (±5 pixels)
+                is_correct = all(abs(s - c) <= 5 for s, c in 
+                               zip(submitted[0] + submitted[1], 
+                                   correct_coord[0] + correct_coord[1]))
+                if is_correct:
+                    points += 2
+                results[f'Rectangle_{rect_num}'] = is_correct
+            else:
+                results[f'Rectangle_{rect_num}'] = False
+                
+    except Exception as e:
+        print(f"Error in coordinate validation: {e}")
+        results['Error'] = str(e)
+    
+    return points, results
+
+def check_thresholded_image(image_path: str, correct_image_path: str) -> Tuple[int, Dict[str, int]]:
+    """
+    Compare submitted thresholded image with correct image
+    """
+    points = 0
+    breakdown = {}
+    
+    try:
+        # Load images
+        submitted_img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        correct_img = cv2.imread(correct_image_path, cv2.IMREAD_GRAYSCALE)
+        
+        if submitted_img is not None and correct_img is not None:
+            # Count rectangles (using simple contour detection)
+            _, submitted_contours, _ = cv2.findContours(submitted_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            _, correct_contours, _ = cv2.findContours(correct_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            submitted_count = len(submitted_contours)
+            correct_count = len(correct_contours)
+            
+            # Award points based on accuracy
+            if submitted_count == correct_count:
+                points = 20
+            elif abs(submitted_count - correct_count) <= 2:
+                points = 10
+            
+            breakdown['Rectangle_Count'] = submitted_count
+            breakdown['Expected_Count'] = correct_count
+            breakdown['Points'] = points
+            
+    except Exception as e:
+        breakdown['Error'] = str(e)
+    
+    return points, breakdown
+
+def check_outlined_image(image_path: str, correct_image_path: str) -> Tuple[int, Dict[str, int]]:
+    """
+    Validate the outlined rectangles image
+    """
+    points = 0
+    breakdown = {}
+    
+    try:
+        # Load images
+        submitted_img = cv2.imread(image_path)
+        correct_img = cv2.imread(correct_image_path)
+        
+        if submitted_img is not None and correct_img is not None:
+            # Convert to grayscale for easier comparison
+            submitted_gray = cv2.cvtColor(submitted_img, cv2.COLOR_BGR2GRAY)
+            correct_gray = cv2.cvtColor(correct_img, cv2.COLOR_BGR2GRAY)
+            
+            # Detect edges
+            submitted_edges = cv2.Canny(submitted_gray, 50, 150)
+            correct_edges = cv2.Canny(correct_gray, 50, 150)
+            
+            # Compare edge detection results
+            matching_pixels = np.sum(submitted_edges == correct_edges)
+            total_pixels = submitted_edges.size
+            match_percentage = (matching_pixels / total_pixels) * 100
+            
+            # Award points based on match percentage
+            if match_percentage >= 90:
+                points = 17
+            elif match_percentage >= 75:
+                points = 12
+            elif match_percentage >= 50:
+                points = 8
+            
+            breakdown['Match_Percentage'] = match_percentage
+            breakdown['Points'] = points
+            
+    except Exception as e:
+        breakdown['Error'] = str(e)
+    
+    return points, breakdown
+
+def grade_assignment(code_input: str, rectangle_coords: str, 
+                    threshold_image_path: str, rectangle_image_path: str,
+                    correct_threshold_path: str, correct_outline_path: str) -> Tuple[int, Dict]:
+    """
+    Main grading function that coordinates all checks
+    """
+    total_points = 0
     grading_breakdown = {}
-
-    # 1. Library Imports (15 Points)
-    try:
-        lib_score = 0
-        if "cv2" in code_input or "PIL" in code_input or "skimage" in code_input or "imageai" in code_input:
-            lib_score += 5
-        if "numpy" in code_input or "scipy" in code_input or "tensorflow" in code_input or "torch" in code_input:
-            lib_score += 5
-        if "matplotlib" in code_input or "plotly" in code_input or "seaborn" in code_input or "PIL" in code_input:
-            lib_score += 5
-        grading_breakdown["Library Imports"] = lib_score
-        total_grade += lib_score
-    except Exception as e:
-        grading_breakdown["Library Imports"] = 0
-
-    # 2. Code Quality (20 Points)
-    try:
-        code_quality_score = 0
-        # Variable Naming (5 Points)
-        if "x" not in code_input and "y" not in code_input:  # Example check for non-descriptive names
-            code_quality_score += 5
-        # Spacing (5 Points)
-        if "=" in code_input and " = " in code_input:  # Example check for proper spacing
-            code_quality_score += 5
-        # Comments (5 Points)
-        if "#" in code_input:  # Example check for comments
-            code_quality_score += 5
-        # Code Organization (5 Points)
-        if "\n\n" in code_input:  # Example check for logical separation
-            code_quality_score += 5
-        grading_breakdown["Code Quality"] = code_quality_score
-        total_grade += code_quality_score
-    except Exception as e:
-        grading_breakdown["Code Quality"] = 0
-
-    # 3. Rectangle Coordinates Validation (28 Points)
-    try:
-        rect_score = 0
-        student_rectangles = []
-        for line in rectangle_coords.strip().split("\n"):
-            coords = list(map(int, line.strip().split(",")))
-            student_rectangles.append(((coords[0], coords[1]), (coords[2], coords[3])))
-
-        for correct_rect, student_rect in zip(CORRECT_RECTANGLES, student_rectangles):
-            if correct_rect == student_rect:
-                rect_score += 2  # 2 points per correct rectangle
-        grading_breakdown["Rectangle Coordinates"] = rect_score
-        total_grade += rect_score
-    except Exception as e:
-        grading_breakdown["Rectangle Coordinates"] = 0
-
-    # 4. Thresholded Image Validation (20 Points)
-    try:
-        if os.path.exists(threshold_image_path):
-            # Load the correct and student thresholded images
-            correct_threshold = cv2.imread("correct_files/correct_thresholded_image.png", cv2.IMREAD_GRAYSCALE)
-            student_threshold = cv2.imread(threshold_image_path, cv2.IMREAD_GRAYSCALE)
-
-            # Compare the number of rectangles detected
-            correct_rect_count = len(CORRECT_RECTANGLES)
-            student_rect_count = count_rectangles(student_threshold)
-
-            if correct_rect_count == student_rect_count:
-                grading_breakdown["Thresholded Image"] = 20
-                total_grade += 20
-            else:
-                grading_breakdown["Thresholded Image"] = 10
-                total_grade += 10
-        else:
-            grading_breakdown["Thresholded Image"] = 0
-    except Exception as e:
-        grading_breakdown["Thresholded Image"] = 0
-
-    # 5. Outlined Image Validation (17 Points)
-    try:
-        if os.path.exists(rectangle_image_path):
-            # Load the correct and student outlined images
-            correct_outlined = cv2.imread("correct_files/correct_outlined_image.png")
-            student_outlined = cv2.imread(rectangle_image_path)
-
-            # Compare the number of rectangles outlined
-            correct_rect_count = len(CORRECT_RECTANGLES)
-            student_rect_count = count_rectangles(student_outlined)
-
-            if correct_rect_count == student_rect_count:
-                grading_breakdown["Outlined Image"] = 17
-                total_grade += 17
-            else:
-                grading_breakdown["Outlined Image"] = 8
-                total_grade += 8
-        else:
-            grading_breakdown["Outlined Image"] = 0
-    except Exception as e:
-        grading_breakdown["Outlined Image"] = 0
-
-    return total_grade, grading_breakdown
-
-def count_rectangles(image):
-    """
-    Counts the number of rectangles in an image using contour detection.
-    """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    return len(contours)
+    
+    # 1. Library Imports (15 points)
+    lib_points, lib_breakdown = check_library_imports(code_input)
+    total_points += lib_points
+    grading_breakdown['Library_Imports'] = lib_breakdown
+    
+    # 2. Code Quality (20 points)
+    quality_points, quality_breakdown = check_code_quality(code_input)
+    total_points += quality_points
+    grading_breakdown['Code_Quality'] = quality_breakdown
+    
+    # 3. Rectangle Coordinates (28 points)
+    coord_points, coord_breakdown = check_rectangle_coordinates(rectangle_coords)
+    total_points += coord_points
+    grading_breakdown['Rectangle_Coordinates'] = coord_breakdown
+    
+    # 4. Thresholded Image (20 points)
+    thresh_points, thresh_breakdown = check_thresholded_image(
+        threshold_image_path, correct_threshold_path)
+    total_points += thresh_points
+    grading_breakdown['Thresholded_Image'] = thresh_breakdown
+    
+    # 5. Outlined Image (17 points)
+    outline_points, outline_breakdown = check_outlined_image(
+        rectangle_image_path, correct_outline_path)
+    total_points += outline_points
+    grading_breakdown['Outlined_Image'] = outline_breakdown
+    
+    return total_points, grading_breakdown
