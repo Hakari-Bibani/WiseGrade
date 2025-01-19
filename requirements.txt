@@ -24,3 +24,17 @@ google-api-python-client
 openpyxl
 plotly
 google-auth
+
+streamlit
+opencv-python
+Pillow
+scikit-image
+numpy
+scipy
+tensorflow
+torch
+matplotlib
+plotly
+seaborn
+gspread
+oauth2client
