@@ -133,10 +133,9 @@ def show():
         # Quiz questions
         for i, question in enumerate(questions):
             st.write(f"**Q{i+1}: {question['question']}**")
-            answer = st.radio(
+            answer = st.selectbox(
                 "Choose an answer:",
                 options=["Choose an answer"] + question["options"],
-                index=0,
                 key=f"question_{i}"
             )
             if answer != "Choose an answer":
@@ -177,4 +176,3 @@ def show():
 
 if __name__ == "__main__":
     show()
-
