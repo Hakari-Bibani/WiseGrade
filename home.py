@@ -4,7 +4,7 @@ def show():
     # Welcome section with animation
     st.markdown("""
         <div class="welcome-section">
-            <h1 class="animate-fade-in">Welcome to GradeWise</h1>
+            <h1 class="animate-fade-in">Welcome to Code For Impact</h1>
             <h3 class="animate-fade-in">Your Partner in Academic Success!</h3>
         </div>
     """, unsafe_allow_html=True)
