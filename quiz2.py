@@ -79,9 +79,9 @@ def show():
         for i, question in enumerate(questions):
             st.write(f"**Q{i+1}: {question['question']}**")
             answer = st.checkbox(
-                "True",
-                key=f"question_{i}",
-                value=False  # Default to False
+                "Select True or False:",
+                value=False,  # Default to False
+                key=f"question_{i}"
             )
             st.session_state["user_answers"][i] = answer
 
