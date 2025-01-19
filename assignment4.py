@@ -107,11 +107,8 @@ def show():
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(code_input, rectangle_coords, threshold_image_path, rectangle_image_path)
 
-                # Display total grade and breakdown
+                # Display total grade
                 st.success(f"Your total grade: {total_grade}/100")
-                st.write("### Grading Breakdown")
-                for criterion, score in grading_breakdown.items():
-                    st.write(f"{criterion}: {score} points")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
