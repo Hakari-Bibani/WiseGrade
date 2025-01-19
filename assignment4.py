@@ -119,8 +119,12 @@ def show():
                     current_assignment="assignment_4"
                 )
 
+                # Mark assignment as submitted
+                st.session_state["assignment4_submitted"] = True
+
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
 
+# For testing purposes
 if __name__ == "__main__":
     show()
