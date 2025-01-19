@@ -4,11 +4,14 @@ from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 4: Image Analysis and Rectangle Detection")
+    st.title("Assignment 4: Image Analysis and Rectangle Detection in Python")
 
-    # Ensure Assignment 3 is submitted before accessing Assignment 4
-    if not st.session_state.get("assignment3_submitted", False):
-        st.error("You cannot access Assignment 4 until you have submitted Assignment 3.")
+    # Prevent resubmission of Assignment 4 if Assignment 3 is not submitted
+    if "assignment3_submitted" not in st.session_state:
+        st.session_state["assignment3_submitted"] = False
+
+    if not st.session_state["assignment3_submitted"]:
+        st.warning("You cannot access Assignment 4 unless you have submitted Assignment 3.")
         return
 
     # Step 1: Validate Student ID
@@ -51,15 +54,20 @@ def show():
 
         with tab1:
             st.markdown("""
-            ### Objective
-            In this assignment, students will analyze thresholded images and detect rectangles using Python programming.
+            ### Assignment Details
+            _Provide detailed instructions here for students. This can include:
+            - The goal of the assignment.
+            - Step-by-step breakdown of tasks.
+            - Example input/output formats._
             """)
-            # Assignment details to be added here later.
 
         with tab2:
             st.markdown("""
             ### Grading Details
-            A breakdown of grading criteria will go here.
+            _Provide a detailed grading rubric here. Break down the points for:
+            - Code structure and quality.
+            - Functionality and correctness.
+            - Proper submission of required files._
             """)
 
         # Step 3: Assignment Submission
@@ -67,9 +75,9 @@ def show():
         code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
         # Step 4: Upload Files
-        st.header("Step 4: Upload Your Images")
-        uploaded_thresh = st.file_uploader("Upload Thresholded Image", type=["png", "jpg"])
-        uploaded_outlined = st.file_uploader("Upload Image with Rectangles Outlined", type=["png", "jpg"])
+        st.header("Step 4: Upload Images")
+        uploaded_thresh_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
+        uploaded_outlined_image = st.file_uploader("Upload your image with rectangles outlined", type=["png", "jpg", "jpeg"])
 
         # Step 5: Submit Button
         submit_button = st.button("Submit Assignment")
@@ -77,30 +85,31 @@ def show():
         if submit_button:
             try:
                 # Validate required files
-                if not uploaded_thresh:
-                    st.error("Please upload a thresholded image.")
+                if not uploaded_thresh_image:
+                    st.error("Please upload the thresholded image.")
                     return
-                if not uploaded_outlined:
-                    st.error("Please upload an image with rectangles outlined.")
+                if not uploaded_outlined_image:
+                    st.error("Please upload the outlined image.")
                     return
 
                 # Save uploaded files temporarily
                 temp_dir = "temp_uploads"
                 os.makedirs(temp_dir, exist_ok=True)
 
-                # Save images
-                thresh_path = os.path.join(temp_dir, "thresholded_image.png")
-                outlined_path = os.path.join(temp_dir, "outlined_image.png")
+                # Save thresholded image
+                thresh_image_path = os.path.join(temp_dir, "thresholded_image.png")
+                with open(thresh_image_path, "wb") as f:
+                    f.write(uploaded_thresh_image.getvalue())
 
-                with open(thresh_path, "wb") as f:
-                    f.write(uploaded_thresh.getvalue())
-                with open(outlined_path, "wb") as f:
-                    f.write(uploaded_outlined.getvalue())
+                # Save outlined image
+                outlined_image_path = os.path.join(temp_dir, "outlined_image.png")
+                with open(outlined_image_path, "wb") as f:
+                    f.write(uploaded_outlined_image.getvalue())
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, thresh_path, outlined_path)
+                total_grade, grading_breakdown = grade_assignment(code_input, thresh_image_path, outlined_image_path)
 
-                # Display total grade
+                # Display total grade only
                 st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
@@ -114,3 +123,6 @@ def show():
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
+
+if __name__ == "__main__":
+    show()
