@@ -9,7 +9,7 @@ style.apply_custom_styles()
 
 # Sidebar Navigation
 with st.sidebar:
-    st.title("GradeWise")
+    st.title("Code For Impact")
 
     # Dynamic Navigation Menu
     menu_options = {
@@ -68,6 +68,6 @@ except ImportError:
 # Footer
 st.markdown("""
     <div style="text-align: center; margin-top: 50px; padding: 20px; font-size: 0.9em; color: #666;">
-        GradeWise © 2024 - Your Partner in Academic Success
+        Code For Impact © 2024 - Your Partner in Academic Success
     </div>
 """, unsafe_allow_html=True)
