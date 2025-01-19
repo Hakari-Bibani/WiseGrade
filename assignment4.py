@@ -6,7 +6,7 @@ from Record.google_sheet import update_google_sheet
 def show():
     st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
-    # Prevent access if Assignment 3 isn't submitted
+    # Ensure Assignment 3 is submitted before accessing Assignment 4
     if not st.session_state.get("assignment3_submitted", False):
         st.error("You cannot access Assignment 4 until you have submitted Assignment 3.")
         return
@@ -52,9 +52,9 @@ def show():
         with tab1:
             st.markdown("""
             ### Objective
-            In this assignment, students will analyze thresholded images and detect rectangles using Python programming. 
+            In this assignment, students will analyze thresholded images and detect rectangles using Python programming.
             """)
-            # Detailed assignment instructions will go here.
+            # Assignment details to be added here later.
 
         with tab2:
             st.markdown("""
@@ -114,6 +114,3 @@ def show():
 
             except Exception as e:
                 st.error(f"An error occurred during submission: {e}")
-
-if __name__ == "__main__":
-    show()
