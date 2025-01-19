@@ -29,3 +29,4 @@ matplotlib
 plotly
 google-auth
 xlrd
+opencv-python
