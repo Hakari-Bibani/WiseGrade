@@ -149,9 +149,9 @@ def show():
 
                 try:
                     detected_rectangles = count_rectangles_in_image(thresholded_image_path)
-                    if detected_rectangles >= 14:
+                    if detected_rectangles == 14:
                         thresholded_image_grade = 20
-                    elif detected_rectangles > 7:
+                    elif 7 < detected_rectangles < 14:
                         thresholded_image_grade = int(20 * (detected_rectangles / 14))
                     else:
                         thresholded_image_grade = 0
@@ -159,11 +159,13 @@ def show():
                     st.error(f"Error detecting rectangles in the thresholded image: {e}")
                     thresholded_image_grade = 0
 
-                # Validate outlined rectangles by comparing with correct file
+                # Validate outlined rectangles by comparing with the correct file
                 def validate_outlined_image(uploaded_path, correct_path):
                     import cv2
                     uploaded = cv2.imread(uploaded_path)
                     correct = cv2.imread(correct_path)
+                    if uploaded.shape != correct.shape:
+                        return False
                     return cv2.norm(uploaded, correct, cv2.NORM_L2) == 0
 
                 correct_outlined_path = "grades/correct_files/correct_outlined.png"
@@ -174,22 +176,51 @@ def show():
                     outlined_image_grade = 0
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(
-                    code_input,
-                    rectangle_grade,
-                    thresholded_image_grade,
-                    outlined_image_grade
-                )
+                total_grade = 0
+                grading_breakdown = {}
+
+                # Library Imports (10 Points)
+                libraries = {
+                    "cv2": False, "Pillow": False, "scikit-image": False, "ImageAI": False,
+                    "numpy": False, "SciPy": False, "TensorFlow": False, "PyTorch": False,
+                    "matplotlib": False, "plotly": False, "seaborn": False,
+                }
+                for lib in libraries:
+                    if lib in code_input:
+                        libraries[lib] = True
+
+                library_grade = 0
+                library_grade += 4 if any(libraries[lib] for lib in ["cv2", "Pillow", "scikit-image", "ImageAI"]) else 0
+                library_grade += 3 if any(libraries[lib] for lib in ["numpy", "SciPy", "TensorFlow", "PyTorch"]) else 0
+                library_grade += 3 if any(libraries[lib] for lib in ["matplotlib", "plotly", "seaborn"]) else 0
+                grading_breakdown["Library Imports"] = library_grade
+                total_grade += library_grade
+
+                # Code Quality (10 Points)
+                code_quality = {
+                    "Variable Naming": 4 if "x" not in code_input and "y" not in code_input else 0,
+                    "Spacing": 2 if " =" not in code_input and "= " not in code_input else 0,
+                    "Comments": 2 if "#" in code_input else 0,
+                    "Code Organization": 2 if "\n\n" in code_input else 0,
+                }
+                grading_breakdown["Code Quality"] = sum(code_quality.values())
+                total_grade += grading_breakdown["Code Quality"]
+
+                grading_breakdown["Rectangle Coordinates"] = rectangle_grade
+                total_grade += rectangle_grade
+
+                grading_breakdown["Thresholded Image"] = thresholded_image_grade
+                total_grade += thresholded_image_grade
+
+                grading_breakdown["Image with Rectangles Outlined"] = outlined_image_grade
+                total_grade += outlined_image_grade
 
                 # Display total grade and detailed breakdown
                 st.success(f"Your total grade: {total_grade}/100")
 
                 st.header("Grading Breakdown")
-                st.write(f"**Library Imports:** {grading_breakdown['Library Imports']} points")
-                st.write(f"**Code Quality:** {grading_breakdown['Code Quality']} points")
-                st.write(f"**Rectangle Coordinates:** {rectangle_grade} points")
-                st.write(f"**Thresholded Image:** {thresholded_image_grade} points")
-                st.write(f"**Image with Rectangles Outlined:** {outlined_image_grade} points")
+                for criterion, score in grading_breakdown.items():
+                    st.write(f"**{criterion}:** {score} points")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
