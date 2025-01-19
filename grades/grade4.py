@@ -1,68 +1,94 @@
+import cv2
+import numpy as np
 import os
-from PIL import Image
 
-def grade_assignment(code_input, thresh_image_path, outlined_image_path):
-    """
-    Grades the Assignment 4 submission.
+def grade_assignment(code, coordinates_input, threshold_image_path, outlined_image_path):
+    total_score = 0
+    grading_breakdown = {}
 
-    Args:
-        code_input (str): The code submitted by the student.
-        thresh_image_path (str): Path to the uploaded thresholded image.
-        outlined_image_path (str): Path to the uploaded outlined image.
-
-    Returns:
-        tuple: Total grade (int) and grading breakdown (dict).
-    """
-    # Initialize total grade and grading breakdown
-    total_grade = 0
-    grading_breakdown = {
-        "Code Quality": 0,
-        "Threshold Image Validation": 0,
-        "Outlined Image Validation": 0,
+    # 1. Library Imports (15 Points)
+    libraries = {
+        "OpenCV": "cv2" in code,
+        "Pillow": "PIL" in code,
+        "Scikit-Image": "skimage" in code or "sklearn" in code,
+        "ImageAI": "imageai" in code,
+        "NumPy": "numpy" in code,
+        "SciPy": "scipy" in code,
+        "TensorFlow": "tensorflow" in code,
+        "PyTorch": "torch" in code,
+        "Matplotlib": "matplotlib" in code,
+        "Plotly": "plotly" in code,
+        "Seaborn": "seaborn" in code,
     }
 
-    # Step 1: Evaluate the Code
-    try:
-        # Example: Check if the code contains required functions or libraries
-        if "cv2" in code_input or "PIL" in code_input:
-            grading_breakdown["Code Quality"] = 30  # Assign full marks for code containing required libraries
-        else:
-            grading_breakdown["Code Quality"] = 15  # Partial marks if libraries are missing
+    library_score = sum(5 for key, used in libraries.items() if used)
+    grading_breakdown["Library Imports"] = min(library_score, 15)
+    total_score += grading_breakdown["Library Imports"]
 
-        total_grade += grading_breakdown["Code Quality"]
-    except Exception as e:
-        print(f"Error grading code: {e}")
+    # 2. Code Quality (20 Points)
+    quality_score = 20
+    if any(var in code for var in [" x ", " y "]):  # Variable naming
+        quality_score -= 5
+    if "=" in code and not (" = " in code):  # Spacing
+        quality_score -= 5
+    if not any(comment in code for comment in ["#", "\"\"\""]):  # Comments
+        quality_score -= 5
+    if code.count("\n\n") < 3:  # Code organization
+        quality_score -= 5
 
-    # Step 2: Validate Threshold Image
-    try:
-        if os.path.exists(thresh_image_path):
-            thresh_image = Image.open(thresh_image_path)
+    grading_breakdown["Code Quality"] = quality_score
+    total_score += quality_score
 
-            # Example: Check if the image is grayscale
-            if thresh_image.mode == "L":
-                grading_breakdown["Threshold Image Validation"] = 30
-            else:
-                grading_breakdown["Threshold Image Validation"] = 15
+    # 3. Rectangle Coordinates (28 Points)
+    correct_coordinates = [
+        ((1655, 1305), (2021, 1512)),
+        ((459, 1305), (825, 1512)),
+        ((2051, 1305), (2417, 1512)),
+        ((1257, 1305), (1623, 1512)),
+        ((857, 1305), (1223, 1512)),
+        ((63, 1305), (429, 1512)),
+        ((157, 1050), (398, 1122)),
+        ((351, 869), (592, 941)),
+        ((624, 744), (865, 816)),
+        ((888, 646), (1129, 718)),
+        ((1069, 492), (1311, 564)),
+        ((1338, 360), (1579, 432)),
+        ((64, 231), (800, 506)),
+        ((2103, 166), (2344, 239)),
+    ]
 
-            total_grade += grading_breakdown["Threshold Image Validation"]
-    except Exception as e:
-        print(f"Error validating threshold image: {e}")
+    detected_coordinates = [
+        tuple(map(int, coord.strip().split(","))) for coord in coordinates_input.splitlines()
+    ]
+    rectangle_score = 0
 
-    # Step 3: Validate Outlined Image
-    try:
-        if os.path.exists(outlined_image_path):
-            outlined_image = Image.open(outlined_image_path)
+    for i, (correct, detected) in enumerate(zip(correct_coordinates, detected_coordinates)):
+        if correct == detected:
+            rectangle_score += 2
 
-            # Example: Check if the image contains rectangles (placeholder logic)
-            # In real-world scenarios, use a library like OpenCV for rectangle detection.
-            if "Rectangle Detected" in outlined_image.info.get("description", ""):  # Placeholder logic
-                grading_breakdown["Outlined Image Validation"] = 40
-            else:
-                grading_breakdown["Outlined Image Validation"] = 20
+    grading_breakdown["Rectangle Coordinates"] = rectangle_score
+    total_score += rectangle_score
 
-            total_grade += grading_breakdown["Outlined Image Validation"]
-    except Exception as e:
-        print(f"Error validating outlined image: {e}")
+    # 4. Thresholded Image (20 Points)
+    threshold_image = cv2.imread(threshold_image_path, 0)
+    contours, _ = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    detected_count = len(contours)
 
-    # Return total grade and breakdown
-    return total_grade, grading_breakdown
+    if detected_count == 14:  # Correct number of rectangles
+        grading_breakdown["Thresholded Image"] = 20
+        total_score += 20
+    else:
+        grading_breakdown["Thresholded Image"] = 0
+
+    # 5. Outlined Image (17 Points)
+    outlined_image = cv2.imread(outlined_image_path)
+    outlined_gray = cv2.cvtColor(outlined_image, cv2.COLOR_BGR2GRAY)
+    _, outlined_contours, _ = cv2.findContours(outlined_gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(outlined_contours) == 14:  # All rectangles outlined
+        grading_breakdown["Outlined Image"] = 17
+        total_score += 17
+    else:
+        grading_breakdown["Outlined Image"] = 0
+
+    return total_score, grading_breakdown
