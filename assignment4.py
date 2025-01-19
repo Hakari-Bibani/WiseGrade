@@ -54,20 +54,77 @@ def show():
 
         with tab1:
             st.markdown("""
-            ### Objective
-            In this assignment, students will analyze an image to detect rectangles and visualize them. The task is broken into three stages, with each stage encapsulating a specific function. By the end of the assignment, students will merge the functions into one script to complete the task efficiently.
+            ### Objective:
+            In this assignment, you will use Python image processing libraries to analyze a black-and-white image, detect rectangular shapes, and determine the coordinates of each rectangle.
             """)
-            # Placeholder for "See More" text
             with st.expander("See More"):
-                st.markdown("Assignment-specific instructions will go here.")
+                st.markdown("""
+                #### Instructions:
+                1. **Set Up Your Environment:**
+                   - Open a new Google Colab notebook.
+                   - Import the necessary libraries:
+                     - `cv2` (OpenCV) for image processing.
+                     - `numpy` for numerical operations.
+                     - `matplotlib` for displaying images.
+
+                2. **Load the Image:**
+                   - Download the provided image and upload it to Google Colab.
+                   - Load the image using OpenCV.
+
+                3. **Convert the Image to Grayscale and Apply Thresholding:**
+                   - Convert the image to grayscale.
+                   - Use binary thresholding to make it easier to detect the rectangular shapes. This will turn the rectangles into clear white shapes against a black background.
+
+                4. **Detect Contours:**
+                   - Use OpenCV’s `findContours` function to detect all contours in the image.
+                   - Filter out contours that are not rectangular shapes.
+
+                5. **Filter and Identify Rectangles:**
+                   - For each contour, approximate its shape using `cv2.approxPolyDP`.
+                   - If the contour has four points, consider it a rectangle.
+                   - Calculate the bounding box coordinates of each rectangle using `cv2.boundingRect`.
+
+                6. **Extract and Print the Coordinates:**
+                   - For each detected rectangle, print the top-left and bottom-right coordinates.
+                   - Display the original image with the rectangles outlined for verification.
+                """)
 
         with tab2:
             st.markdown("""
             ### Detailed Grading Breakdown
-            Detailed grading criteria for image analysis and rectangle detection will be provided here.
             """)
             with st.expander("See More"):
-                st.markdown("Grading details for each stage of the assignment.")
+                st.markdown("""
+                1. **Library Imports (20 Points)**
+                   - Checks if the required libraries are imported correctly.
+
+                2. **Code Quality (20 Points)**
+                   - **Descriptive Variable Names (5 Points):**
+                     - Deducted if non-descriptive variable names are used (e.g., x, y).
+                   - **Spacing and Indentation (5 Points):**
+                     - Deducted if improper spacing or indentation is found.
+                   - **Comments (5 Points):**
+                     - Deducted if no comments are present to explain major steps.
+                   - **Code Organization (5 Points):**
+                     - Deducted if code blocks are not logically separated with blank lines or functions.
+
+                3. **Rectangle Coordinates (30 Points)**
+                   - You can paste them as (for instance):
+                     ```
+                     Rectangle 1: Top-Left (1678, 1705), Bottom-Right (8061, 7612)
+                     Rectangle 2: Top-Left (459, 9805), Bottom-Right (728, 6712)
+                     ```
+                   - Or:
+                     ```
+                     (1374, 1605), (7878, 3705), (9678, 4705), (4608, 3705), ….
+                     ```
+
+                4. **Upload Thresholded Image (15 Points):**
+                   - Upload file as PNG.
+
+                5. **Upload Image with Rectangles Outlined (15 Points):**
+                   - Upload file as PNG.
+                """)
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
