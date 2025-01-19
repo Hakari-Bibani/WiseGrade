@@ -4,14 +4,14 @@ from grades.grade4 import grade_assignment
 from Record.google_sheet import update_google_sheet
 
 def show():
-    st.title("Assignment 4: Image Analysis and Rectangle Detection in Python")
+    st.title("Assignment 4: Image Analysis and Rectangle Detection")
 
-    # Prevent resubmission of Assignment 4 if already submitted
+    # Prevent resubmission of Assignment 4
     if "assignment4_submitted" not in st.session_state:
         st.session_state["assignment4_submitted"] = False
 
     if st.session_state["assignment4_submitted"]:
-        st.warning("You cannot resubmit Assignment 4 after submission.")
+        st.warning("You cannot resubmit Assignment 4 after submitting it.")
         return
 
     # Step 1: Validate Student ID
@@ -53,37 +53,41 @@ def show():
         tab1, tab2 = st.tabs(["Assignment Details", "Grading Details"])
 
         with tab1:
-            st.markdown("""
-            ### Assignment Details
-            (Provide assignment-specific details here later.)
-            """)
+            st.markdown("### Assignment Details will be added here.")
 
         with tab2:
-            st.markdown("""
-            ### Grading Details
-            (Provide detailed grading breakdown here later.)
-            """)
+            st.markdown("### Grading Details will be added here.")
 
         # Step 3: Assignment Submission
         st.header("Step 3: Submit Your Assignment")
-        code_input = st.text_area("**\U0001F4DD Paste Your Code Here**", height=300)
 
-        # Step 4: Upload Images
-        st.header("Step 4: Upload Your Images")
-        uploaded_thresholded_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
-        uploaded_rectangle_image = st.file_uploader("Upload your image with rectangles outlined", type=["png", "jpg", "jpeg"])
+        # Cell to paste code
+        st.subheader("Paste Your Code Below")
+        code_input = st.text_area("**📝 Paste Your Code Here**", height=300)
 
-        # Step 5: Submit Button
+        # Cell to paste detected rectangle coordinates
+        st.subheader("Detected Rectangle Coordinates")
+        rectangle_coords = st.text_area("**📋 Paste Detected Rectangle Coordinates Here**", height=100)
+
+        # Upload thresholded image
+        st.subheader("Upload Thresholded Image")
+        uploaded_threshold_image = st.file_uploader("Upload your thresholded image", type=["png", "jpg", "jpeg"])
+
+        # Upload image with rectangles outlined
+        st.subheader("Upload Image with Rectangles Outlined")
+        uploaded_rectangle_image = st.file_uploader("Upload your outlined image", type=["png", "jpg", "jpeg"])
+
+        # Submit button
         submit_button = st.button("Submit Assignment")
 
         if submit_button:
             try:
                 # Validate required files
-                if not uploaded_thresholded_image:
-                    st.error("Please upload the thresholded image.")
+                if not uploaded_threshold_image:
+                    st.error("Please upload a thresholded image.")
                     return
                 if not uploaded_rectangle_image:
-                    st.error("Please upload the image with rectangles outlined.")
+                    st.error("Please upload an image with rectangles outlined.")
                     return
 
                 # Save uploaded files temporarily
@@ -91,19 +95,19 @@ def show():
                 os.makedirs(temp_dir, exist_ok=True)
 
                 # Save thresholded image
-                thresholded_image_path = os.path.join(temp_dir, "thresholded_image.png")
-                with open(thresholded_image_path, "wb") as f:
-                    f.write(uploaded_thresholded_image.getvalue())
+                threshold_image_path = os.path.join(temp_dir, "thresholded_image.png")
+                with open(threshold_image_path, "wb") as f:
+                    f.write(uploaded_threshold_image.getvalue())
 
-                # Save rectangle image
-                rectangle_image_path = os.path.join(temp_dir, "rectangle_image.png")
+                # Save outlined image
+                rectangle_image_path = os.path.join(temp_dir, "outlined_image.png")
                 with open(rectangle_image_path, "wb") as f:
                     f.write(uploaded_rectangle_image.getvalue())
 
                 # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(code_input, thresholded_image_path, rectangle_image_path)
+                total_grade, grading_breakdown = grade_assignment(code_input, rectangle_coords, threshold_image_path, rectangle_image_path)
 
-                # Display total grade only
+                # Display total grade
                 st.success(f"Your total grade: {total_grade}/100")
 
                 # Update Google Sheets with grade
