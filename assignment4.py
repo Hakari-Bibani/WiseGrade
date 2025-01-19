@@ -139,6 +139,35 @@ def show():
                     st.error(f"Invalid input format for rectangle coordinates: {e}")
                     return
 
+                # Thresholded Image Grading (20 Points)
+                def count_rectangles(image_path):
+                    import cv2
+                    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+                    _, thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+                    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    return len(contours)
+
+                try:
+                    detected_rectangles = count_rectangles(thresholded_image_path)
+                    if detected_rectangles >= 14:
+                        thresholded_grade = 20
+                    elif 7 < detected_rectangles < 14:
+                        thresholded_grade = int(20 * (detected_rectangles / 14))
+                    else:
+                        thresholded_grade = 0
+                except Exception as e:
+                    st.error(f"Error grading thresholded image: {e}")
+                    thresholded_grade = 0
+
+                # Outlined Image Grading (4 Points)
+                try:
+                    correct_rectangles = 14
+                    outlined_rectangles = count_rectangles(outlined_image_path)
+                    outlined_grade = 4 if outlined_rectangles == correct_rectangles else 0
+                except Exception as e:
+                    st.error(f"Error grading outlined image: {e}")
+                    outlined_grade = 0
+
                 # Grade the assignment
                 total_grade, grading_breakdown = grade_assignment(
                     code_input,
@@ -147,12 +176,17 @@ def show():
                     outlined_image_path
                 )
 
+                total_grade += thresholded_grade + outlined_grade
+
                 # Display total grade and detailed breakdown
                 st.success(f"Your total grade: {total_grade}/100")
 
                 st.header("Grading Breakdown")
-                for criterion, score in grading_breakdown.items():
-                    st.write(f"**{criterion}:** {score} points")
+                st.write(f"**Library Imports:** {grading_breakdown['Library Imports']} points")
+                st.write(f"**Code Quality:** {grading_breakdown['Code Quality']} points")
+                st.write(f"**Rectangle Coordinates:** {grading_breakdown['Rectangle Coordinates']} points")
+                st.write(f"**Thresholded Image:** {thresholded_grade} points")
+                st.write(f"**Image with Rectangles Outlined:** {outlined_grade} points")
 
                 # Update Google Sheets with grade
                 update_google_sheet(
