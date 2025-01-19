@@ -13,15 +13,14 @@ def show():
         st.warning("You cannot resubmit Assignment 4 after submitting it.")
         return
 
-    # Step 1: Validate Student ID (keeping the existing validation logic)
+    # Step 1: Validate Student ID
     st.header("Step 1: Enter Your Student ID")
     student_id = st.text_input("Enter Your Student ID")
     verify_button = st.button("Verify Student ID")
 
     if verify_button:
         try:
-            # Your existing verification code here
-            st.session_state["verified"] = True  # For testing, you might want to modify this logic
+            st.session_state["verified"] = True  # For testing, modify this with your actual verification logic
         except Exception as e:
             st.error(f"An error occurred while verifying Student ID: {e}")
             st.session_state["verified"] = False
@@ -129,58 +128,4 @@ def show():
 
         if submit_button:
             try:
-                if not all([code_input.strip(), rectangle_coords.strip(), 
-                           uploaded_threshold_image, uploaded_rectangle_image]):
-                    st.error("Please provide all required submissions.")
-                    return
-
-                # Save uploaded files
-                temp_dir = "temp_uploads"
-                os.makedirs(temp_dir, exist_ok=True)
-
-                threshold_image_path = os.path.join(temp_dir, "thresholded_image.png")
-                rectangle_image_path = os.path.join(temp_dir, "outlined_image.png")
-
-                with open(threshold_image_path, "wb") as f:
-                    f.write(uploaded_threshold_image.getvalue())
-                with open(rectangle_image_path, "wb") as f:
-                    f.write(uploaded_rectangle_image.getvalue())
-
-                # Paths to correct files
-                correct_threshold_path = "correct_files/correct_thresholded_image.png"
-                correct_outline_path = "correct_files/correct_outlined_image.png"
-
-                # Grade the assignment
-                total_grade, grading_breakdown = grade_assignment(
-                    code_input,
-                    rectangle_coords,
-                    threshold_image_path,
-                    rectangle_image_path,
-                    correct_threshold_path,
-                    correct_outline_path
-                )
-
-                # Display results
-                st.success(f"Total Grade: {total_grade}/100")
-                
-                # Display detailed breakdown
-                st.subheader("Grading Breakdown")
-                for category, details in grading_breakdown.items():
-                    st.write(f"**{category.replace('_', ' ')}:**")
-                    st.json(details)
-
-                # Update submission status
-                st.session_state["assignment4_submitted"] = True
-
-                # Clean up temporary files
-                try:
-                    os.remove(threshold_image_path)
-                    os.remove(rectangle_image_path)
-                except:
-                    pass
-
-            except Exception as e:
-                st.error(f"An error occurred during submission: {e}")
-
-if __name__ == "__main__":
-    show()
+                if not all([code_input.
