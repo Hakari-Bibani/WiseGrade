@@ -53,4 +53,3 @@ def grade_assignment(code_input, rectangle_coordinates, thresholded_image_path, 
     total_grade += outlined_grade
 
     return total_grade, grading_breakdown
-
