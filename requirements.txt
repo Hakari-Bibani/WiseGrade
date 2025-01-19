@@ -24,4 +24,3 @@ google-api-python-client
 openpyxl
 plotly
 google-auth
-
