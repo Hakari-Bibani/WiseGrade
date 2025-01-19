@@ -12,7 +12,6 @@ requests
 seaborn
 beautifulsoup4
 opencv-python-headless
-scikit-image
 numpy
 flake8
 python-dotenv
