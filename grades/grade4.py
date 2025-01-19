@@ -2,7 +2,7 @@ def grade_assignment(code_input, rectangle_grade, thresholded_image_path, outlin
     total_grade = 0
     grading_breakdown = {}
 
-    # 1. Library Imports (15 Points)
+    # 1. Library Imports (10 Points)
     libraries = {
         "cv2": False, "Pillow": False, "scikit-image": False, "ImageAI": False,
         "numpy": False, "SciPy": False, "TensorFlow": False, "PyTorch": False,
@@ -12,39 +12,45 @@ def grade_assignment(code_input, rectangle_grade, thresholded_image_path, outlin
         if lib in code_input:
             libraries[lib] = True
 
-    library_grade = sum([5 for lib in libraries if libraries[lib]])
-    grading_breakdown["Library Imports"] = min(library_grade, 15)
-    total_grade += grading_breakdown["Library Imports"]
+    library_grade = 0
+    library_grade += 4 if any(libraries[lib] for lib in ["cv2", "Pillow", "scikit-image", "ImageAI"]) else 0
+    library_grade += 3 if any(libraries[lib] for lib in ["numpy", "SciPy", "TensorFlow", "PyTorch"]) else 0
+    library_grade += 3 if any(libraries[lib] for lib in ["matplotlib", "plotly", "seaborn"]) else 0
+    grading_breakdown["Library Imports"] = library_grade
+    total_grade += library_grade
 
-    # 2. Code Quality (20 Points)
+    # 2. Code Quality (10 Points)
     code_quality = {
-        "Variable Naming": 5 if "x" not in code_input or "y" not in code_input else 0,
-        "Spacing": 5 if " =" not in code_input and "= " not in code_input else 0,
-        "Comments": 5 if "#" in code_input else 0,
-        "Code Organization": 5 if "\n\n" in code_input else 0,
+        "Variable Naming": 4 if "x" not in code_input and "y" not in code_input else 0,
+        "Spacing": 2 if " =" not in code_input and "= " not in code_input else 0,
+        "Comments": 2 if "#" in code_input else 0,
+        "Code Organization": 2 if "\n\n" in code_input else 0,
     }
     grading_breakdown["Code Quality"] = sum(code_quality.values())
     total_grade += grading_breakdown["Code Quality"]
 
-    # 3. Rectangle Coordinates (28 Points)
+    # 3. Rectangle Coordinates (56 Points)
     grading_breakdown["Rectangle Coordinates"] = rectangle_grade
     total_grade += rectangle_grade
 
     # 4. Thresholded Image (20 Points)
-    # Assume a function `count_rectangles_in_image` that returns the number of rectangles
     try:
         detected_rectangles = count_rectangles_in_image(thresholded_image_path)
-        grading_breakdown["Thresholded Image"] = 20 if detected_rectangles == 14 else 0
+        if detected_rectangles >= 14:
+            grading_breakdown["Thresholded Image"] = 20
+        elif 7 < detected_rectangles < 14:
+            grading_breakdown["Thresholded Image"] = int(20 * (detected_rectangles / 14))
+        else:
+            grading_breakdown["Thresholded Image"] = 0
         total_grade += grading_breakdown["Thresholded Image"]
     except Exception as e:
         grading_breakdown["Thresholded Image"] = 0
         print(f"Error processing thresholded image: {e}")
 
-    # 5. Image with Rectangles Outlined (17 Points)
-    # Assume a function `validate_outlined_image` that checks if rectangles are correctly outlined
+    # 5. Image with Rectangles Outlined (4 Points)
     try:
         rectangles_outlined_correctly = validate_outlined_image(outlined_image_path)
-        grading_breakdown["Image with Rectangles Outlined"] = 17 if rectangles_outlined_correctly else 0
+        grading_breakdown["Image with Rectangles Outlined"] = 4 if rectangles_outlined_correctly else 0
         total_grade += grading_breakdown["Image with Rectangles Outlined"]
     except Exception as e:
         grading_breakdown["Image with Rectangles Outlined"] = 0
@@ -73,6 +79,5 @@ def validate_outlined_image(image_path):
         ((64, 231), (800, 506)), ((2103, 166), (2344, 239))
     ]
     image = cv2.imread(image_path)
-    # Simplified validation logic; replace with real rectangle detection and comparison
     detected_rectangles = count_rectangles_in_image(image_path)
     return detected_rectangles == len(correct_values)
