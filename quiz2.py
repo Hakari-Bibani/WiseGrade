@@ -79,7 +79,7 @@ def show():
         for i, question in enumerate(questions):
             st.write(f"**Q{i+1}: {question['question']}**")
             answer = st.checkbox(
-                "Select True or False:",
+                "True",
                 key=f"question_{i}",
                 value=False  # Default to False
             )
