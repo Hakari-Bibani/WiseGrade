@@ -15,7 +15,7 @@ with st.sidebar:
     menu_options = {
         "Home": "home",
         "Assignments": {
-            f"Assignment {i}": f"assignment{i}" for i in range(1, 6)
+            f"Assignment {i}": f"assignment{i}" for i in range(1, 5)
         },
         "Quizzes": {
             f"Quiz {i}": f"quiz{i}" for i in range(1, 5)
