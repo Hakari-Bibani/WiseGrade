@@ -21,15 +21,11 @@ oauth2client
 scikit-image
 pillow
 urllib3
-IPython
 lxml
 google-api-python-client
 openpyxl
-matplotlib
 plotly
 google-auth
-opencv-python-headless  # Avoids GUI-related OpenCV issues
-opencv-python
 scipy
 sklearn
 tensorflow
