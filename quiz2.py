@@ -78,16 +78,12 @@ def show():
         # Quiz questions
         for i, question in enumerate(questions):
             st.write(f"**Q{i+1}: {question['question']}**")
-            answer = st.slider(
+            answer = st.checkbox(
                 "Select True or False:",
-                min_value=0,
-                max_value=1,
-                step=1,
-                format="%s",
                 key=f"question_{i}",
-                value=0  # Default to False
+                value=False  # Default to False
             )
-            st.session_state["user_answers"][i] = bool(answer)
+            st.session_state["user_answers"][i] = answer
 
         # Submit Button
         submit_button = st.button("Submit Quiz")
