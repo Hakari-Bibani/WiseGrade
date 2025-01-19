@@ -29,3 +29,5 @@ matplotlib
 plotly
 google-auth
 opencv-python-headless  # Avoids GUI-related OpenCV issues
+opencv-python
+
