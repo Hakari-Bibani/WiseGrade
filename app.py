@@ -50,20 +50,22 @@ with st.sidebar:
     else:
         selected = menu_options[selected]
 
+# Debugging: Print the resolved module name
+st.write(f"Selected module: {selected}")  # For debugging, can be removed later
+
 # Main content area
 try:
     if selected == "home":
         home.show()  # Display the Home page
     else:
+        # Dynamically import the selected module
         module = importlib.import_module(selected)
-        if hasattr(module, "assignment1"):  # Check for assignment function
-            getattr(module, "assignment1")()  # Call the function
-        elif hasattr(module, "show"):
+        if hasattr(module, "show"):
             module.show()  # Call the show function
         else:
             st.error(f"The module '{selected}' does not have a valid entry point.")
 except ImportError:
-    st.error(f"Module '{selected}' not found.")
+    st.error(f"Module '{selected}' not found. Please check your file names or paths.")
 
 # Footer
 st.markdown("""
