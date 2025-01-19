@@ -224,10 +224,7 @@ def show():
 
                 # Display total grade and detailed breakdown
                 st.success(f"Your total grade: {total_grade}/100")
-
-                st.header("Grading Breakdown")
-                for criterion, score in grading_breakdown.items():
-                    st.write(f"**{criterion}:** {score} points")
+                    
 
                 # Update Google Sheets with grade
                 update_google_sheet(
