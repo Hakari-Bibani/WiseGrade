@@ -1,3 +1,4 @@
+# grades/grade4.py
 import os
 import cv2
 import numpy as np
@@ -106,9 +107,12 @@ def check_rectangle_coordinates(coords_input: str) -> Tuple[int, Dict[str, bool]
             if 'Rectangle' in line and ':' in line:
                 rect_num = int(line.split(':')[0].split()[-1])
                 coords = line.split(':')[1].strip()
-                top_left = tuple(map(int, coords.split(',')[0:2]))
-                bottom_right = tuple(map(int, coords.split(',')[2:4]))
-                submitted_coords[rect_num] = (top_left, bottom_right)
+                coords = coords.replace('(', '').replace(')', '')
+                parts = coords.split(',')
+                if len(parts) >= 4:
+                    x1, y1 = int(parts[0]), int(parts[1])
+                    x2, y2 = int(parts[2]), int(parts[3])
+                    submitted_coords[rect_num] = ((x1, y1), (x2, y2))
         
         # Check each rectangle (2 points each)
         for rect_num, correct_coord in correct_coords.items():
@@ -143,6 +147,10 @@ def check_thresholded_image(image_path: str, correct_image_path: str) -> Tuple[i
         correct_img = cv2.imread(correct_image_path, cv2.IMREAD_GRAYSCALE)
         
         if submitted_img is not None and correct_img is not None:
+            # Resize if needed
+            if submitted_img.shape != correct_img.shape:
+                submitted_img = cv2.resize(submitted_img, (correct_img.shape[1], correct_img.shape[0]))
+            
             # Count rectangles (using simple contour detection)
             _, submitted_contours, _ = cv2.findContours(submitted_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             _, correct_contours, _ = cv2.findContours(correct_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -178,6 +186,10 @@ def check_outlined_image(image_path: str, correct_image_path: str) -> Tuple[int,
         correct_img = cv2.imread(correct_image_path)
         
         if submitted_img is not None and correct_img is not None:
+            # Resize if needed
+            if submitted_img.shape != correct_img.shape:
+                submitted_img = cv2.resize(submitted_img, (correct_img.shape[1], correct_img.shape[0]))
+            
             # Convert to grayscale for easier comparison
             submitted_gray = cv2.cvtColor(submitted_img, cv2.COLOR_BGR2GRAY)
             correct_gray = cv2.cvtColor(correct_img, cv2.COLOR_BGR2GRAY)
