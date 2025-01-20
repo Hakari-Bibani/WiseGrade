@@ -69,16 +69,12 @@ def add_custom_css():
             font-weight: 500;
         }
         
-        /* Custom radio button styling */
-        .stRadio > div {
-            gap: 12px;
-        }
-        
-        .stRadio > div > label {
+        /* Custom select box styling */
+        .stSelectbox > div > div {
             background-color: #f8f9fa;
             border: 2px solid #e9ecef;
             border-radius: 8px;
-            padding: 16px 20px;
+            padding: 8px 12px;
             margin: 8px 0;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -88,17 +84,10 @@ def add_custom_css():
             display: block;
         }
         
-        .stRadio > div > label:hover {
+        .stSelectbox > div > div:hover {
             background-color: #e9ecef;
             transform: translateX(5px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        /* Selected state styling */
-        .stRadio > div > label[data-checked="true"] {
-            background-color: #0066cc;
-            color: white;
-            border-color: #0066cc;
         }
         
         /* Progress indicator */
@@ -120,11 +109,7 @@ def add_custom_css():
         }
         
         /* Hide default streamlit elements */
-        .stRadio > label {
-            display: none !important;
-        }
-        
-        .stRadio > div > div > span {
+        .stSelectbox > label {
             display: none !important;
         }
         </style>
@@ -203,13 +188,12 @@ def show():
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Radio buttons for options without pre-selection
-                answer = st.radio(
+                # Select box for options without pre-selection
+                answer = st.selectbox(
                     "",  # Empty label
                     options=question["options"],
                     key=f"question_{i}",
-                    label_visibility="collapsed",
-                    index=None  # Ensure no option is pre-selected
+                    index=None  # This ensures no option is pre-selected
                 )
                 
                 if answer:
