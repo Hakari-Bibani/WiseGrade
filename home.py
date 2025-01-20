@@ -1,28 +1,100 @@
 import streamlit as st
 
+def apply_custom_styles():
+    st.markdown("""
+        <style>
+        /* Main theme colors */
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #1ABC9C;
+            --background-color: #ECF0F1;
+            --text-color: #2C3E50;
+        }
+
+        /* Global styles */
+        .stApp {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        /* Welcome section */
+        .welcome-section {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 1.5s ease-in;
+        }
+
+        /* Video section */
+        .video-section {
+            margin: 2rem 0;
+            padding: 1rem;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar styling */
+        .css-1d391kg {
+            background-color: var(--primary-color);
+        }
+
+        /* Button styling */
+        .stButton>button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .stButton>button:hover {
+            background-color: #16a085;
+            transform: translateY(-2px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 def show():
-    st.title("Welcome to Code For Impact")
+    apply_custom_styles()  # Apply the custom styles
+
+    # Welcome Section
+    st.markdown("<div class='welcome-section animate-fade-in'>", unsafe_allow_html=True)
+    st.title("Welcome to Code For Impact!")
+    st.write("""
+        This is your central hub for assignments, quizzes, and resources.
+        Navigate through the menu on the left to explore more.
+    """)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Video Section
+    st.markdown("<div class='video-section'>", unsafe_allow_html=True)
+    st.subheader("Introduction Video")
     st.markdown("""
-        <div style="text-align: center; margin: 20px 0;">
-            <h2 style="color: #1ABC9C;">Empowering Your Academic Success</h2>
-            <p>Navigate through Assignments, Quizzes, and Help to explore more.</p>
+        <div class='video-container'>
+            <iframe src="https://www.youtube.com/embed/your-video-id" frameborder="0" allowfullscreen></iframe>
         </div>
     """, unsafe_allow_html=True)
-
-    # Add a placeholder for video or image section
-    st.markdown("""
-        <div class="welcome-section">
-            <h3>Start Your Journey Today</h3>
-            <div class="video-container">
-                <!-- Replace the source with your YouTube link -->
-                <iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Add a sample button for navigation or action
-    if st.button("Explore More"):
-        st.success("This is where you can add more functionality.")
+    st.markdown("</div>", unsafe_allow_html=True)
