@@ -78,30 +78,24 @@ def apply_custom_styles():
     """, unsafe_allow_html=True)
 
 def show():
-    # Apply custom styles
-    apply_custom_styles()
-
+    apply_custom_styles()  # Apply the custom styles
+    
     # Home page content
-    st.title("Welcome to Code for Impact")
-    st.markdown("<div class='welcome-section animate-fade-in'>", unsafe_allow_html=True)
-    st.subheader("Empowering students to achieve their academic goals")
-    st.write("""
-        Code for Impact is your partner in academic success. 
-        Explore our resources, assignments, quizzes, and more!
-    """)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Optional: Embed a video or additional content
+    st.title("Welcome to Code For Impact")
+    st.write("This is the home page of the application.")
+    
+    # Example video section
+    st.markdown("<div class='video-section'>", unsafe_allow_html=True)
+    st.write("Here's a demo video about our platform:")
     st.markdown("""
-        <div class='video-section'>
-            <h3>Learn More</h3>
-            <div class='video-container'>
-                <iframe 
-                    src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
+        <div class="video-container">
+            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
         </div>
     """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Call-to-action buttons
+    st.markdown("<div class='welcome-section'>", unsafe_allow_html=True)
+    if st.button("Get Started"):
+        st.write("You clicked the Get Started button!")
+    st.markdown("</div>", unsafe_allow_html=True)
