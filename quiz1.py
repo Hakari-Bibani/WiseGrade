@@ -1,7 +1,7 @@
-import streamlit as st
+import streamlit as st 
 from Record.google_sheet import update_google_sheet
 
-# Quiz Questions and Answers
+# Quiz Questions and Answers remain the same
 questions = [
     {
         "question": "What is the correct way to access a Google Sheet in Google Colab without using an API?",
@@ -73,7 +73,8 @@ questions = [
         ],
         "answer": "Check if the key exists in the dictionary and handle the error appropriately."
     }
-]
+] 
+
 MAX_ATTEMPTS = 3
 
 def add_custom_css():
@@ -88,7 +89,6 @@ def add_custom_css():
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid #f0f0f0;
         }
-        
         .question-text {
             font-size: 1.1em;
             color: #1f1f1f;
@@ -96,185 +96,33 @@ def add_custom_css():
             margin-bottom: 20px;
             font-weight: 500;
         }
-        
-        /* Custom select box styling */
-        .stSelectbox > div > div {
-            background-color: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin: 8px 0;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            font-weight: 400;
-            color: #495057;
-            width: 100%;
-            display: block;
-        }
-        
-        .stSelectbox > div > div:hover {
-            background-color: #e9ecef;
-            transform: translateX(5px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        /* Selected state styling */
-        .stSelectbox > div > div[data-baseweb="select"] {
-            background-color: #0066cc;
-            color: white;
-            border-color: #0066cc;
-        }
-        
-        /* Progress indicator */
-        .progress-indicator {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        /* Student ID section */
-        .student-id-container {
-            background-color: #ffffff;
-            padding: 24px;
-            border-radius: 12px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        
-        /* Hide default streamlit elements */
-        .stSelectbox > label {
-            display: none !important;
-        }
-        
-        .stSelectbox > div > div > span {
-            display: none !important;
-        }
         </style>
     """, unsafe_allow_html=True)
 
-def validate_student_id(student_id):
-    try:
-        google_sheets_secrets = st.secrets.get("google_sheets", None)
-        if not google_sheets_secrets:
-            st.error("Google Sheets credentials are missing in Streamlit secrets.")
-            return False
-
-        import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(google_sheets_secrets, scope)
-        client = gspread.authorize(credentials)
-
-        spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
-        worksheet = spreadsheet.sheet1
-        saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]
-
-        return student_id in saved_ids
-
-    except Exception as e:
-        st.error(f"Error validating Student ID: {e}")
-        return False
-
 def show():
     add_custom_css()
-    
     st.title("Quiz 1: Python and Google Sheets")
-    
-    # Step 1: Enter Student ID with improved styling
-    with st.container():
-        st.header("Step 1: Enter Your Student ID")
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            student_id = st.text_input("Student ID", placeholder="Enter your student ID")
-        with col2:
-            verify_button = st.button("Verify ID", type="primary", use_container_width=True)
 
-    if "attempts" not in st.session_state:
-        st.session_state["attempts"] = 0
-
-    if verify_button:
-        if validate_student_id(student_id):
-            st.success("✅ Student ID validated. You can proceed with the quiz.")
-            st.session_state["validated"] = True
-        else:
-            st.error("❌ Invalid Student ID. Please use the ID associated with Assignment 1.")
-            st.session_state["validated"] = False
-
-    if st.session_state.get("validated", False):
-        st.header("Step 2: Answer the Questions")
-
-        if "user_answers" not in st.session_state:
-            st.session_state["user_answers"] = [None] * len(questions)
-
-        # Progress indicator
-        answered_questions = sum(1 for answer in st.session_state["user_answers"] if answer is not None)
-        st.markdown(f"""
-            <div class="progress-indicator">
-                Questions answered: {answered_questions}/{len(questions)}
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Quiz questions with improved UI
-        for i, question in enumerate(questions):
-            with st.container():
-                st.markdown(f"""
-                    <div class="question-container">
-                        <div class="question-text">
-                            Q{i+1}: {question['question']}
-                        </div>
+    # Quiz questions with improved UI using selectbox
+    for i, question in enumerate(questions):
+        with st.container():
+            st.markdown(f"""
+                <div class="question-container">
+                    <div class="question-text">
+                        Q{i+1}: {question['question']}
                     </div>
-                """, unsafe_allow_html=True)
-                
-                # Select box for options without pre-selection
-                answer = st.selectbox(
-                    "",  # Empty label
-                    options=[""] + question["options"],  # Add an empty string as the first option
-                    key=f"question_{i}",
-                    label_visibility="collapsed"
-                )
-                
-                if answer:
-                    st.session_state["user_answers"][i] = answer
+                </div>
+            """, unsafe_allow_html=True)
 
-        # Submit Button with improved styling
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            submit_button = st.button(
-                "Submit Quiz",
-                type="primary",
-                use_container_width=True,
-                disabled=None in st.session_state["user_answers"]  # Disable if not all questions are answered
+            answer = st.selectbox(
+                "Select your answer:",
+                options=["---"] + question["options"],
+                key=f"question_{i}"
             )
 
-        if submit_button:
-            if st.session_state["attempts"] >= MAX_ATTEMPTS:
-                st.error("❌ You have reached the maximum number of attempts for this quiz.")
-                return
-
-            # Calculate Score
-            score = sum(
-                1 for i, question in enumerate(questions)
-                if st.session_state["user_answers"][i] == question["answer"]
-            )
-
-            st.session_state["attempts"] += 1
-            total_score = (score / len(questions)) * 100
-            
-            # Display score with progress bar
-            st.markdown("### Quiz Results")
-            st.progress(total_score/100)
-            st.success(f"📊 Your score: {total_score:.1f}/100")
-
-            # Save grade to Google Sheets
-            update_google_sheet(
-                full_name="",
-                email="",
-                student_id=student_id,
-                grade=total_score,
-                current_assignment="quiz_1"
-            )
+            # Ensure no default answer is selected
+            if answer != "---":
+                st.session_state[f"answer_{i}"] = answer
 
 if __name__ == "__main__":
     show()
