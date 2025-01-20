@@ -23,30 +23,23 @@ def apply_custom_styles():
             padding: 2rem 0;
         }
 
-        .animate-fade-in {
-            animation: fadeIn 1.5s ease-in;
+        /* Animated red title */
+        .animated-title {
+            color: red;
+            font-size: 2.5rem;
+            font-weight: bold;
+            animation: slideIn 2s infinite alternate;
+        }
+
+        @keyframes slideIn {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(10px); }
         }
 
         /* Video section */
         .video-section {
             margin: 2rem 0;
             padding: 1rem;
-        }
-
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%;
-            height: 0;
-            overflow: hidden;
-            max-width: 100%;
-        }
-
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
         }
 
         /* Sidebar styling */
@@ -69,11 +62,6 @@ def apply_custom_styles():
             transform: translateY(-2px);
         }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -81,21 +69,11 @@ def show():
     apply_custom_styles()  # Apply the custom styles
     
     # Home page content
-    st.title("Welcome to Code For Impact")
-    st.write("This is the home page of the application.")
-    
-    # Example video section
-    st.markdown("<div class='video-section'>", unsafe_allow_html=True)
-    st.write("Here's a demo video about our platform:")
-    st.markdown("""
-        <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
-        </div>
-    """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Call-to-action buttons
     st.markdown("<div class='welcome-section'>", unsafe_allow_html=True)
-    if st.button("Get Started"):
-        st.write("You clicked the Get Started button!")
+    st.markdown("<div class='animated-title'>Welcome to Code For Impact</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Placeholder for video link
+    st.markdown("<div class='video-section'>", unsafe_allow_html=True)
+    st.write("Watch the demo video about our platform [here](https://example.com).")  # Replace with your link
     st.markdown("</div>", unsafe_allow_html=True)
