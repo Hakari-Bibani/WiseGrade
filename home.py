@@ -19,14 +19,6 @@ def apply_custom_styles():
             animation: move 2s infinite;
             margin-bottom: 1rem; /* Reduced space below the title */
         }
-
-        /* Footer text */
-        .footer {
-            text-align: center;
-            font-size: 1.2rem;
-            color: #2C3E50;
-            margin-top: 2rem;
-        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -41,6 +33,3 @@ def show():
     # Replace the placeholder URL with the real YouTube video link
     video_url = "https://www.youtube.com/watch?v=YOUR_REAL_VIDEO_LINK"
     st.video(video_url)
-
-    # Footer Text
-    st.markdown('<div class="footer">Code for Impact is your partner in academic success</div>', unsafe_allow_html=True)
