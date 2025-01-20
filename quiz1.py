@@ -209,7 +209,7 @@ def show():
                     options=question["options"],
                     key=f"question_{i}",
                     label_visibility="collapsed",
-                    index=None  # This ensures no option is pre-selected
+                    index=None  # Ensure no option is pre-selected
                 )
                 
                 if answer:
