@@ -20,7 +20,7 @@ questions = [
     }
 ]
 
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 1
 
 def add_custom_css():
     st.markdown("""
