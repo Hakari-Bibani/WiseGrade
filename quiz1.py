@@ -80,6 +80,7 @@ MAX_ATTEMPTS = 3
 def add_custom_css():
     st.markdown("""
         <style>
+        /* Modern container styling */
         .question-container {
             background-color: #ffffff;
             border-radius: 12px;
@@ -88,6 +89,7 @@ def add_custom_css():
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid #f0f0f0;
         }
+        
         .question-text {
             font-size: 1.1em;
             color: #1f1f1f;
@@ -95,9 +97,12 @@ def add_custom_css():
             margin-bottom: 20px;
             font-weight: 500;
         }
+        
+        /* Custom radio button styling */
         .stRadio > div {
             gap: 12px;
         }
+        
         .stRadio > div > label {
             background-color: #f8f9fa;
             border: 2px solid #e9ecef;
@@ -111,22 +116,45 @@ def add_custom_css():
             width: 100%;
             display: block;
         }
+        
         .stRadio > div > label:hover {
             background-color: #e9ecef;
             transform: translateX(5px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
+        
+        /* Selected state styling */
         .stRadio > div > label[data-checked="true"] {
             background-color: #0066cc;
             color: white;
             border-color: #0066cc;
         }
+        
+        /* Progress indicator */
         .progress-indicator {
             margin: 20px 0;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 8px;
             text-align: center;
+        }
+        
+        /* Student ID section */
+        .student-id-container {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* Hide default streamlit elements */
+        .stRadio > label {
+            display: none !important;
+        }
+        
+        .stRadio > div > div > span {
+            display: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -154,7 +182,7 @@ def validate_student_id(student_id):
         st.error(f"Error validating Student ID: {e}")
         return False
 
-def check_assignment1_submission(student_id):
+def update_google_sheet(full_name, email, student_id, grade, current_assignment):
     try:
         google_sheets_secrets = st.secrets.get("google_sheets", None)
         if not google_sheets_secrets:
@@ -169,22 +197,44 @@ def check_assignment1_submission(student_id):
 
         spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
         worksheet = spreadsheet.sheet1
-        data = worksheet.get_all_values()
 
-        for row in data:
-            if row[2] == student_id and row[4].strip().lower() == "submitted":
-                return True
+        rows = worksheet.get_all_values()
 
-        return False
+        # Check if Assignment 1 is submitted for the student ID
+        assignment_1_submitted = any(
+            row[2] == student_id and row[4] == "assignment_1" for row in rows[1:]
+        )
+
+        if not assignment_1_submitted:
+            st.error(
+                "Resubmission not allowed for quiz_1 as later assignments are already submitted. "
+                "Please submit Assignment 1 with the same Student ID first."
+            )
+            return False
+
+        # Check if the current assignment is already submitted
+        already_submitted = any(
+            row[2] == student_id and row[4] == current_assignment for row in rows[1:]
+        )
+
+        if already_submitted:
+            st.error(f"Resubmission not allowed for {current_assignment}.")
+            return False
+
+        worksheet.append_row([full_name, email, student_id, grade, current_assignment])
+        st.success(f"Successfully saved grade for {current_assignment}.")
+        return True
+
     except Exception as e:
-        st.error(f"Error checking Assignment 1 submission: {e}")
+        st.error(f"Error updating Google Sheet: {e}")
         return False
 
 def show():
     add_custom_css()
-
+    
     st.title("Quiz 1: Python and Google Sheets")
-
+    
+    # Step 1: Enter Student ID with improved styling
     with st.container():
         st.header("Step 1: Enter Your Student ID")
         col1, col2 = st.columns([3, 1])
@@ -198,12 +248,8 @@ def show():
 
     if verify_button:
         if validate_student_id(student_id):
-            if check_assignment1_submission(student_id):
-                st.success("✅ Student ID validated, and Assignment 1 has been submitted. You can proceed with the quiz.")
-                st.session_state["validated"] = True
-            else:
-                st.error("❌ Assignment 1 has not been submitted. Please complete Assignment 1 before attempting the quiz.")
-                st.session_state["validated"] = False
+            st.success("✅ Student ID validated. You can proceed with the quiz.")
+            st.session_state["validated"] = True
         else:
             st.error("❌ Invalid Student ID. Please use the ID associated with Assignment 1.")
             st.session_state["validated"] = False
@@ -214,6 +260,7 @@ def show():
         if "user_answers" not in st.session_state:
             st.session_state["user_answers"] = [None] * len(questions)
 
+        # Progress indicator
         answered_questions = sum(1 for answer in st.session_state["user_answers"] if answer is not None)
         st.markdown(f"""
             <div class="progress-indicator">
@@ -221,6 +268,7 @@ def show():
             </div>
         """, unsafe_allow_html=True)
 
+        # Quiz questions with improved UI
         for i, question in enumerate(questions):
             with st.container():
                 st.markdown(f"""
@@ -230,25 +278,27 @@ def show():
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
-
+                
+                # Radio buttons for options without pre-selection
                 answer = st.radio(
-                    "", 
+                    "",  # Empty label
                     options=question["options"],
                     key=f"question_{i}",
                     label_visibility="collapsed",
-                    index=None
+                    index=None  # This ensures no option is pre-selected
                 )
-
+                
                 if answer:
                     st.session_state["user_answers"][i] = answer
 
+        # Submit Button with improved styling
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             submit_button = st.button(
                 "Submit Quiz",
                 type="primary",
                 use_container_width=True,
-                disabled=None in st.session_state["user_answers"]
+                disabled=None in st.session_state["user_answers"]  # Disable if not all questions are answered
             )
 
         if submit_button:
@@ -256,6 +306,7 @@ def show():
                 st.error("❌ You have reached the maximum number of attempts for this quiz.")
                 return
 
+            # Calculate Score
             score = sum(
                 1 for i, question in enumerate(questions)
                 if st.session_state["user_answers"][i] == question["answer"]
@@ -263,11 +314,13 @@ def show():
 
             st.session_state["attempts"] += 1
             total_score = (score / len(questions)) * 100
-
+            
+            # Display score with progress bar
             st.markdown("### Quiz Results")
             st.progress(total_score/100)
             st.success(f"📊 Your score: {total_score:.1f}/100")
 
+            # Save grade to Google Sheets
             update_google_sheet(
                 full_name="",
                 email="",
@@ -278,7 +331,3 @@ def show():
 
 if __name__ == "__main__":
     show()
-
-
-
-
