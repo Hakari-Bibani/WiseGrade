@@ -3,71 +3,54 @@ import streamlit as st
 def apply_custom_styles():
     st.markdown("""
         <style>
-        /* Styling for the title */
+        /* Title styling with animation */
         .title {
             color: red;
-            font-size: 2.5rem;
-            font-weight: bold;
+            font-size: 3rem;
             text-align: center;
-            animation: moveTitle 2s infinite alternate;
+            animation: slide 2s infinite alternate;
         }
 
-        /* Styling for the subtitle */
-        .subtitle {
-            color: #2C3E50;
-            font-size: 1.5rem;
-            text-align: center;
-            margin-top: 1rem;
+        @keyframes slide {
+            from { transform: translateX(0); }
+            to { transform: translateX(10px); }
         }
 
-        /* Styling for the footer text */
-        .footer-text {
-            color: #2C3E50;
-            font-size: 1rem;
-            text-align: center;
-            margin-top: 2rem;
-        }
-
-        /* Animation for the title */
-        @keyframes moveTitle {
-            from {
-                transform: translateY(0);
-            }
-            to {
-                transform: translateY(10px);
-            }
-        }
-
-        /* Video placeholder styling */
+        /* Placeholder for video */
         .video-placeholder {
+            width: 100%;
+            height: 315px; /* Matches YouTube video aspect ratio */
+            background-color: black;
+            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 2rem auto;
-            padding: 1rem;
-            width: 80%;
-            height: 250px;
-            background-color: #ECF0F1;
-            border: 2px dashed #BDC3C7;
-            color: #7F8C8D;
+            color: white;
             font-size: 1.2rem;
-            border-radius: 8px;
+        }
+
+        /* Footer text styling */
+        .footer-text {
             text-align: center;
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            color: #2C3E50;
         }
         </style>
     """, unsafe_allow_html=True)
 
 def show():
     apply_custom_styles()
-
-    # Title with animation
+    
+    # Display the animated title
     st.markdown('<div class="title">Welcome to Code for Impact</div>', unsafe_allow_html=True)
-
-    # Subtitle
-    st.markdown('<div class="subtitle">Impact is your partner in academic success</div>', unsafe_allow_html=True)
-
-    # Video placeholder
-    st.markdown('<div class="video-placeholder">Instructional Video Placeholder</div>', unsafe_allow_html=True)
-
-    # Footer text
+    
+    # Add some spacing
+    st.write("")
+    st.write("")
+    
+    # Display the video placeholder
+    st.markdown('<div class="video-placeholder">[ Video Placeholder ]</div>', unsafe_allow_html=True)
+    
+    # Add the footer text
     st.markdown('<div class="footer-text">Code for Impact is your partner in academic success</div>', unsafe_allow_html=True)
