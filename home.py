@@ -84,8 +84,8 @@ def show():
     st.markdown("<div class='welcome-section animate-fade-in'>", unsafe_allow_html=True)
     st.title("Welcome to Code For Impact!")
     st.write("""
-        This is your central hub for assignments, quizzes, and resources.
-        Navigate through the menu on the left to explore more.
+                Code For Impact © 2024 - Your Partner in Academic Success
+.
     """)
     st.markdown("</div>", unsafe_allow_html=True)
 
