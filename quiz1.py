@@ -177,17 +177,15 @@ def validate_student_id(student_id):
         rows = worksheet.get_all_values()
 
         # Check if the student ID exists in the Google Sheet
-        for i, row in enumerate(rows):
-            if row[2] == student_id:
-                return i  # Return the row index if found
+        student_id_exists = any(row[2] == student_id for row in rows[1:])
 
-        return None  # Return None if not found
+        return student_id_exists
 
     except Exception as e:
         st.error(f"Error validating Student ID: {e}")
-        return None
+        return False
 
-def update_google_sheet(student_id, grade, row_index):
+def update_google_sheet(full_name, email, student_id, grade, current_assignment):
     try:
         google_sheets_secrets = st.secrets.get("google_sheets", None)
         if not google_sheets_secrets:
@@ -202,11 +200,18 @@ def update_google_sheet(student_id, grade, row_index):
 
         spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
         worksheet = spreadsheet.sheet1
+        rows = worksheet.get_all_values()
 
-        # Update the "quiz_1" column for the specified row
-        worksheet.update_cell(row_index + 1, 5, grade)  # Assuming column 5 is "quiz_1"
-        st.success("Successfully saved grade for Quiz 1.")
-        return True
+        # Find the row with the given student ID and update the grade under the "quiz_1" column
+        for i, row in enumerate(rows):
+            if row[2] == student_id:
+                quiz_1_column_index = rows[0].index("quiz_1")  # Assuming "quiz_1" is a column header
+                worksheet.update_cell(i + 1, quiz_1_column_index + 1, grade)
+                st.success(f"Successfully saved grade for {current_assignment}.")
+                return True
+
+        st.error("Student ID not found in the Google Sheet.")
+        return False
 
     except Exception as e:
         st.error(f"Error updating Google Sheet: {e}")
@@ -230,11 +235,9 @@ def show():
         st.session_state["attempts"] = 0
 
     if verify_button:
-        row_index = validate_student_id(student_id)
-        if row_index is not None:
+        if validate_student_id(student_id):
             st.success("✅ Student ID validated. You can proceed with the quiz.")
             st.session_state["validated"] = True
-            st.session_state["row_index"] = row_index
         else:
             st.error("❌ Invalid Student ID. Please ensure your Student ID is registered.")
             st.session_state["validated"] = False
@@ -307,9 +310,11 @@ def show():
 
             # Save grade to Google Sheets
             update_google_sheet(
+                full_name="",
+                email="",
                 student_id=student_id,
                 grade=total_score,
-                row_index=st.session_state["row_index"]
+                current_assignment="quiz_1"
             )
 
 if __name__ == "__main__":
