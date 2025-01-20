@@ -22,43 +22,75 @@ questions = [
 
 MAX_ATTEMPTS = 3
 
-# Add custom CSS for better styling
 def add_custom_css():
     st.markdown("""
         <style>
-        .true-false-container {
-            background-color: #f0f2f6;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 10px 0;
+        /* Modern container styling */
+        .question-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
         }
+        
+        /* Question text styling */
         .question-text {
             font-size: 1.1em;
-            margin-bottom: 15px;
-            color: #0e1117;
+            color: #1f1f1f;
+            line-height: 1.5;
+            margin-bottom: 20px;
         }
-        .stRadio > label {
-            background-color: white;
-            padding: 15px 20px;
+        
+        /* Custom radio button styling */
+        .stRadio > div {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .stRadio > div > label {
+            flex: 1;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
-            margin: 8px 0;
-            border: 2px solid #e0e0e0;
-            transition: all 0.3s ease;
+            padding: 12px 24px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-weight: 500;
+            color: #495057;
+            min-width: 120px;
         }
-        .stRadio > label:hover {
-            border-color: #ff4b4b;
+        
+        .stRadio > div > label:hover {
+            background-color: #e9ecef;
             transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .submit-button {
-            margin-top: 20px;
+        
+        /* Hide default radio button */
+        .stRadio input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
         }
-        .points-badge {
-            background-color: #0e1117;
+        
+        /* Selected state styling */
+        .stRadio > div > label[data-checked="true"] {
+            background-color: #0066cc;
             color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            float: right;
+            border-color: #0066cc;
+        }
+        
+        /* Remove default streamlit label */
+        .stRadio > label {
+            display: none !important;
+        }
+        
+        /* Hide default help text icon */
+        .stRadio > div > div > span {
+            display: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -121,21 +153,19 @@ def show():
         for i, question in enumerate(questions):
             with st.container():
                 st.markdown(f"""
-                    <div class="true-false-container">
+                    <div class="question-container">
                         <div class="question-text">
                             Q{i+1}: {question['question']}
-                            <span class="points-badge">{question['points']} points</span>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Replace slider with radio buttons
                 answer = st.radio(
-                    "Select your answer:",
+                    "",  # Empty label
                     options=["True", "False"],
                     key=f"question_{i}",
                     horizontal=True,
-                    help="Choose True or False"
+                    label_visibility="collapsed"
                 )
                 st.session_state["user_answers"][i] = answer == "True"
 
