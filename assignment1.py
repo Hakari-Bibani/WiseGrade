@@ -44,6 +44,7 @@ def show():
             if full_name and email:
                 student_id = generate_student_id(full_name, email)
                 st.success(f"Student ID generated: {student_id}")
+                st.info("Please save your Student ID; you will need it for other assignments.")
             else:
                 st.error("Please provide both Full Name and Email to generate a Student ID.")
 
