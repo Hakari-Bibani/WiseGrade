@@ -17,13 +17,7 @@ def apply_custom_styles():
             font-weight: bold;
             text-align: center;
             animation: move 2s infinite;
-        }
-
-        /* Video section */
-        .video-container {
-            text-align: center;
-            margin-top: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem; /* Reduced space below the title */
         }
 
         /* Footer text */
@@ -44,10 +38,9 @@ def show():
     st.markdown('<div class="title">Welcome to Code for Impact</div>', unsafe_allow_html=True)
 
     # Video Section
-    st.markdown('<div class="video-container">', unsafe_allow_html=True)
-    # Replace with your YouTube video link later
-    st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Replace the placeholder URL with the real YouTube video link
+    video_url = "https://www.youtube.com/watch?v=YOUR_REAL_VIDEO_LINK"
+    st.video(video_url)
 
     # Footer Text
     st.markdown('<div class="footer">Code for Impact is your partner in academic success</div>', unsafe_allow_html=True)
