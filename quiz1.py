@@ -13,7 +13,67 @@ questions = [
         ],
         "answer": "By sharing the Google Sheet link and importing it using a public URL."
     },
-    # ... rest of the questions ...
+    },
+    {
+        "question": "How can ChatGPT be effectively used to assist in Python programming for processing Google Sheets?",
+        "options": [
+            "ChatGPT automatically integrates with Google Colab to process data.",
+            "ChatGPT can write complete working scripts without any user input.",
+            "ChatGPT can provide suggestions for improving your code, including optimization and error handling.",
+            "ChatGPT replaces the need for learning Python syntax and programming logic."
+        ],
+        "answer": "ChatGPT can provide suggestions for improving your code, including optimization and error handling."
+    },
+    {
+        "question": "Which of the following steps is required to save processed data back to Google Sheets using the Google Sheets API in Google Colab?",
+        "options": [
+            "Authenticating Colab with a personal Gmail account using gspread.",
+            "Sharing the Google Sheet with a service account email.",
+            "Both a and b.",
+            "Using pandas to write data directly to the Google Sheet without authentication."
+        ],
+        "answer": "Both a and b."
+    },
+    {
+        "question": "What is the first step to accessing Google Sheets using the Google Sheets API in Google Colab?",
+        "options": [
+            "Install the Google Sheets API client library and authenticate with an API key or service account credentials.",
+            "Directly import the gspread library without any setup.",
+            "Mount Google Drive and access the Google Sheet directly.",
+            "Share the Google Sheet link publicly and download the file as a CSV."
+        ],
+        "answer": "Install the Google Sheets API client library and authenticate with an API key or service account credentials."
+    },
+    {
+        "question": "How can ChatGPT assist in debugging Python code in your Google Colab workflow?",
+        "options": [
+            "By providing insights into error messages and suggesting corrections or improvements to the code.",
+            "By connecting directly to your Colab instance to detect errors.",
+            "By automatically fixing errors in real-time as you run the code.",
+            "By generating new errors to help understand debugging techniques."
+        ],
+        "answer": "By providing insights into error messages and suggesting corrections or improvements to the code."
+    },
+    {
+        "question": "What is the main advantage of mounting Google Drive in Google Colab for working with Google Sheets?",
+        "options": [
+            "It provides real-time synchronization between Google Sheets and Colab.",
+            "It automatically processes data in Google Sheets without user intervention.",
+            "It eliminates the need for authentication using the Google Sheets API.",
+            "It allows direct access to all files stored in Google Drive."
+        ],
+        "answer": "It provides real-time synchronization between Google Sheets and Colab."
+    },
+    {
+        "question": "Your code throws a KeyError when accessing a dictionary. What should you do?",
+        "options": [
+            "Blame Python for not understanding what you meant.",
+            "Check if the key exists in the dictionary and handle the error appropriately.",
+            "Write an angry email to Guido van Rossum demanding an explanation.",
+            "Take a coffee break and hope the error fixes itself."
+        ],
+        "answer": "Check if the key exists in the dictionary and handle the error appropriately."
+    }
 ]
 
 MAX_ATTEMPTS = 3
