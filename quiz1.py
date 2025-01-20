@@ -1,7 +1,7 @@
 import streamlit as st
 from Record.google_sheet import update_google_sheet
 
-# Quiz Questions and Answers remain the same
+# Quiz Questions and Answers
 questions = [
     {
         "question": "What is the correct way to access a Google Sheet in Google Colab without using an API?",
@@ -13,7 +13,36 @@ questions = [
         ],
         "answer": "By sharing the Google Sheet link and importing it using a public URL."
     },
-    
+    {
+        "question": "How can ChatGPT be effectively used to assist in Python programming for processing Google Sheets?",
+        "options": [
+            "ChatGPT automatically integrates with Google Colab to process data.",
+            "ChatGPT can write complete working scripts without any user input.",
+            "ChatGPT can provide suggestions for improving your code, including optimization and error handling.",
+            "ChatGPT replaces the need for learning Python syntax and programming logic."
+        ],
+        "answer": "ChatGPT can provide suggestions for improving your code, including optimization and error handling."
+    },
+    {
+        "question": "Which of the following steps is required to save processed data back to Google Sheets using the Google Sheets API in Google Colab?",
+        "options": [
+            "Authenticating Colab with a personal Gmail account using gspread.",
+            "Sharing the Google Sheet with a service account email.",
+            "Both a and b.",
+            "Using pandas to write data directly to the Google Sheet without authentication."
+        ],
+        "answer": "Both a and b."
+    },
+    {
+        "question": "What is the first step to accessing Google Sheets using the Google Sheets API in Google Colab?",
+        "options": [
+            "Install the Google Sheets API client library and authenticate with an API key or service account credentials.",
+            "Directly import the gspread library without any setup.",
+            "Mount Google Drive and access the Google Sheet directly.",
+            "Share the Google Sheet link publicly and download the file as a CSV."
+        ],
+        "answer": "Install the Google Sheets API client library and authenticate with an API key or service account credentials."
+    },
     {
         "question": "How can ChatGPT assist in debugging Python code in your Google Colab workflow?",
         "options": [
@@ -45,7 +74,6 @@ questions = [
         "answer": "Check if the key exists in the dictionary and handle the error appropriately."
     }
 ]
-
 MAX_ATTEMPTS = 3
 
 def add_custom_css():
@@ -74,7 +102,7 @@ def add_custom_css():
             background-color: #f8f9fa;
             border: 2px solid #e9ecef;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 16px 20px;
             margin: 8px 0;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -88,6 +116,13 @@ def add_custom_css():
             background-color: #e9ecef;
             transform: translateX(5px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* Selected state styling */
+        .stSelectbox > div > div[data-baseweb="select"] {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
         }
         
         /* Progress indicator */
@@ -110,6 +145,10 @@ def add_custom_css():
         
         /* Hide default streamlit elements */
         .stSelectbox > label {
+            display: none !important;
+        }
+        
+        .stSelectbox > div > div > span {
             display: none !important;
         }
         </style>
@@ -191,9 +230,9 @@ def show():
                 # Select box for options without pre-selection
                 answer = st.selectbox(
                     "",  # Empty label
-                    options=question["options"],
+                    options=[""] + question["options"],  # Add an empty string as the first option
                     key=f"question_{i}",
-                    index=None  # This ensures no option is pre-selected
+                    label_visibility="collapsed"
                 )
                 
                 if answer:
