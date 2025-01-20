@@ -174,9 +174,14 @@ def validate_student_id(student_id):
 
         spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
         worksheet = spreadsheet.sheet1
-        saved_ids = [row[2] for row in worksheet.get_all_values()[1:]]
+        rows = worksheet.get_all_values()
 
-        return student_id in saved_ids
+        # Check if Assignment 1 is submitted for the student ID
+        assignment_1_submitted = any(
+            row[2] == student_id and row[4] == "assignment_1" for row in rows[1:]
+        )
+
+        return assignment_1_submitted
 
     except Exception as e:
         st.error(f"Error validating Student ID: {e}")
@@ -207,18 +212,8 @@ def update_google_sheet(full_name, email, student_id, grade, current_assignment)
 
         if not assignment_1_submitted:
             st.error(
-                "Resubmission not allowed for quiz_1 as later assignments are already submitted. "
-                "Please submit Assignment 1 with the same Student ID first."
+                "You must submit Assignment 1 with the same Student ID before submitting Quiz 1."
             )
-            return False
-
-        # Check if the current assignment is already submitted
-        already_submitted = any(
-            row[2] == student_id and row[4] == current_assignment for row in rows[1:]
-        )
-
-        if already_submitted:
-            st.error(f"Resubmission not allowed for {current_assignment}.")
             return False
 
         worksheet.append_row([full_name, email, student_id, grade, current_assignment])
@@ -251,7 +246,7 @@ def show():
             st.success("✅ Student ID validated. You can proceed with the quiz.")
             st.session_state["validated"] = True
         else:
-            st.error("❌ Invalid Student ID. Please use the ID associated with Assignment 1.")
+            st.error("❌ Invalid Student ID or Assignment 1 not submitted. Please ensure Assignment 1 is submitted with the same Student ID.")
             st.session_state["validated"] = False
 
     if st.session_state.get("validated", False):
