@@ -1,7 +1,6 @@
 import streamlit as st
 from Record.google_sheet import update_google_sheet
 
-# Quiz Questions and Answers remain the same
 questions = [
     {
         "question": "What is the correct way to access a Google Sheet in Google Colab without using an API?",
@@ -12,7 +11,6 @@ questions = [
             "By exporting the Google Sheet as a CSV file and uploading it to Google Colab"
         ],
         "answer": "By sharing the Google Sheet link and importing it using a public URL."
-    },
     },
     {
         "question": "How can ChatGPT be effectively used to assist in Python programming for processing Google Sheets?",
@@ -76,94 +74,92 @@ questions = [
     }
 ]
 
+# Rest of the code remains the same as in the previous response, including:
+# - MAX_ATTEMPTS
+# - add_custom_css()
+# - validate_student_id()
+# - show()
+# - All the styling and functionality
+
 MAX_ATTEMPTS = 3
 
 def add_custom_css():
     st.markdown("""
         <style>
-        /* Main container styling */
+        /* Main container */
         .main {
             max-width: 1200px;
             margin: 0 auto;
         }
         
-        /* Question card styling */
-        .question-card {
+        /* Modern card design */
+        .quiz-card {
             background-color: white;
             border-radius: 12px;
             padding: 24px;
-            margin: 20px 0;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin: 16px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             border: 1px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+        
+        .quiz-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+        
+        /* Question styling */
+        .question-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f3f4f6;
         }
         
         .question-number {
-            color: #6b7280;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            padding: 4px 12px;
+            border-radius: 16px;
             font-size: 0.9em;
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-right: 12px;
         }
         
         .question-text {
             font-size: 1.1em;
             color: #1f2937;
             font-weight: 500;
-            margin-bottom: 20px;
             line-height: 1.5;
+            margin-bottom: 20px;
         }
         
-        /* Option styling */
-        .stSelectbox > div > div {
-            background-color: white;
-            border: 2px solid #e5e7eb;
+        /* Radio button styling */
+        .stRadio > div {
+            background-color: #f8fafc;
             border-radius: 8px;
-            padding: 8px 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            padding: 16px;
+            margin: 8px 0;
         }
         
-        .stSelectbox > div > div:hover {
+        .stRadio > div > div {
+            gap: 16px;
+        }
+        
+        .stRadio > div > div > label {
+            background-color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .stRadio > div > div > label:hover {
             border-color: #3b82f6;
             transform: translateY(-1px);
         }
-        
-        /* Custom button styling */
-        .stButton > button {
-            width: 100%;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        /* Progress indicator */
-        .progress-indicator {
-            background-color: #f3f4f6;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-        }
-        
-        /* Success/Error messages */
-        .stSuccess, .stError {
-            padding: 16px;
-            border-radius: 8px;
-            margin: 16px 0;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Hide default streamlit branding */
-        #MainMenu, footer {display: none;}
         
         /* Student ID input styling */
         .stTextInput > div > div > input {
@@ -177,11 +173,65 @@ def add_custom_css():
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
+        
+        /* Button styling */
+        .stButton > button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Progress bar */
+        .progress-bar {
+            background-color: #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        
+        /* Results section */
+        .results-card {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        
+        /* Hide default streamlit elements */
+        #MainMenu, footer {display: none;}
+        
+        /* Option container styling */
+        .option-container {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option-container:hover {
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* Selected option styling */
+        .option-selected {
+            background-color: #f0f9ff;
+            border-color: #3b82f6;
+        }
         </style>
     """, unsafe_allow_html=True)
 
 def validate_student_id(student_id):
-    # Existing validation logic remains the same
     try:
         google_sheets_secrets = st.secrets.get("google_sheets", None)
         if not google_sheets_secrets:
@@ -209,11 +259,11 @@ def show():
     
     st.title("📚 Quiz 1: Python and Google Sheets")
     
-    # Step 1: Student ID Verification
+    # Student ID Section
     with st.container():
         col1, col2 = st.columns([3, 1])
         with col1:
-            student_id = st.text_input("🆔 Enter Your Student ID")
+            student_id = st.text_input("🆔 Enter Your Student ID", key="student_id_input")
         with col2:
             verify_button = st.button("Verify ID", type="primary", use_container_width=True)
 
@@ -222,7 +272,7 @@ def show():
 
     if verify_button:
         if validate_student_id(student_id):
-            st.success("✅ ID Verified - Good luck with your quiz!")
+            st.success("✅ ID Verified - You may proceed with the quiz")
             st.session_state["validated"] = True
         else:
             st.error("❌ Invalid ID - Please use your Assignment 1 ID")
@@ -231,33 +281,35 @@ def show():
     if st.session_state.get("validated", False):
         if "user_answers" not in st.session_state:
             st.session_state["user_answers"] = [None] * len(questions)
-            
-        # Progress indicator
-        answered_questions = sum(1 for answer in st.session_state["user_answers"] if answer is not None)
+
+        # Progress tracking
+        answered = sum(1 for ans in st.session_state["user_answers"] if ans is not None)
         st.markdown(f"""
-            <div class="progress-indicator">
-                📝 Progress: {answered_questions}/{len(questions)} questions answered
+            <div class="progress-bar">
+                📝 Progress: {answered}/{len(questions)} questions answered
             </div>
         """, unsafe_allow_html=True)
 
-        # Quiz questions
+        # Quiz Questions
         for i, question in enumerate(questions):
             with st.container():
                 st.markdown(f"""
-                    <div class="question-card">
-                        <div class="question-number">Question {i+1} of {len(questions)}</div>
-                        <div class="question-text">{question['question']}</div>
+                    <div class="quiz-card">
+                        <div class="question-header">
+                            <div class="question-number">Question {i+1}</div>
+                            <div class="question-text">{question['question']}</div>
+                        </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                answer = st.selectbox(
-                    "",  # Empty label
-                    options=["Select your answer..."] + question["options"],
+                answer = st.radio(
+                    "",
+                    options=question["options"],
                     key=f"question_{i}",
                     label_visibility="collapsed"
                 )
                 
-                if answer != "Select your answer...":
+                if answer:
                     st.session_state["user_answers"][i] = answer
 
         # Submit section
@@ -267,7 +319,7 @@ def show():
             submit_button = st.button(
                 "📤 Submit Quiz",
                 type="primary",
-                use_container_width=True,
+                use_container_width=True
             )
 
         if submit_button:
