@@ -31,6 +31,14 @@ def show():
     with st.expander("What if I forget my student ID?"):
         st.write("If you forget your student ID, please email [meermiro299@gmail.com](mailto:meermiro299@gmail.com) to request it.")
 
+    # Contact Section
+    st.markdown(
+        """
+        ### Need More Help?
+        If you have any further questions or concerns, feel free to reach out to us via email at [meermiro299@gmail.com](mailto:meermiro299@gmail.com).
+        """
+    )
+
 # Call the show function to display the interface
 if __name__ == "__main__":
     show()
