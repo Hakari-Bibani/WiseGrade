@@ -176,12 +176,10 @@ def validate_student_id(student_id):
         worksheet = spreadsheet.sheet1
         rows = worksheet.get_all_values()
 
-        # Check if Assignment 1 is submitted for the student ID
-        assignment_1_submitted = any(
-            row[2] == student_id and row[4] == "assignment_1" for row in rows[1:]
-        )
+        # Check if the student ID exists in the Google Sheet
+        student_id_exists = any(row[2] == student_id for row in rows[1:])
 
-        return assignment_1_submitted
+        return student_id_exists
 
     except Exception as e:
         st.error(f"Error validating Student ID: {e}")
@@ -202,19 +200,6 @@ def update_google_sheet(full_name, email, student_id, grade, current_assignment)
 
         spreadsheet = client.open_by_key(google_sheets_secrets["spreadsheet_id"])
         worksheet = spreadsheet.sheet1
-
-        rows = worksheet.get_all_values()
-
-        # Check if Assignment 1 is submitted for the student ID
-        assignment_1_submitted = any(
-            row[2] == student_id and row[4] == "assignment_1" for row in rows[1:]
-        )
-
-        if not assignment_1_submitted:
-            st.error(
-                "You must submit Assignment 1 with the same Student ID before submitting Quiz 1."
-            )
-            return False
 
         worksheet.append_row([full_name, email, student_id, grade, current_assignment])
         st.success(f"Successfully saved grade for {current_assignment}.")
@@ -246,7 +231,7 @@ def show():
             st.success("✅ Student ID validated. You can proceed with the quiz.")
             st.session_state["validated"] = True
         else:
-            st.error("❌ Invalid Student ID or Assignment 1 not submitted. Please ensure Assignment 1 is submitted with the same Student ID.")
+            st.error("❌ Invalid Student ID. Please ensure your Student ID is registered.")
             st.session_state["validated"] = False
 
     if st.session_state.get("validated", False):
